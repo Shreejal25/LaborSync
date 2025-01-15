@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
-from .models import Dashboard, UserProfile
-from .serializer import DashboardSerializer, CombinedUserSerializer
+from .models import Dashboard, UserProfile,TimeLog
+from rest_framework import generics, permissions, status
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from django.utils import timezone
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
@@ -74,7 +76,7 @@ def logout(request):
         res = Response()
         res.data = {'success': True}
         res.delete_cookie('access_token', path='/', samesite='None')
-        res.delete_cookie('response_token', path='/', samesite='None')
+        res.delete_cookie('refresh_token', path='/', samesite='None')
         return res
     except:
         return Response({'success': False})
@@ -97,6 +99,55 @@ def register(request):
 @permission_classes([IsAuthenticated])
 def dashboard_view(request):
     user = request.user
-    dashboard = dashboard_view.objects.filter(owner=user)
-    serializer = DashboardSerializer(dashboard, many=True)
+    dashboards = Dashboard.objects.filter(user=user)
+    serializer = DashboardSerializer(dashboards, many=True)
     return Response(serializer.data)
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def user_profile_detail_view(request):
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def clock_in(request):
+    user = request.user
+    # Check for the latest TimeLog
+    latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
+
+    if latest_log and latest_log.clock_out is None:
+        return Response({"message": "You are already clocked in."}, status=400)
+
+    # Create a new TimeLog if no active clock-in
+    new_log = TimeLog.objects.create(user=user, clock_in=timezone.now())
+    serializer = ClockInClockOutSerializer(new_log)
+    return Response({"message": "Clocked in successfully.", "data": serializer.data}, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def clock_out(request):
+    user = request.user
+    # Check for the latest TimeLog
+    latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
+
+    if not latest_log or latest_log.clock_out:
+        return Response({"message": "You are not clocked in."}, status=400)
+
+    # Update the existing TimeLog
+    latest_log.clock_out = timezone.now()
+    latest_log.save()
+    serializer = ClockInClockOutSerializer(latest_log)
+    return Response({"message": "Clocked out successfully.", "data": serializer.data}, status=200)
+

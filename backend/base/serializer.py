@@ -1,5 +1,5 @@
-from rest_framework import serializers
-from .models import Dashboard, UserProfile
+from rest_framework import generics,serializers,permissions
+from .models import Dashboard, UserProfile,TimeLog
 from django.contrib.auth.models import User
 
 
@@ -71,7 +71,34 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         return user
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = [
+            'phone_number', 'gender', 'current_address', 'permanent_address',
+            'city_town', 'state_province', 'education_level', 'certifications',
+            'skills', 'languages_spoken', 'work_availability', 'work_schedule_preference'
+        ]
+
+
+
 class DashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dashboard
         fields = ['id', 'description']
+        
+
+
+class ClockInClockOutSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeLog
+        fields = ['clock_in', 'clock_out']
+
+    def update(self, instance, validated_data):
+        # Update clock_in and clock_out instead of clock_in_time and clock_out_time
+        if 'clock_in' in validated_data:
+            instance.clock_in = validated_data['clock_in']
+        if 'clock_out' in validated_data:
+            instance.clock_out = validated_data['clock_out']
+        instance.save()
+        return instance
