@@ -7,6 +7,7 @@ import Menu from './routes/menu';
 import PrivateRoute from './components/PrivateRoute';
 import UserProfile from './routes/UserProfilePage';
 import Register from './routes/register';
+
 import { AuthProvider} from './context/useAuth' ;
 
 function App() {

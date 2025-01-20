@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   const registerUser = async (username, email, password, cPassword, first_name, last_name) => {
     if (password === cPassword) {
       try {
-        await register(username, email, password, first_name, last_name);
+        await registerUser(username, email, password, first_name, last_name);
         alert("Successfully registered user");
         navigate('/login'); // Redirect to login page after successful registration
       } catch (error) {

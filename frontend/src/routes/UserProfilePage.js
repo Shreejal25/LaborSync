@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/useAuth"; // Ensure the correct context is imported
+import { useNavigate } from "react-router-dom"; // To handle navigation for sidebar
+import logo from "../assets/images/LaborSynclogo.png"; // Replace with your logo path
 
 const UserProfilePage = () => {
-  const { userProfile, fetchUserProfile, updateProfile, loading } = useAuth();
+  const { userProfile, fetchUserProfile, updateProfile, loading, handleLogout } = useAuth();
   const [profileData, setProfileData] = useState({
     username: "",
     email: "",
@@ -13,18 +15,30 @@ const UserProfilePage = () => {
     current_address: "",
     permanent_address: "",
     city_town: "",
-    // Add other profile fields as needed
   });
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchUserProfile(); // Fetch user profile when component mounts
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     if (!loading && userProfile) {
-      setProfileData(userProfile);
+      // Set profile data only when userProfile is available
+      setProfileData({
+        username: userProfile.user.username,
+        email: userProfile.user.email,
+        first_name: userProfile.first_name,
+        last_name: userProfile.last_name,
+        phone_number: userProfile.phone_number,
+        gender: userProfile.gender,
+        current_address: userProfile.current_address,
+        permanent_address: userProfile.permanent_address,
+        city_town: userProfile.city_town,
+      });
     }
   }, [loading, userProfile]);
-
-  useEffect(() => {
-    fetchUserProfile(); // Ensure the profile is fetched when the component mounts
-  }, [fetchUserProfile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,146 +50,89 @@ const UserProfilePage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    updateProfile(profileData);
+    updateProfile(profileData); // Ensure this function sends the correct structure
   };
 
   if (loading) {
-    return <div className="text-center text-white">Loading...</div>;
+    return <div className="text-center text-gray-600">Loading...</div>;
   }
 
   if (!userProfile) {
-    return <div className="text-center text-white">Please log in to view and update your profile.</div>;
+    return (
+      <div className="text-center text-gray-600">
+        Please log in to view and update your profile.
+      </div>
+    );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-8">
-        <h2 className="text-3xl font-semibold text-gray-800 mb-6 text-left">Update Profile</h2>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-600">
-              Username
-            </label>
-            <input
-              type="text"
-              name="username"
-              value={profileData.username}
-              onChange={handleChange}
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-600">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={profileData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-600">
-              First Name
-            </label>
-            <input
-              type="text"
-              name="first_name"
-              value={profileData.first_name}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="last_name" className="block text-sm font-medium text-gray-600">
-              Last Name
-            </label>
-            <input
-              type="text"
-              name="last_name"
-              value={profileData.last_name}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="phone_number" className="block text-sm font-medium text-gray-600">
-              Phone Number
-            </label>
-            <input
-              type="text"
-              name="phone_number"
-              value={profileData.phone_number}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="gender" className="block text-sm font-medium text-gray-600">
-              Gender
-            </label>
-            <input
-              type="text"
-              name="gender"
-              value={profileData.gender}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="current_address" className="block text-sm font-medium text-gray-600">
-              Current Address
-            </label>
-            <input
-              type="text"
-              name="current_address"
-              value={profileData.current_address}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="permanent_address" className="block text-sm font-medium text-gray-600">
-              Permanent Address
-            </label>
-            <input
-              type="text"
-              name="permanent_address"
-              value={profileData.permanent_address}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="city_town" className="block text-sm font-medium text-gray-600">
-              City/Town
-            </label>
-            <input
-              type="text"
-              name="city_town"
-              value={profileData.city_town}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div className="flex justify-between space-x-4 mt-6">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
-            >
-              Update Profile
-            </button>
-          </div>
-        </form>
+    <div className="min-h-screen flex">
+      {/* Sidebar */}
+      <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
+        <div className="flex items-center justify-center py-4 border-b">
+          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
+        </div>
+        <nav className="flex-grow">
+          <ul className="flex flex-col py-4">
+            {/* Navigation Items */}
+            <li onClick={() => navigate('/')} className="cursor-pointer">Dashboard</li>
+            <li onClick={() => navigate('/schedule')} className="cursor-pointer">Schedule</li>
+            <li onClick={() => navigate('/timesheets')} className="cursor-pointer">Timesheets</li>
+            <li onClick={() => navigate('/reports')} className="cursor-pointer">Reports</li>
+            <li onClick={() => navigate('/rewards')} className="cursor-pointer">Rewards</li>
+            <li onClick={() => navigate('/user-profile')} className="cursor-pointer">Worker Details</li>
+          </ul>
+        </nav>
+        <button onClick={handleLogout} className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">Logout</button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-grow bg-gray-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-xl bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Update Profile</h2>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {[
+              { label: "Username", name: "username", type: "text", disabled: true },
+              { label: "Email", name: "email", type: "email" },
+              { label: "First Name", name: "first_name", type: "text" },
+              { label: "Last Name", name: "last_name", type: "text" },
+              { label: "Phone Number", name: "phone_number", type: "text" },
+              { label: "Gender", name: "gender", type: "text" },
+              { label: "Current Address", name: "current_address", type: "text" },
+              { label: "Permanent Address", name: "permanent_address", type: "text" },
+              { label: "City/Town", name: "city_town", type: "text" },
+            ].map(({ label, name, type, disabled }, index) => (
+              <div key={index}>
+                <label htmlFor={name} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
+                <input
+                  type={type}
+                  name={name}
+                  value={profileData[name]}
+                  onChange={handleChange}
+                  disabled={disabled}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md ${
+                    disabled ? "bg-gray-100 cursor-not-allowed" : "focus:ring-indigo-500 focus:border-indigo-500"
+                  }`}
+                />
+              </div>
+            ))}
+            <div className="flex justify-between space-x-4">
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                onClick={() => setProfileData(userProfile)} // Reset to original profile data
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-400"
+              >
+                Update Profile
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

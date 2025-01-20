@@ -11,11 +11,11 @@ const Register = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  const { register_user } = useAuth();
+  const { registerUser } = useAuth();
 
   const handleRegister = (e) => {
     e.preventDefault();
-    register_user(username, email, password, CPassword, firstName, lastName);
+    registerUser(username, email, password, CPassword, firstName, lastName);
   };
 
   return (

@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
 from .models import Dashboard, UserProfile,TimeLog
 from rest_framework import generics, permissions, status
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -89,7 +89,7 @@ def is_authenticated(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    serializer = CombinedUserSerializer(data=request.data, context={'request': request})
+    serializer =CombinedUserSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return Response({'message': 'User registered successfully!'}, status=201)
@@ -113,10 +113,25 @@ def user_profile_detail_view(request):
         return Response(serializer.data)
     
     elif request.method == 'PUT':
-        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        # Extract user data and user profile data from the request
+        user_data = request.data.get('user', {})
+        user_profile_data = request.data.get('user_profile', {})
+
+        # Update User if any user data is provided
+        if user_data:
+            user = user_profile.user
+            user_serializer = UserSerializer(user, data=user_data, partial=True)
+            if user_serializer.is_valid():
+                user_serializer.save()
+            else:
+                return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update UserProfile with the provided data
+        serializer = UserProfileSerializer(user_profile, data=user_profile_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])

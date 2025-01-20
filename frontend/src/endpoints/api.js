@@ -96,11 +96,28 @@ export const getUserProfile = async () => {
 
 export const updateUserProfile = async (profileData) => {
     try {
-        const response = await axios.put(USER_PROFILE_URL, profileData, { withCredentials: true });
+        // Structure the data to match the expected format for the API
+        const dataToUpdate = {
+            user: {
+                username: profileData.username,
+                email: profileData.email,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+            },
+            user_profile: {
+                phone_number: profileData.phone_number,
+                gender: profileData.gender,
+                current_address: profileData.current_address,
+                permanent_address: profileData.permanent_address,
+                city_town: profileData.city_town,
+            }
+        };
+
+        const response = await axios.put(USER_PROFILE_URL, dataToUpdate, { withCredentials: true });
         return response.data;
     } catch (error) {
         console.error("Error updating user profile:", error);
-        return callRefresh(error, () => axios.put(USER_PROFILE_URL, profileData, { withCredentials: true }));
+        return callRefresh(error, () => axios.put(USER_PROFILE_URL, dataToUpdate, { withCredentials: true }));
     }
 };
 

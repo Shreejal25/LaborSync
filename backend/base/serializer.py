@@ -7,6 +7,7 @@ class CombinedUserSerializer(serializers.ModelSerializer):
     user_profile = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.all(), required=False
     )
+    
     phone_number = serializers.CharField(source='userprofile.phone_number', required=False)
     gender = serializers.CharField(source='userprofile.gender', required=False)
     current_address = serializers.CharField(source='userprofile.current_address', required=False)
@@ -55,6 +56,7 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         )
         UserProfile.objects.create(
             user=user,
+           
             phone_number=user_profile_data.get('phone_number', ''),
             gender=user_profile_data.get('gender', ''),
             current_address=user_profile_data.get('current_address', ''),
@@ -71,10 +73,18 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         return user
 
 
+class UserSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name']
+
 class UserProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer('user')
     class Meta:
         model = UserProfile
         fields = [
+            'user',
             'phone_number', 'gender', 'current_address', 'permanent_address',
             'city_town', 'state_province', 'education_level', 'certifications',
             'skills', 'languages_spoken', 'work_availability', 'work_schedule_preference'
