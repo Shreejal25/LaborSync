@@ -29,8 +29,8 @@ const UserProfilePage = () => {
       setProfileData({
         username: userProfile.user.username,
         email: userProfile.user.email,
-        first_name: userProfile.first_name,
-        last_name: userProfile.last_name,
+        first_name: userProfile.user.first_name,
+        last_name: userProfile.user.last_name,
         phone_number: userProfile.phone_number,
         gender: userProfile.gender,
         current_address: userProfile.current_address,
@@ -66,25 +66,42 @@ const UserProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
-        <div className="flex items-center justify-center py-4 border-b">
-          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-        </div>
-        <nav className="flex-grow">
-          <ul className="flex flex-col py-4">
-            {/* Navigation Items */}
-            <li onClick={() => navigate('/')} className="cursor-pointer">Dashboard</li>
-            <li onClick={() => navigate('/schedule')} className="cursor-pointer">Schedule</li>
-            <li onClick={() => navigate('/timesheets')} className="cursor-pointer">Timesheets</li>
-            <li onClick={() => navigate('/reports')} className="cursor-pointer">Reports</li>
-            <li onClick={() => navigate('/rewards')} className="cursor-pointer">Rewards</li>
-            <li onClick={() => navigate('/user-profile')} className="cursor-pointer">Worker Details</li>
-          </ul>
-        </nav>
-        <button onClick={handleLogout} className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">Logout</button>
-      </div>
+    <div className="flex h-90 bg-gray-50">
+         {/* Side Panel */}
+         <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
+           <div className="flex items-center justify-center py-4 border-b">
+             <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" /> {/* Logo */}
+           </div>
+           <nav className="flex-grow">
+             <ul className="flex flex-col py-4">
+               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/')}>
+                 Dashboard
+               </li>
+               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
+                  Schedule
+               </li>
+               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
+                 Timesheets
+               </li>
+               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+                 Reports
+               </li>
+               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
+                  Rewards
+               </li>
+               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
+                 Worker Details
+               </li>
+             </ul>
+           </nav>
+           <button
+             onClick={handleLogout}
+             className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200"
+           >
+             Logout
+           </button>
+         </div>
+   
 
       {/* Main Content */}
       <div className="flex-grow bg-gray-50 flex items-center justify-center p-6">
@@ -92,7 +109,7 @@ const UserProfilePage = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Update Profile</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             {[
-              { label: "Username", name: "username", type: "text", disabled: true },
+              { label: "Username", name: "username", type: "text" },
               { label: "Email", name: "email", type: "email" },
               { label: "First Name", name: "first_name", type: "text" },
               { label: "Last Name", name: "last_name", type: "text" },

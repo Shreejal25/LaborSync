@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
-from .models import Dashboard, UserProfile,TimeLog
+from .models import Dashboard, UserProfile,TimeLog,Manager, Task
 from rest_framework import generics, permissions, status
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import Group
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer, TaskSerializer, TaskViewSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -88,6 +90,37 @@ def is_authenticated(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def register_manager(request):
+    serializer = ManagerSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        user = serializer.save()  # This will create the user and associated manager profile
+        
+        # Assign user to the Managers group
+        manager_group = Group.objects.get(name='Managers')
+        manager_group.user_set.add(user)  # Add user to the Managers group
+        
+        return Response({'message': 'Manager registered successfully!'}, status=201)
+    
+    return Response(serializer.errors, status=400)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_manager(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    
+    if user is not None:
+        # Here you can generate tokens or set cookies as needed
+        return Response({'message': 'Login successful'}, status=200)
+    
+    return Response({'error': 'Invalid credentials'}, status=400)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     serializer =CombinedUserSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
@@ -166,3 +199,32 @@ def clock_out(request):
     serializer = ClockInClockOutSerializer(latest_log)
     return Response({"message": "Clocked out successfully.", "data": serializer.data}, status=200)
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # Only authenticated users can assign tasks
+def assign_task(request):
+    # Check if the user is a manager
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        if user_profile.role != 'manager':
+            return Response({'error': 'You do not have permission to assign tasks.'}, status=403)
+    except UserProfile.DoesNotExist:
+        return Response({'error': 'User profile not found.'}, status=404)
+
+    serializer = TaskSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()  # This will create the task instance
+        return Response({'message': 'Task assigned successfully!'}, status=201)
+
+    return Response(serializer.errors, status=400)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def view_user_tasks(request):
+    user = request.user  # Get the authenticated user
+    tasks = Task.objects.filter(assigned_to=user)  # Filter tasks assigned to this user
+    
+    serializer = TaskViewSerializer(tasks, many=True)  # Serialize the tasks
+    return Response(serializer.data)

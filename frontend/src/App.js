@@ -7,6 +7,9 @@ import Menu from './routes/menu';
 import PrivateRoute from './components/PrivateRoute';
 import UserProfile from './routes/UserProfilePage';
 import Register from './routes/register';
+import AssignTaskComponent from './routes/AssignTaskComponent';
+
+import UserTasksComponent from './routes/UserTasksComponent';
 
 import { AuthProvider} from './context/useAuth' ;
 
@@ -19,7 +22,9 @@ function App() {
         <Route path='/login' element={<Login/>}/>
         <Route path='/register/' element={<Register/>}/>
         <Route path='/user-profile' element={<UserProfile/>}/>
-        <Route path='/' element={<PrivateRoute><Menu/></PrivateRoute>}/>
+        <Route path='/assign-task' element={<AssignTaskComponent/>}/>
+        <Route path='/view-task' element={<UserTasksComponent/>}/>
+        <Route path='/'element={<PrivateRoute><Menu/></PrivateRoute>}/>
       </Routes>
       </AuthProvider>
     </Router>

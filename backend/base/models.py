@@ -4,6 +4,7 @@ from django.utils.timezone import now
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=10, choices=[('manager', 'Manager'), ('worker', 'Worker')], default='worker')
     phone_number = models.CharField(max_length=15)
     gender = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female'), ('others', 'Others')])
     current_address = models.TextField()
@@ -19,6 +20,14 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+    
+class Manager(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    company_name = models.CharField(max_length=255)
+    work_location = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.company_name}"
 
 
 class Dashboard(models.Model):
@@ -39,4 +48,20 @@ class TimeLog(models.Model):
 
     def __str__(self):
         return f"TimeLog for {self.user.username}"
+    
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Task(models.Model):
+    project_name = models.CharField(max_length=255)
+    task_title = models.CharField(max_length=255)
+    description = models.TextField()
+    estimated_completion_datetime = models.DateTimeField()
+    assigned_shift = models.CharField(max_length=100)  # You can use choices if you have predefined shifts
+    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE)  # Link to User
+
+    def __str__(self):
+        return self.task_title
+
     

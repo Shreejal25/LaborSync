@@ -10,6 +10,9 @@ const REGISTER_URL = `${BASE_URL}register/`;
 const CLOCK_IN_URL = `${BASE_URL}clock_in/`;
 const CLOCK_OUT_URL = `${BASE_URL}clock_out/`;
 const USER_PROFILE_URL = `${BASE_URL}user/profile/`;
+const ASSIGN_TASK_URL = `${BASE_URL}assign/task/`;
+const GET_TASKS_URL = `${BASE_URL}view/tasks/`;
+
 
 export const login = async (username, password) => {
     try {
@@ -140,5 +143,25 @@ export const clockOut = async () => {
     } catch (error) {
         console.error('Error clocking out:', error);
         return callRefresh(error, () => axios.post(CLOCK_OUT_URL, {}, { withCredentials: true }));
+    }
+};
+
+export const assignTask = async (taskData) => {
+    try {
+        const response = await axios.post(ASSIGN_TASK_URL, taskData, { withCredentials: true });
+        return response.data; // Return success message or task details
+    } catch (error) {
+        console.error("Error assigning task:", error);
+        return null; // Handle error appropriately
+    }
+};
+
+export const getUserTasks = async () => {
+    try {
+        const response = await axios.get(GET_TASKS_URL, { withCredentials: true });
+        return response.data; // Return the list of tasks assigned to the user
+    } catch (error) {
+        console.error("Error fetching user tasks:", error);
+        throw error; // Rethrow error for handling in context or component
     }
 };

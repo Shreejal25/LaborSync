@@ -8,6 +8,24 @@ admin.site.register(Dashboard)
 admin.site.register(UserProfile)
 
 
+
+
+
+from .models import Task
+
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ['task_title', 'project_name', 'assigned_to', 'estimated_completion_datetime', 'assigned_shift']
+    search_fields = ['task_title', 'project_name', 'assigned_to__username']  # Allow searching by username
+    list_filter = ['assigned_shift']  # Filter tasks by assigned shift
+
+    # Optional: Customize detail view if needed
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        # You can add any additional filtering or annotations here if necessary
+        return queryset
+
+admin.site.register(Task, TaskAdmin)
+
 @admin.register(TimeLog)
 class TimeLogAdmin(admin.ModelAdmin):
     # Fields to display in the list view

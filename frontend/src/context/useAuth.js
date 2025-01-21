@@ -10,7 +10,9 @@ import {
   login, 
   register, 
   getUserProfile, 
-  updateUserProfile 
+  updateUserProfile,
+  assignTask,
+  getUserTasks
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
 
@@ -20,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null); // State for user profile
+  const [userTasks, setUserTasks] = useState([]); // State for user tasks
   const navigate = useNavigate(); // Initialize navigate
 
   // Check if the user is authenticated
@@ -99,6 +102,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  //assigning task to user by manager
+
+  const assignTaskToUser = async (taskData) => {
+    try {
+      const result = await assignTask(taskData); // Call the API function to assign the task
+      if (result) {
+        alert('Task assigned successfully!');
+        return result; // Return the result if needed for further processing
+      } else {
+        alert('Failed to assign task.');
+      }
+    } catch (error) {
+      console.error('Error assigning task:', error);
+      alert('Error assigning task. Please try again.');
+    }
+  };
+
+
+  const fetchUserTasks = useCallback(async () => {
+    try {
+      const tasks = await getUserTasks(); // Call the API function to get tasks
+      setUserTasks(tasks); // Update state with fetched tasks
+    } catch (error) {
+      console.error("Error fetching user tasks:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserTasks(); // Fetch tasks when authenticated
+    }
+  }, [isAuthenticated, fetchUserTasks]);
+
+
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
@@ -107,7 +144,10 @@ export const AuthProvider = ({ children }) => {
       registerUser, 
       userProfile, 
       fetchUserProfile, 
-      updateProfile 
+      updateProfile,
+      assignTaskToUser,
+      userTasks, // Expose user tasks in context
+      fetchUserTasks // Expose fetchUserTasks in context
     }}>
       {children}
     </AuthContext.Provider>

@@ -3,7 +3,7 @@ import { getDashboard, logout, clockIn, clockOut } from '../endpoints/api';
 import { useNavigate } from "react-router-dom";
 
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
-import UserProfilePage from './UserProfilePage';
+
 
 const Menu = () => {
   const [notes, setNotes] = useState([]);
@@ -108,6 +108,9 @@ const Menu = () => {
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
               Timesheets
+            </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
+             View Timesheets
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
               Reports
