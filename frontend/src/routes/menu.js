@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { logout, clockIn, clockOut } from '../endpoints/api';
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
 
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
-
 
 const Menu = () => {
   const [notes, setNotes] = useState([]);
@@ -13,7 +13,23 @@ const Menu = () => {
   const [isClockedIn, setIsClockedIn] = useState(false);  
   const [clockInDetails, setClockInDetails] = useState(null); 
   const [clockHistory, setClockHistory] = useState([]);
+  const [loading, setLoading] = useState(true); // Add loading state
   const navigate = useNavigate();
+  const { userProfile, fetchUserProfile } = useAuth();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        await fetchUserProfile(); // Fetch user profile when component mounts
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      } finally {
+        setLoading(false); // Set loading to false after fetching
+      }
+    };
+
+    fetchProfile();
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -91,6 +107,10 @@ const Menu = () => {
     return date.toLocaleDateString('en-US', options);
   };
 
+  if (loading) {
+    return <div>Loading...</div>; // Display loading state
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Side Panel */}
@@ -134,7 +154,9 @@ const Menu = () => {
       {/* Main Content Area */}
       <div className="flex-grow p-8 flex flex-col">
         <div className="bg-[#F4F4F9] p-6 rounded shadow-md mb-6"> 
-          <h1 className="text-2xl font-bold mb-2 text-gray-800">Hello John👋 Welcome,</h1>
+        <h1 className="text-2xl font-bold mb-2 text-gray-800">
+        Hello {userProfile?.user.first_name || "Guest"},👋 Welcome,</h1>
+
           <p className="text-lg text-gray-600">You can Clock In/Out from here</p>
         </div>
         <div className="flex flex-grow">
