@@ -4,7 +4,7 @@ import { useAuth } from '../context/useAuth'; // Import authentication context
 import { useNavigate } from 'react-router-dom'; // React Router for navigation
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
 
-const Login = () => {
+const ManagerLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false); // State for loading indicator
@@ -17,7 +17,7 @@ const Login = () => {
 
     try {
       await loginUser(username, password); // Call login function
-      navigate('/menu'); // Navigate to dashboard after successful login
+      navigate('/'); // Navigate to dashboard after successful login
     } catch (error) {
       console.error('Login error:', error); // Log errors
       alert('Login failed. Please check your credentials.'); // Alert user of errors
@@ -46,10 +46,10 @@ const Login = () => {
         <div className="w-full md:w-1/2 px-8">
           <form onSubmit={handleLogin} className="space-y-6">
             <h2 className="text-left text-4xl font-bold font-poppins mb-4">
-              Log In
+              Log In for Managers
             </h2>
             <p className="text-left text-sm font-poppins text-gray-600 mb-6">
-              Please enter your contact details to connect.
+              Please enter your contact details to manage.
             </p>
             <div>
               <input
@@ -111,4 +111,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ManagerLogin;

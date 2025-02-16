@@ -12,7 +12,10 @@ const CLOCK_OUT_URL = `${BASE_URL}clock_out/`;
 const USER_PROFILE_URL = `${BASE_URL}user/profile/`;
 const ASSIGN_TASK_URL = `${BASE_URL}assign/task/`;
 const GET_TASKS_URL = `${BASE_URL}view/tasks/`;
-
+const LOGIN_URL_MANAGER = `${BASE_URL}login/manager/`;      
+const REGISTER_URL_MANAGER = `${BASE_URL}register/manager/`;
+const FORGOT_PASSWORD_URL = `${BASE_URL}forgot_password/`; 
+const RESET_PASSWORD_URL = `${BASE_URL}reset_password_confirm/`;    
 
 export const login = async (username, password) => {
     try {
@@ -23,6 +26,7 @@ export const login = async (username, password) => {
         return false;
     }
 };
+
 
 export const refreshToken = async () => {
     try {
@@ -86,6 +90,61 @@ export const register = async (username, email, password, first_name, last_name)
         return null;
     }
 };
+
+
+export const forgotPassword = async (email) => {
+    try {
+        const response = await axios.post(FORGOT_PASSWORD_URL, { email }, { withCredentials: true });
+        return response.data; // Returns success message or error
+    } catch (error) {
+        console.error("Error requesting password reset:", error);
+        return { success: false, message: error.response?.data?.message || "An error occurred." };
+    }
+};
+
+// New function: Confirm password reset
+export const resetPasswordConfirm = async (uidb64, token, newPassword, confirmPassword) => {
+    try {
+        const response = await axios.post(
+            `${RESET_PASSWORD_URL}${uidb64}/${token}/`, // Append uidb64 and token to the URL
+            { new_password: newPassword, confirm_password: confirmPassword },
+            { withCredentials: true }
+        );
+        return response.data; // Returns success message or error
+    } catch (error) {
+        console.error("Error resetting password:", error);
+        return { success: false, message: error.response?.data?.message || "An error occurred." };
+    }
+};
+
+//register manager
+
+export const registerManager = async (username, email, password, first_name, last_name, company_name,work_location ) => {
+    try {
+        const response = await axios.post(REGISTER_URL_MANAGER, 
+            { username, email, password, first_name, last_name, company_name, work_location },
+            { withCredentials: true }
+        );
+        return response.data; 
+    } catch (error) {
+        console.error("Error registering Manager:", error);
+        return null;
+    }
+
+
+};
+
+export const loginManager = async (username, password) => { 
+    try {
+        const response = await axios.post(LOGIN_URL_MANAGER, { username, password }, { withCredentials: true });    
+        return response.data.success;
+    }   catch (error) {
+        console.error("Error logging in:", error);
+        return false;
+    }
+
+};
+
 
 export const getUserProfile = async () => {
     try {

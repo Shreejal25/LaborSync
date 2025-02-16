@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'base'
     
 ]
+FRONTEND_URL = 'https://yourfrontendapp.com'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -151,3 +152,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# settings.py
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'dagolshreejal@gmail.com'  # Replace with your Gmail address
+EMAIL_HOST_PASSWORD ='zvpk tppk elou zirc'  # Replace with your Gmail password or App Password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

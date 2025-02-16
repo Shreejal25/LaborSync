@@ -12,7 +12,9 @@ import {
   getUserProfile, 
   updateUserProfile,
   assignTask,
-  getUserTasks
+  getUserTasks,
+  registerManager,
+  loginManager
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
 
@@ -68,7 +70,7 @@ export const AuthProvider = ({ children }) => {
   const registerUser = async (username, email, password, cPassword, first_name, last_name) => {
     if (password === cPassword) {
       try {
-        await registerUser(username, email, password, first_name, last_name);
+        await register(username, email, password, first_name, last_name);
         alert("Successfully registered user");
         navigate('/login'); // Redirect to login page after successful registration
       } catch (error) {
@@ -80,78 +82,112 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Fetch user profile
-  const fetchUserProfile = useCallback(async () => {
-    try {
-      const profile = await getUserProfile();
-      setUserProfile(profile);
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-    }
-  }, []);
+   // Register manager with personal information
+   const registerNewManager = async (username, email, password,cPassword, first_name, last_name, company_name, work_location) => {
+     if (password === cPassword) { // Add any necessary validation here
+       try {
+         await registerManager(username, email, password, first_name, last_name, company_name, work_location);
+         alert("Successfully registered manager");
+         navigate('/login-manager'); // Redirect to login page after successful registration
+       } catch (error) {
+         console.error("Registration failed:", error);
+         alert("Error registering manager. Please try again.");
+       }
+     } else {
+       alert("Invalid input");
+     }
+   };
 
-  // Update user profile
-  const updateProfile = async (profileData) => {
-    try {
-      const updatedProfile = await updateUserProfile(profileData);
-      setUserProfile(updatedProfile);
-      alert("Profile updated successfully");
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      alert("Error updating profile. Please try again.");
-    }
-  };
+   // Login manager and update authentication state
+   const loginManagerUser = async (username, password) => {
+     try {
+       const success = await loginManager(username, password);
+       if (success) {
+         setIsAuthenticated(true);
+         await fetchUserProfile(); // Fetch user profile on successful login
+         navigate('/'); // Redirect to home page on successful login
+       } else {
+         setIsAuthenticated(false);
+         alert("Invalid username or password");
+       }
+     } catch (error) {
+       console.error("Login failed:", error);
+       setIsAuthenticated(false);
+       alert("Login failed. Please try again.");
+     }
+   };
 
-  //assigning task to user by manager
+   // Fetch user profile
+   const fetchUserProfile = useCallback(async () => {
+     try {
+       const profile = await getUserProfile();
+       setUserProfile(profile);
+     } catch (error) {
+       console.error("Error fetching user profile:", error);
+     }
+   }, []);
 
-  const assignTaskToUser = async (taskData) => {
-    try {
-      const result = await assignTask(taskData); // Call the API function to assign the task
-      if (result) {
-        alert('Task assigned successfully!');
-        return result; // Return the result if needed for further processing
-      } else {
-        alert('Failed to assign task.');
-      }
-    } catch (error) {
-      console.error('Error assigning task:', error);
-      alert('Error assigning task. Please try again.');
-    }
-  };
+   // Update user profile
+   const updateProfile = async (profileData) => {
+     try {
+       const updatedProfile = await updateUserProfile(profileData);
+       setUserProfile(updatedProfile);
+       alert("Profile updated successfully");
+     } catch (error) {
+       console.error("Error updating user profile:", error);
+       alert("Error updating profile. Please try again.");
+     }
+   };
 
+   // Assign a task to a user by username
+   const assignTaskToUser = async (taskData) => {
+     try {
+       const result = await assignTask(taskData); // Call the API function to assign the task
+       if (result) {
+         alert('Task assigned successfully!');
+         return result; // Return the result if needed for further processing
+       } else {
+         alert('Failed to assign task.');
+       }
+     } catch (error) {
+       console.error('Error assigning task:', error);
+       alert('Error assigning task. Please try again.');
+     }
+   };
 
-  const fetchUserTasks = useCallback(async () => {
-    try {
-      const tasks = await getUserTasks(); // Call the API function to get tasks
-      setUserTasks(tasks); // Update state with fetched tasks
-    } catch (error) {
-      console.error("Error fetching user tasks:", error);
-    }
-  }, []);
+   const fetchUserTasks = useCallback(async () => {
+     try {
+       const tasks = await getUserTasks(); // Call the API function to get tasks
+       setUserTasks(tasks); // Update state with fetched tasks
+     } catch (error) {
+       console.error("Error fetching user tasks:", error);
+     }
+   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserTasks(); // Fetch tasks when authenticated
-    }
-  }, [isAuthenticated, fetchUserTasks]);
+   useEffect(() => {
+     if (isAuthenticated) {
+       fetchUserTasks(); // Fetch tasks when authenticated
+     }
+   }, [isAuthenticated, fetchUserTasks]);
 
-
-  return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      loading, 
-      loginUser, 
-      registerUser, 
-      userProfile, 
-      fetchUserProfile, 
-      updateProfile,
-      assignTaskToUser,
-      userTasks, // Expose user tasks in context
-      fetchUserTasks // Expose fetchUserTasks in context
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+   return (
+     <AuthContext.Provider value={{ 
+       isAuthenticated,
+       loading,
+       loginUser,
+       registerUser,
+       registerNewManager,
+       loginManagerUser,
+       userProfile,
+       fetchUserProfile,
+       updateProfile,
+       assignTaskToUser,
+       userTasks,
+       fetchUserTasks 
+     }}>
+       {children}
+     </AuthContext.Provider>
+   );
 };
 
 export const useAuth = () => useContext(AuthContext);

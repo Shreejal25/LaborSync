@@ -12,7 +12,10 @@ from .views import (
     register_manager,
     login_manager,
     assign_task,
-    view_user_tasks
+    view_user_tasks,
+    forgot_password,
+    reset_password_confirm,
+   
 )
 
 urlpatterns = [
@@ -28,5 +31,8 @@ urlpatterns = [
     path('register/manager/', register_manager, name='register_manager'),
     path('login/manager/', login_manager, name='login_manager'),
     path('assign/task/', assign_task, name='assign_task'),
-     path('view/tasks/', view_user_tasks, name='view_user_tasks'),
+    path('view/tasks/', view_user_tasks, name='view_user_tasks'),
+    path('forgot_password/', forgot_password, name='forgot_password'),
+    path('reset_password_confirm/<uidb64>/<token>/', reset_password_confirm, name='reset_password_confirm'),
+    
 ]

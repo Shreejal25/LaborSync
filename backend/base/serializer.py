@@ -3,6 +3,7 @@ from .models import Dashboard, UserProfile,TimeLog,Manager
 from django.contrib.auth.models import User
 from django.db import models
 
+
 class CombinedUserSerializer(serializers.ModelSerializer):
     user_profile = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.all(), required=False
@@ -162,7 +163,7 @@ class ManagerSerializer(serializers.ModelSerializer):
         # Create the manager profile with additional fields
         Manager.objects.create(user=user, company_name=company_name, work_location=work_location)
 
-        return user
+        return user  # Return the created user instance (or you can return the manager instance if needed)
 
 
 class DashboardSerializer(serializers.ModelSerializer):

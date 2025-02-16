@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getDashboard, logout, clockIn, clockOut } from '../endpoints/api';
+import { logout, clockIn, clockOut } from '../endpoints/api';
 import { useNavigate } from "react-router-dom";
 
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
@@ -100,7 +100,7 @@ const Menu = () => {
         </div>
         <nav className="flex-grow">
           <ul className="flex flex-col py-4">
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/')}>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
               Dashboard
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
@@ -110,7 +110,7 @@ const Menu = () => {
               Timesheets
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
-             View Timesheets
+             View Tasks
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
               Reports

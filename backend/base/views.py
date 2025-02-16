@@ -1,5 +1,26 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
+
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+
+
+from django.utils.http import urlsafe_base64_encode
+
+from django.core.mail import send_mail
+from django.contrib.sites.shortcuts import get_current_site
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from django.conf import settings
+    
+
+
 from .models import Dashboard, UserProfile,TimeLog,Manager, Task
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
@@ -94,11 +115,11 @@ def register_manager(request):
     serializer = ManagerSerializer(data=request.data)
     
     if serializer.is_valid():
-        user = serializer.save()  # This will create the user and associated manager profile
+        serializer.save()  # This will create the user and associated manager profile
         
-        # Assign user to the Managers group
-        manager_group = Group.objects.get(name='Managers')
-        manager_group.user_set.add(user)  # Add user to the Managers group
+        # Optionally assign user to the Managers group
+        manager_group, created = Group.objects.get_or_create(name='Managers')
+        manager_group.user_set.add(serializer.instance)  # Add user to the Managers group
         
         return Response({'message': 'Manager registered successfully!'}, status=201)
     
@@ -228,3 +249,64 @@ def view_user_tasks(request):
     
     serializer = TaskViewSerializer(tasks, many=True)  # Serialize the tasks
     return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    email = request.data.get('email')
+    user = User.objects.filter(email=email).first()
+    
+    if user:
+        subject = 'Password Reset Requested'
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        # Use localhost:3000 for testing
+        reset_link = f"http://localhost:3000/reset-password/{uid}/{token}"
+        
+        message = f"Hi {user.username},\n\nYou requested a password reset. Click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email."
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+            )
+            return Response({'success': True, 'message': 'If the email exists, a reset link has been sent.'})
+        except Exception as e:
+            return Response({'success': False, 'message': f'Error sending email: {str(e)}'}, status=500)
+    
+    return Response({'success': True, 'message': 'If the email exists, a reset link has been sent.'})
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password_confirm(request, uidb64, token):
+    try:
+        # Decode the user ID from the URL
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response({'success': False, 'message': 'Invalid or expired token.'}, status=400)
+    
+    # Check if the token is valid
+    if not default_token_generator.check_token(user, token):
+        return Response({'success': False, 'message': 'Invalid or expired token.'}, status=400)
+    
+    # Get the new password from the request data
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+
+    if not new_password or not confirm_password:
+        return Response({'success': False, 'message': 'Both password fields are required.'}, status=400)
+
+    if new_password != confirm_password:
+        return Response({'success': False, 'message': 'Passwords do not match.'}, status=400)
+
+    # Set the new password for the user
+    user.set_password(new_password)
+    user.save()
+
+    return Response({'success': True, 'message': 'Password has been reset successfully.'})
