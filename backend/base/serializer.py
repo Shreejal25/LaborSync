@@ -1,5 +1,5 @@
 from rest_framework import generics,serializers,permissions
-from .models import Dashboard, UserProfile,TimeLog,Manager
+from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -74,52 +74,56 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         return user
     
     
-class ManagerProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserProfile
-        fields = [
-            'user',  # This will link to the User model
-            'role',  # This can be set to 'manager' when creating/updating
-            'company_name',  # New field for company name
-            'work_location'   # New field for work location
-        ]
-        extra_kwargs = {
-            'user': {'read_only': True},  # Prevent setting user directly
-            'role': {'default': 'manager'}  # Set default role to manager
-        }
-
-    def create(self, validated_data):
-        user_data = validated_data.pop('user')
-        user = User.objects.create(**user_data)  # Create user instance
-        profile = UserProfile.objects.create(user=user, **validated_data)  # Create profile instance
-        return profile
-
-    def update(self, instance, validated_data):
-        user_data = validated_data.pop('user', None)
-        
-        # Update User if provided
-        if user_data:
-            instance.user.username = user_data.get('username', instance.user.username)
-            instance.user.email = user_data.get('email', instance.user.email)
-            instance.user.first_name = user_data.get('first_name', instance.user.first_name)
-            instance.user.last_name = user_data.get('last_name', instance.user.last_name)
-            instance.user.save()
-
-        # Update UserProfile fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        
-        instance.save()
-        return instance
-
-
 class UserSerializer(serializers.ModelSerializer):
-    
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name']
+        fields = ['username', 'email', 'first_name', 'last_name']  # Include user fields
+
+class ManagerProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer()  # Nested serializer for user details
+
+    class Meta:
+        model = ManagerProfile
+        fields = ['user', 'company_name', 'work_location']  # Role is removed as it's not in the model
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')  # Extract user data
+        user = User.objects.create(**user_data)  # Create user instance
+        manager_profile = ManagerProfile.objects.create(user=user, **validated_data)  # Create profile
+        return manager_profile
+
+    def get_user(self, obj):
+        return {
+            'username': obj.user.username,
+            'email': obj.user.email,
+            'first_name': obj.user.first_name,
+            'last_name': obj.user.last_name,
+        }
+
+    def update(self, instance, validated_data):
+        # Extract user data from the request
+        user_data = validated_data.pop('user', None)
         
-        
+        # Debugging: print the validated data
+        print("Validated data:", validated_data)
+
+        # Update user fields if user data is provided
+        if user_data:
+            user = instance.user
+            print("Updating user:", user)
+            user.username = user_data.get("username", user.username)
+            user.email = user_data.get("email", user.email)
+            user.first_name = user_data.get("first_name", user.first_name)
+            user.last_name = user_data.get("last_name", user.last_name)
+            user.save()
+
+        # Update ManagerProfile fields
+        instance.company_name = validated_data.get("company_name", instance.company_name)
+        instance.work_location = validated_data.get("work_location", instance.work_location)
+        instance.save()
+
+        return instance
+            
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer('user')
@@ -229,4 +233,3 @@ class TaskViewSerializer(serializers.ModelSerializer):
             'assigned_shift',
             'assigned_to'  # This will show the username of the assigned user
         ]
-

@@ -15,8 +15,8 @@ const GET_TASKS_URL = `${BASE_URL}view/tasks/`;
 const LOGIN_URL_MANAGER = `${BASE_URL}login/manager/`;      
 const REGISTER_URL_MANAGER = `${BASE_URL}register/manager/`;
 const FORGOT_PASSWORD_URL = `${BASE_URL}forgot_password/`; 
-const RESET_PASSWORD_URL = `${BASE_URL}reset_password_confirm/`;    
-
+const RESET_PASSWORD_URL = `${BASE_URL}reset_password_confirm/`;  
+const MANAGER_PROFILE_URL = `${BASE_URL}manager-profile/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -183,6 +183,39 @@ export const updateUserProfile = async (profileData) => {
     }
 };
 
+
+export const getManagerProfile = async () => {
+    try {
+        const response = await axios.get(MANAGER_PROFILE_URL, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching manager profile:", error);
+        return callRefresh(error, () => axios.get(MANAGER_PROFILE_URL, { withCredentials: true }));
+    }
+};
+
+export const updateManagerProfile = async (profileData) => {
+    try {
+        const dataToUpdate = {
+            user: {
+                username: profileData.username,
+                email: profileData.email,
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+            },
+            company_name: profileData.company_name, // Move to top level
+            work_location: profileData.work_location, // Move to top level
+        };
+
+        const response = await axios.put(MANAGER_PROFILE_URL, dataToUpdate, { withCredentials: true });
+
+       
+        return response.data;
+    } catch (error) {
+        console.error("Error updating manager profile:", error);
+        return callRefresh(error, () => axios.put(MANAGER_PROFILE_URL, dataToUpdate, { withCredentials: true }));
+    }
+};
 export const clockIn = async () => {
     try {
         const response = await axios.post(CLOCK_IN_URL, {}, { withCredentials: true });

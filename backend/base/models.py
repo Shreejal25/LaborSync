@@ -22,19 +22,21 @@ class UserProfile(models.Model):
         return self.user.username
 from django.db import models
 
+
 class ManagerProfile(models.Model):
-    user_profile = models.OneToOneField(
-        UserProfile, on_delete=models.CASCADE, related_name='manager_profile'
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='manager_profile', null=True, blank=True
     )
     company_name = models.CharField(max_length=255)
     work_location = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"{self.user_profile.user.username} - Manager"
-
+        if self.user:  # Check if self.user is not None
+            return f"{self.user.username} - Manager"
+        return "Manager Profile (No User Assigned)"  # Or some other appropriate message 
     
 class Manager(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)  # Make it nullable
     company_name = models.CharField(max_length=255)
     work_location = models.CharField(max_length=255)
 
@@ -64,14 +66,22 @@ class TimeLog(models.Model):
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone  
 
 class Task(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     project_name = models.CharField(max_length=255)
     task_title = models.CharField(max_length=255)
     description = models.TextField()
     estimated_completion_datetime = models.DateTimeField()
-    assigned_shift = models.CharField(max_length=100)  # You can use choices if you have predefined shifts
-    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE)  # Link to User
+    assigned_shift = models.CharField(max_length=100)
+    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)  # Corrected line
 
     def __str__(self):
         return self.task_title

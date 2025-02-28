@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
-
+from rest_framework.authtoken.models import Token  # Correct import
 
 from django.utils.http import urlsafe_base64_encode
 
@@ -21,11 +21,11 @@ from django.conf import settings
     
 
 
-from .models import Dashboard, UserProfile,TimeLog,Manager, Task
+from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer, TaskSerializer, TaskViewSerializer
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -40,14 +40,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         try:
             response = super().post(request, *args, **kwargs)
             tokens = response.data
-            
+
             access_token = tokens['access']
             refresh_token = tokens['refresh']
-            
+
             res = Response()
-            
+
             res.data = {'success': True}
-            
+
             res.set_cookie(
                 key="access_token",
                 value=access_token,
@@ -64,10 +64,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 samesite='None',
                 path='/'
             )
-            
+            is_manager = False
+            user = authenticate(username=request.data.get('username'), password=request.data.get('password'))
+
+            if user is not None:
+                is_manager = user.groups.filter(name='Managers').exists()
+
+            res.data['is_manager'] = is_manager
+
             return res
         except:
             return Response({'success': False})
+
 
 class CustomRefreshTokenView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
@@ -75,7 +83,7 @@ class CustomRefreshTokenView(TokenRefreshView):
             refresh_token = request.COOKIES.get('refresh_token')
             request.data['refresh'] = refresh_token
             response = super().post(request, *args, **kwargs)
-            
+
             tokens = response.data
             access_token = tokens['access']
 
@@ -93,6 +101,7 @@ class CustomRefreshTokenView(TokenRefreshView):
         except:
             return Response({'refreshed': False})
 
+
 @api_view(['POST'])
 def logout(request):
     try:
@@ -108,22 +117,37 @@ def logout(request):
 @permission_classes([IsAuthenticated])
 def is_authenticated(request):
     return Response({'authenticated': True})
+    
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_manager(request):
     serializer = ManagerSerializer(data=request.data)
-    
+
     if serializer.is_valid():
-        serializer.save()  # This will create the user and associated manager profile
-        
-        # Optionally assign user to the Managers group
+        manager_user = serializer.save()  # Save the user instance
+
+        # Extract company_name and work_location from request data
+        company_name = request.data.get('company_name', '')
+        work_location = request.data.get('work_location', '')
+
+        # Create an associated ManagerProfile with additional details
+        ManagerProfile.objects.create(
+            user=manager_user,
+            company_name=company_name,
+            work_location=work_location
+        )
+
+        # Assign user to the Managers group
         manager_group, created = Group.objects.get_or_create(name='Managers')
-        manager_group.user_set.add(serializer.instance)  # Add user to the Managers group
-        
+        manager_group.user_set.add(manager_user)  # Add user to the Managers group
+
         return Response({'message': 'Manager registered successfully!'}, status=201)
-    
+
     return Response(serializer.errors, status=400)
+
+
 
 
 @api_view(['POST'])
@@ -135,10 +159,15 @@ def login_manager(request):
     user = authenticate(username=username, password=password)
     
     if user is not None:
-        # Here you can generate tokens or set cookies as needed
-        return Response({'message': 'Login successful'}, status=200)
+        # Check if the user is a manager
+        is_manager = user.groups.filter(name='Managers').exists()
+        return Response({
+            'message': 'Login successful',
+            'is_manager': is_manager
+        }, status=200)
     
     return Response({'error': 'Invalid credentials'}, status=400)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -149,13 +178,51 @@ def register(request):
         return Response({'message': 'User registered successfully!'}, status=201)
     return Response(serializer.errors, status=400)
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_view(request):
     user = request.user
+
+    # Check if the user is a manager
+    if user.groups.filter(name='Managers').exists():
+        try:
+            manager_profile = ManagerProfile.objects.get(user=user)
+        except ManagerProfile.DoesNotExist:
+            return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Manager-specific data
+        total_tasks_assigned = Task.objects.filter(assigned_to=user).count()
+        active_tasks = Task.objects.filter(assigned_to=user, status='in_progress').count()
+        completed_tasks = Task.objects.filter(assigned_to=user, status='completed').count()
+        recent_tasks = Task.objects.filter(assigned_to=user).order_by('-created_at')[:5]  # Corrected line
+
+        # Serialize data
+        manager_serializer = ManagerProfileSerializer(manager_profile)
+        task_serializer = TaskViewSerializer(recent_tasks, many=True)
+
+        return Response({
+            'manager_profile': manager_serializer.data,
+            'stats': {
+                'total_tasks_assigned': total_tasks_assigned,
+                'active_tasks': active_tasks,
+                'completed_tasks': completed_tasks,
+            },
+            'recent_tasks': task_serializer.data
+        })
+
+    # Regular user dashboard
     dashboards = Dashboard.objects.filter(user=user)
     serializer = DashboardSerializer(dashboards, many=True)
     return Response(serializer.data)
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def dashboard_view(request):
+#     user = request.user
+#     dashboards = Dashboard.objects.filter(user=user)
+#     serializer = DashboardSerializer(dashboards, many=True)
+#     return Response(serializer.data)
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
@@ -187,6 +254,38 @@ def user_profile_detail_view(request):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def manager_profile_view(request):
+    try:
+        manager_profile = ManagerProfile.objects.get(user=request.user)
+    except ManagerProfile.DoesNotExist:
+        return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = ManagerProfileSerializer(manager_profile)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        # Debugging: Print the incoming request data
+        print("Request Data:", request.data)
+
+        # Pass the entire request.data to the ManagerProfileSerializer
+        serializer = ManagerProfileSerializer(manager_profile, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            # Save the ManagerProfile instance
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            # Return validation errors if the data is invalid
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -222,20 +321,18 @@ def clock_out(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])  # Only authenticated users can assign tasks
+@permission_classes([IsAuthenticated])
 def assign_task(request):
-    # Check if the user is a manager
-    try:
-        user_profile = UserProfile.objects.get(user=request.user)
-        if user_profile.role != 'manager':
-            return Response({'error': 'You do not have permission to assign tasks.'}, status=403)
-    except UserProfile.DoesNotExist:
-        return Response({'error': 'User profile not found.'}, status=404)
+    user = request.user
+
+    # Check if the user is a manager using group membership
+    if not user.groups.filter(name='Managers').exists():
+        return Response({'error': 'You do not have permission to assign tasks.'}, status=403)
 
     serializer = TaskSerializer(data=request.data)
 
     if serializer.is_valid():
-        serializer.save()  # This will create the task instance
+        serializer.save()
         return Response({'message': 'Task assigned successfully!'}, status=201)
 
     return Response(serializer.errors, status=400)

@@ -15,6 +15,7 @@ from .views import (
     view_user_tasks,
     forgot_password,
     reset_password_confirm,
+    manager_profile_view
    
 )
 
@@ -28,6 +29,7 @@ urlpatterns = [
     path('clock_in/', clock_in, name='clock_in'),
     path('clock_out/', clock_out, name='clock_out'),
     path('user/profile/', user_profile_detail_view, name='user_profile_detail'),  # Corrected path
+    path('manager-profile/', manager_profile_view, name='manager-profile'),
     path('register/manager/', register_manager, name='register_manager'),
     path('login/manager/', login_manager, name='login_manager'),
     path('assign/task/', assign_task, name='assign_task'),

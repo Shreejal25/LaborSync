@@ -17,7 +17,7 @@ const ManagerLogin = () => {
 
     try {
       await loginUser(username, password); // Call login function
-      navigate('/'); // Navigate to dashboard after successful login
+      navigate('/menu'); // Navigate to dashboard after successful login
     } catch (error) {
       console.error('Login error:', error); // Log errors
       alert('Login failed. Please check your credentials.'); // Alert user of errors

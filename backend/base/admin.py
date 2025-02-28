@@ -1,11 +1,12 @@
 from django.contrib import admin
-from .models import Dashboard, UserProfile, TimeLog
+from .models import Dashboard, UserProfile, TimeLog, ManagerProfile
 from django.utils.timezone import localtime
 
 
 # Register Dashboard and UserProfile
 admin.site.register(Dashboard)
 admin.site.register(UserProfile)
+admin.site.register(ManagerProfile)
 
 
 

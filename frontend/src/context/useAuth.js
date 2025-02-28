@@ -6,7 +6,7 @@ import {
   useCallback 
 } from "react";
 import { 
-  isAuthenticated, 
+  
   login, 
   register, 
   getUserProfile, 
@@ -14,7 +14,9 @@ import {
   assignTask,
   getUserTasks,
   registerManager,
-  loginManager
+  loginManager,
+  getManagerProfile,
+  updateManagerProfile
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null); // State for user profile
+  const [managerProfile, setManagerProfile] = useState(null); // State for manager profile
   const [userTasks, setUserTasks] = useState([]); // State for user tasks
   const navigate = useNavigate(); // Initialize navigate
 
@@ -139,6 +142,29 @@ export const AuthProvider = ({ children }) => {
      }
    };
 
+   // Fetch Manager profile
+  const fetchManagerProfile = useCallback(async () => {
+    try {
+      const profile = await getManagerProfile();
+      setManagerProfile(profile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  }, []);
+
+// Update manager profile
+    // AuthContext.js
+const updateManagerProfileData= async (profileData) => {
+  try {
+    const updatedProfile = await updateManagerProfile(profileData); // Call the API function
+    setManagerProfile(updatedProfile); // Now you can use setManagerProfile
+    return updatedProfile; // Return the updated profile data
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    throw error; // Re-throw the error
+  }
+};
+
    // Assign a task to a user by username
    const assignTaskToUser = async (taskData) => {
      try {
@@ -179,7 +205,10 @@ export const AuthProvider = ({ children }) => {
        registerNewManager,
        loginManagerUser,
        userProfile,
+       managerProfile,
        fetchUserProfile,
+       fetchManagerProfile,
+       updateManagerProfileData,
        updateProfile,
        assignTaskToUser,
        userTasks,
