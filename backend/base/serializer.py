@@ -197,7 +197,11 @@ from rest_framework import serializers
 from .models import Task
 
 class TaskSerializer(serializers.ModelSerializer):
-    assigned_to = serializers.CharField()  # Accept username as a string
+    assigned_by = serializers.ReadOnlyField(source="assigned_by.username") 
+    assigned_to = serializers.SlugRelatedField(
+        queryset=User.objects.all(), 
+        slug_field='username'  # Accepts username instead of ID
+    )
 
     class Meta:
         model = Task
@@ -207,21 +211,19 @@ class TaskSerializer(serializers.ModelSerializer):
             'description',
             'estimated_completion_datetime',
             'assigned_shift',
-            'assigned_to'  # This will be handled in the view
+            'assigned_to',
+            'assigned_by'
         ]
 
     def create(self, validated_data):
-        assigned_to_username = validated_data.pop('assigned_to')
-        try:
-            assigned_user = User.objects.get(username=assigned_to_username)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"assigned_to": "User with this username does not exist."})
-
-        task = Task.objects.create(assigned_to=assigned_user, **validated_data)
-        return task
+        request = self.context.get('request')  # Get the request context
+        validated_data["assigned_by"] = request.user  # Set assigned_by automatically
+        return super().create(validated_data)
 
 
 class TaskViewSerializer(serializers.ModelSerializer):
+    assigned_by = serializers.CharField(source="assigned_by.username", read_only=True)  # Get assigned_by username
+
     class Meta:
         model = Task
         fields = [
@@ -231,5 +233,6 @@ class TaskViewSerializer(serializers.ModelSerializer):
             'description',
             'estimated_completion_datetime',
             'assigned_shift',
-            'assigned_to'  # This will show the username of the assigned user
+            'assigned_to',
+            'assigned_by' # This will show the username of the assigned user
         ]

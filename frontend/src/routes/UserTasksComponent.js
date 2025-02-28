@@ -76,6 +76,10 @@ const UserTasksComponent = () => {
                   <span className="font-medium text-gray-600">Assigned Shift:</span>{' '}
                   {task.assigned_shift}
                 </p>
+                <p className="text-sm text-gray-500">
+                  <span className="font-medium text-gray-600">Assigned by:</span>{' '}
+                  {task.assigned_by}
+                </p>
               </div>
             ))}
           </div>

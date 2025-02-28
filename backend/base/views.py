@@ -325,17 +325,17 @@ def clock_out(request):
 def assign_task(request):
     user = request.user
 
-    # Check if the user is a manager using group membership
     if not user.groups.filter(name='Managers').exists():
         return Response({'error': 'You do not have permission to assign tasks.'}, status=403)
 
-    serializer = TaskSerializer(data=request.data)
+    serializer = TaskSerializer(data=request.data, context={'request': request})  # Pass request context
 
     if serializer.is_valid():
         serializer.save()
         return Response({'message': 'Task assigned successfully!'}, status=201)
 
     return Response(serializer.errors, status=400)
+
 
 
 @api_view(['GET'])

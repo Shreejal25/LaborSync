@@ -81,6 +81,8 @@ class Task(models.Model):
     estimated_completion_datetime = models.DateTimeField()
     assigned_shift = models.CharField(max_length=100)
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE)
+    assigned_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_tasks", null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)  # Corrected line
 
     def __str__(self):
