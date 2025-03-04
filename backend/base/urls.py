@@ -1,6 +1,6 @@
 from django.urls import path, include
 from .views import (
-    dashboard_view,
+    # dashboard_view,
     CustomTokenObtainPairView,
     CustomRefreshTokenView,
     logout,
@@ -15,12 +15,24 @@ from .views import (
     view_user_tasks,
     forgot_password,
     reset_password_confirm,
-    manager_profile_view
+    manager_profile_view,
+    manager_dashboard_view,
+    user_dashboard_view,
+    user_role_view,
+    get_clock_history,
+    get_workers
    
 )
 
 urlpatterns = [
-    path('dashboard/', dashboard_view, name='dashboard'),
+    # path('dashboard/', dashboard_view, name='dashboard'),
+    path('manager-dashboard/', manager_dashboard_view, name='manager-dashboard'),
+    path('user-dashboard/', user_dashboard_view, name='user-dashboard'),
+    
+    path('workers/', get_workers, name='get-workers'),  # URL for fetching workers
+    path('clock-history/', get_clock_history, name='get-clock-history'), 
+    
+    path('user-role/', user_role_view, name='user-role'),
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', CustomRefreshTokenView.as_view(), name='token_refresh'),
     path('logout/', logout, name='logout'),

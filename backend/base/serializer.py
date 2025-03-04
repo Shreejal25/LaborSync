@@ -178,9 +178,12 @@ class DashboardSerializer(serializers.ModelSerializer):
 
 
 class ClockInClockOutSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    
+    
     class Meta:
         model = TimeLog
-        fields = ['clock_in', 'clock_out']
+        fields = ['username','clock_in', 'clock_out']
 
     def update(self, instance, validated_data):
         # Update clock_in and clock_out instead of clock_in_time and clock_out_time
@@ -223,7 +226,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class TaskViewSerializer(serializers.ModelSerializer):
     assigned_by = serializers.CharField(source="assigned_by.username", read_only=True)  # Get assigned_by username
-
+    
     class Meta:
         model = Task
         fields = [
@@ -234,5 +237,7 @@ class TaskViewSerializer(serializers.ModelSerializer):
             'estimated_completion_datetime',
             'assigned_shift',
             'assigned_to',
-            'assigned_by' # This will show the username of the assigned user
+            'assigned_by',
+            
+            # This will show the username of the assigned user
         ]

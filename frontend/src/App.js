@@ -13,7 +13,7 @@ import RegisterManager from './routes/ManagerRegister';
 import ManagerLogin from './routes/ManagerLogin';
 import ForgotPassword from './routes/ForgotPassword';
 import ResetPassword from './routes/ResetPassword';
-
+import ManagerDashboard from './routes/ManagerDashboard';
 import UserTasksComponent from './routes/UserTasksComponent';
 
 import Home from './routes/Homepage/Home';
@@ -39,6 +39,7 @@ function App() {
         <Route path='/assign-task' element={<AssignTaskComponent/>}/>
         <Route path='/view-task' element={<UserTasksComponent/>}/>
         <Route path='/menu'element={<PrivateRoute><Menu/></PrivateRoute>}/>
+        <Route path="/manager-dashboard" element={<ManagerDashboard />} />
       </Routes>
       </AuthProvider>
     </Router>

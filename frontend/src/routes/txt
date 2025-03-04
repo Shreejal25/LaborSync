@@ -1,0 +1,21 @@
+ // Check if the user is a manager
+  if (userProfile?.user.role !== "manager") {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-md text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+            Access Denied
+          </h1>
+          <p className="text-lg text-gray-600">
+            You are not authorized to view this page.
+          </p>
+          <button
+            onClick={() => navigate('/')} // Redirect to the home page or user dashboard
+            className="mt-6 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }

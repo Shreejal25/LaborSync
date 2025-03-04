@@ -71,10 +71,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 is_manager = user.groups.filter(name='Managers').exists()
 
             res.data['is_manager'] = is_manager
+            res.data['dashboard_type'] = 'manager' if is_manager else 'user' #adding dashboard type
 
             return res
         except:
-            return Response({'success': False})
+            return Response({'success': False, 'dashboard_type' : 'user'}) #add dashboard type even if failed.
 
 
 class CustomRefreshTokenView(TokenRefreshView):
@@ -114,7 +115,7 @@ def logout(request):
         return Response({'success': False})
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])  
 def is_authenticated(request):
     return Response({'authenticated': True})
     
@@ -158,6 +159,8 @@ def login_manager(request):
     
     user = authenticate(username=username, password=password)
     
+   
+    
     if user is not None:
         # Check if the user is a manager
         is_manager = user.groups.filter(name='Managers').exists()
@@ -179,42 +182,116 @@ def register(request):
     return Response(serializer.errors, status=400)
 
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def dashboard_view(request):
+def manager_dashboard_view(request):
     user = request.user
 
     # Check if the user is a manager
+    if not user.groups.filter(name='Managers').exists():
+        return Response({'error': 'Access denied. User is not a manager.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        manager_profile = ManagerProfile.objects.get(user=user)
+    except ManagerProfile.DoesNotExist:
+        return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Fetch manager-specific data
+    tasks = Task.objects.filter(assigned_to=user)
+    total_tasks_assigned = tasks.count()
+    active_tasks = tasks.filter(status='in_progress').count()
+    completed_tasks = tasks.filter(status='completed').count()
+    recent_tasks = tasks.order_by('-created_at')[:5]
+
+    # Serialize data
+    manager_serializer = ManagerProfileSerializer(manager_profile)
+    task_serializer = TaskViewSerializer(recent_tasks, many=True)
+
+    return Response({
+        'dashboard_type': 'manager',
+        'manager_profile': manager_serializer.data,
+        'stats': {
+            'total_tasks_assigned': total_tasks_assigned,
+            'active_tasks': active_tasks,
+            'completed_tasks': completed_tasks,
+        },
+        'recent_tasks': task_serializer.data
+    })
+    
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_dashboard_view(request):
+    user = request.user
+
     if user.groups.filter(name='Managers').exists():
-        try:
-            manager_profile = ManagerProfile.objects.get(user=user)
-        except ManagerProfile.DoesNotExist:
-            return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Access denied. User is a manager.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Manager-specific data
-        total_tasks_assigned = Task.objects.filter(assigned_to=user).count()
-        active_tasks = Task.objects.filter(assigned_to=user, status='in_progress').count()
-        completed_tasks = Task.objects.filter(assigned_to=user, status='completed').count()
-        recent_tasks = Task.objects.filter(assigned_to=user).order_by('-created_at')[:5]  # Corrected line
-
-        # Serialize data
-        manager_serializer = ManagerProfileSerializer(manager_profile)
-        task_serializer = TaskViewSerializer(recent_tasks, many=True)
-
-        return Response({
-            'manager_profile': manager_serializer.data,
-            'stats': {
-                'total_tasks_assigned': total_tasks_assigned,
-                'active_tasks': active_tasks,
-                'completed_tasks': completed_tasks,
-            },
-            'recent_tasks': task_serializer.data
-        })
-
-    # Regular user dashboard
     dashboards = Dashboard.objects.filter(user=user)
     serializer = DashboardSerializer(dashboards, many=True)
-    return Response(serializer.data)
+
+    return Response({
+        'dashboard_type': 'user',
+        'dashboards': serializer.data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_role_view(request):
+    user = request.user
+    is_manager = user.groups.filter(name='Managers').exists()
+    return Response({
+        'role': 'manager' if is_manager else 'user'
+    })
+
+
+
+
+
+
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def dashboard_view(request):
+#     user = request.user
+
+#     if user.groups.filter(name='Managers').exists():
+#         # Manager Dashboard
+#         try:
+#             manager_profile = ManagerProfile.objects.get(user=user)
+#         except ManagerProfile.DoesNotExist:
+#             return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+#         total_tasks_assigned = Task.objects.filter(assigned_to=user).count()
+#         active_tasks = Task.objects.filter(assigned_to=user, status='in_progress').count()
+#         completed_tasks = Task.objects.filter(assigned_to=user, status='completed').count()
+#         recent_tasks = Task.objects.filter(assigned_to=user).order_by('-created_at')[:5]
+
+#         manager_serializer = ManagerProfileSerializer(manager_profile)
+#         task_serializer = TaskViewSerializer(recent_tasks, many=True)
+
+#         return Response({
+#             'dashboard_type': 'Managers',
+#             'manager_profile': manager_serializer.data,
+#             'stats': {
+#                 'total_tasks_assigned': total_tasks_assigned,
+#                 'active_tasks': active_tasks,
+#                 'completed_tasks': completed_tasks,
+#             },
+#             'recent_tasks': task_serializer.data
+#         })
+
+#     else:
+#         # User Dashboard
+#         dashboards = Dashboard.objects.filter(user=user)
+#         serializer = DashboardSerializer(dashboards, many=True)
+#         return Response({
+#             'dashboard_type': 'user',
+#             'dashboards': serializer.data
+#         })
 
 # @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
@@ -223,6 +300,39 @@ def dashboard_view(request):
 #     dashboards = Dashboard.objects.filter(user=user)
 #     serializer = DashboardSerializer(dashboards, many=True)
 #     return Response(serializer.data)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_workers(request):
+    user = request.user
+
+    # Ensure only managers can access this endpoint
+    if not user.groups.filter(name='Managers').exists():
+        return Response({'error': 'Access denied. Only managers can view workers.'}, status=status.HTTP_403_FORBIDDEN)
+
+    workers = UserProfile.objects.exclude(user__groups__name='Managers')  # Exclude managers
+    serializer = UserProfileSerializer(workers, many=True)
+    
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_clock_history(request):
+    user = request.user
+
+    # If the user is a manager, fetch clock history for all workers
+    if user.groups.filter(name='Managers').exists():
+        clock_history = TimeLog.objects.all().order_by('clock_in')
+    else:
+        # If the user is not a manager, return only their clock history
+        clock_history = TimeLog.objects.filter(user=user).order_by('clock_in')
+
+    serializer = ClockInClockOutSerializer(clock_history, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])

@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/useAuth'; // Adjust path as necessary
 import { useNavigate } from 'react-router-dom'; // Ensure you have this import for navigation
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
+import { getWorkers } from '../endpoints/api';
 
 const AssignTaskComponent = () => {
-  const { assignTaskToUser, handleLogout } = useAuth();
-  
-
+  const { assignTaskToUser, handleLogout } = useAuth(); // Add getUsers and getWorker from context
   const [taskData, setTaskData] = useState({
     project_name: '',
     task_title: '',
@@ -15,7 +14,24 @@ const AssignTaskComponent = () => {
     assigned_shift: '',
     assigned_to: '', // This should be the username of the user
   });
+  const [worker, setWorker] = useState([]); // State to store the list of workers
+
   const navigate = useNavigate(); // Hook for navigation
+
+  // Fetch the list of workers on component mount
+  useEffect(() => {
+    const fetchWorkers = async () => {
+      try {
+        const workerList = await getWorkers(); // Fetch the list of workers
+        console.log("Fetched Workers:", workerList); // Log the fetched data
+        setWorker(workerList); // Update the state with the fetched workers
+      } catch (error) {
+        console.error('Error fetching workers:', error);
+      }
+    };
+  
+    fetchWorkers();
+  }, [getWorkers]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,7 +60,6 @@ const AssignTaskComponent = () => {
     }
   };
 
-
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Side Panel */}
@@ -54,24 +69,24 @@ const AssignTaskComponent = () => {
         </div>
         <nav className="flex-grow">
           <ul className="flex flex-col py-4">
-          <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/')}>
-                 Dashboard
-               </li>
-               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
-                  Schedule
-               </li>
-               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
-                 Timesheets
-               </li>
-               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-                 Reports
-               </li>
-               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
-                  Rewards
-               </li>
-               <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
-                 Worker Details
-               </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/')}>
+              Dashboard
+            </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
+              Schedule
+            </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
+              Timesheets
+            </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+              Reports
+            </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
+              Rewards
+            </li>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
+              Worker Details
+            </li>
           </ul>
         </nav>
         <button
@@ -145,15 +160,24 @@ const AssignTaskComponent = () => {
             />
           </div>
           <div className="mb-6">
-            <input
-              type="text"
+            <select
               name="assigned_to"
-              placeholder="Assign to Username"
               value={taskData.assigned_to}
               onChange={handleChange}
               required
               className="w-full p-2 border rounded focus:outline-none focus:ring focus:border-blue-300"
-            />
+            >
+              <option value="" disabled>Select a user</option>
+              {worker.length > 0 ? (
+                worker.map((worker) => (
+                  <option key={worker.user.username} value={worker.user.username}>
+                    {worker.user.username}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>Loading workers...</option>
+              )}
+            </select>
           </div>
           <button
             type="submit"

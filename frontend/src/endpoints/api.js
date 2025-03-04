@@ -3,7 +3,7 @@ import axios from "axios";
 const BASE_URL = 'http://127.0.0.1:8000/api/';
 const LOGIN_URL = `${BASE_URL}token/`;
 const REFRESH_URL = `${BASE_URL}token/refresh/`;
-const DASHBOARD_URL = `${BASE_URL}dashboard/`;
+// const DASHBOARD_URL = `${BASE_URL}dashboard/`;
 const LOGOUT_URL = `${BASE_URL}logout/`;
 const AUTH_URL = `${BASE_URL}authenticated/`;
 const REGISTER_URL = `${BASE_URL}register/`;
@@ -17,6 +17,11 @@ const REGISTER_URL_MANAGER = `${BASE_URL}register/manager/`;
 const FORGOT_PASSWORD_URL = `${BASE_URL}forgot_password/`; 
 const RESET_PASSWORD_URL = `${BASE_URL}reset_password_confirm/`;  
 const MANAGER_PROFILE_URL = `${BASE_URL}manager-profile/`;
+const MANAGER_DASHBOARD_URL = `${BASE_URL}manager-dashboard/`;
+const USER_DASHBOARD_URL = `${BASE_URL}user-dashboard/`;
+const USER_ROLE_URL = `${BASE_URL}user-role/`;
+const WORKERS_URL = `${BASE_URL}workers/`;
+const CLOCK_HISTORY_URL = `${BASE_URL}clock-history/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -49,12 +54,65 @@ const callRefresh = async (error, func) => {
     throw error;
 };
 
-export const getDashboard = async () => {
+// export const getDashboard = async () => {
+//     try {
+//         const response = await axios.get(DASHBOARD_URL, { withCredentials: true });
+//         return response.data;
+//     } catch (error) {
+//         return callRefresh(error, () => axios.get(DASHBOARD_URL, { withCredentials: true }));
+//     }
+// };
+
+export const getUserRole = async () => {
     try {
-        const response = await axios.get(DASHBOARD_URL, { withCredentials: true });
-        return response.data;
+        const response = await axios.get(USER_ROLE_URL, { withCredentials: true });
+        return response.data.role; // Returns 'manager' or 'user'
     } catch (error) {
-        return callRefresh(error, () => axios.get(DASHBOARD_URL, { withCredentials: true }));
+        console.error("Error fetching user role:", error);
+        return callRefresh(error, () => axios.get(USER_ROLE_URL, { withCredentials: true }));
+    }
+};
+
+
+
+export const getWorkers = async () => {
+    try {
+        const response = await axios.get(WORKERS_URL, { withCredentials: true });
+        return response.data; // Returns the list of workers
+    } catch (error) {
+        console.error("Error fetching workers:", error);
+        return callRefresh(error, () => axios.get(WORKERS_URL, { withCredentials: true }));
+    }
+};
+
+// Function to get clock-in/clock-out history
+export const getClockHistory = async () => {
+    try {
+        const response = await axios.get(CLOCK_HISTORY_URL, { withCredentials: true });
+        return response.data; // Returns clock-in/clock-out history
+    } catch (error) {
+        console.error("Error fetching clock history:", error);
+        return callRefresh(error, () => axios.get(CLOCK_HISTORY_URL, { withCredentials: true }));
+    }
+};
+
+export const getManagerDashboard = async () => {
+    try {
+        const response = await axios.get(MANAGER_DASHBOARD_URL, { withCredentials: true });
+        return response.data; // Returns manager dashboard data
+    } catch (error) {
+        console.error("Error fetching manager dashboard:", error);
+        return callRefresh(error, () => axios.get(MANAGER_DASHBOARD_URL, { withCredentials: true }));
+    }
+};
+
+export const getUserDashboard = async () => {
+    try {
+        const response = await axios.get(USER_DASHBOARD_URL, { withCredentials: true });
+        return response.data; // Returns user dashboard data
+    } catch (error) {
+        console.error("Error fetching user dashboard:", error);
+        return callRefresh(error, () => axios.get(USER_DASHBOARD_URL, { withCredentials: true }));
     }
 };
 

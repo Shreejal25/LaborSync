@@ -16,7 +16,10 @@ import {
   registerManager,
   loginManager,
   getManagerProfile,
-  updateManagerProfile
+  updateManagerProfile,
+  getClockHistory,
+  getWorkers,
+  getUserRole
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
 
@@ -28,6 +31,10 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null); // State for user profile
   const [managerProfile, setManagerProfile] = useState(null); // State for manager profile
   const [userTasks, setUserTasks] = useState([]); // State for user tasks
+  const [clockHistory, setClockHistory] = useState([]); // State for clock history
+  const [workers, setWorkers] = useState([]); // State for workers
+  const [userRole, setUserRole] = useState(null); // State for storing user role
+
   const navigate = useNavigate(); // Initialize navigate
 
   // Check if the user is authenticated
@@ -49,6 +56,49 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     getAuthenticated(); // Call getAuthenticated when the component mounts
   }, [getAuthenticated]);
+
+
+
+
+
+
+
+
+  // const loginUser = async (username, password) => {
+  //   try {
+  //     const success = await login(username, password);
+  
+  //     if (success) {
+  //       setIsAuthenticated(true);
+  
+  //       // Ensure fetchUserProfile() completes before navigating
+  //       const userProfile = await fetchUserProfile(); 
+  
+  //       if (userProfile && userProfile.groups) {
+  //         console.log("User Groups:", userProfile.groups); // Debugging: Check groups in console
+  
+  //         if (userProfile.groups.includes("manager")) {
+  //           navigate("/manager-dashboard"); // Redirect to Manager Dashboard
+  //         } else {
+  //           navigate("/menu"); // Redirect to Normal User Dashboard
+  //         }
+  //       } else {
+  //         console.error("User profile is undefined or missing groups.");
+  //         alert("Failed to fetch user group. Please try again.");
+  //       }
+  //     } else {
+  //       setIsAuthenticated(false);
+  //       alert("Invalid username or password");
+  //     }
+  //   } catch (error) {
+  //     console.error("Login failed:", error);
+  //     setIsAuthenticated(false);
+  //     alert("Login failed. Please try again.");
+  //   }
+  // };
+  
+  
+
 
   // Login user and update authentication state
   const loginUser = async (username, password) => {
@@ -152,6 +202,37 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Fetch workers
+const fetchWorkers = useCallback(async () => {
+  try {
+    const workersData = await getWorkers(); // API call to get workers
+    setWorkers(workersData); // Update state with fetched workers
+  } catch (error) {
+    console.error("Error fetching workers:", error);
+  }
+}, []);
+
+// Fetch clock history
+const fetchClockHistory = useCallback(async () => {
+  try {
+    const clockHistoryData = await getClockHistory(); // API call to get clock history
+    setClockHistory(clockHistoryData); // Update state with fetched clock history
+  } catch (error) {
+    console.error("Error fetching clock history:", error);
+  }
+}, []);
+
+const fetchUserRole = useCallback(async () => {
+  try {
+    const role = await getUserRole(); // Call the API function to get the user's role
+    setUserRole(role); // Set the role in the state
+  } catch (error) {
+    console.error("Error fetching user role:", error);
+  }
+}, []);
+
+
+
 // Update manager profile
     // AuthContext.js
 const updateManagerProfileData= async (profileData) => {
@@ -190,9 +271,31 @@ const updateManagerProfileData= async (profileData) => {
      }
    }, []);
 
+   const fetchDashboard = useCallback(async () => {
+    try {
+      if (userRole === "manager") {
+        // If the user is a manager, fetch manager-specific dashboard data
+        const dashboardData = await getManagerDashboard(); // Replace with the actual API call for manager's dashboard
+        return dashboardData; // Return the fetched dashboard data
+      } else {
+        // If the user is not a manager, you can either show an error or return a default response
+        alert("You are not authorized to access the manager's dashboard.");
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard:", error);
+    }
+  }, [userRole]);
+  
+
    useEffect(() => {
      if (isAuthenticated) {
        fetchUserTasks(); // Fetch tasks when authenticated
+       fetchUserRole(); // Fetch user role when authenticated
+       fetchUserProfile(); // Fetch user profile when authenticated
+
+       if (userRole === "manager") {
+        fetchDashboard(); // Fetch manager dashboard
+      }
      }
    }, [isAuthenticated, fetchUserTasks]);
 
@@ -204,6 +307,7 @@ const updateManagerProfileData= async (profileData) => {
        registerUser,
        registerNewManager,
        loginManagerUser,
+       userRole,
        userProfile,
        managerProfile,
        fetchUserProfile,
@@ -212,7 +316,12 @@ const updateManagerProfileData= async (profileData) => {
        updateProfile,
        assignTaskToUser,
        userTasks,
-       fetchUserTasks 
+       fetchUserTasks,
+       fetchClockHistory,
+       fetchWorkers,
+       fetchDashboard,
+       clockHistory,
+       workers
      }}>
        {children}
      </AuthContext.Provider>

@@ -15,17 +15,25 @@ admin.site.register(ManagerProfile)
 from .models import Task
 
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['task_title', 'project_name', 'assigned_to', 'estimated_completion_datetime', 'assigned_shift']
-    search_fields = ['task_title', 'project_name', 'assigned_to__username']  # Allow searching by username
+    list_display = ['task_title', 'project_name', 'assigned_to', 'assigned_by', 'estimated_completion_datetime', 'assigned_shift']
+    search_fields = ['task_title', 'project_name', 'assigned_to__username', 'assigned_by__username']  # Allow searching by assigned user's username
     list_filter = ['assigned_shift']  # Filter tasks by assigned shift
+
+    # Optional: Customize the display of assigned_by field in list_display
+    def assigned_by_username(self, obj):
+        return obj.assigned_by.username if obj.assigned_by else "N/A"  # Display "N/A" if assigned_by is null
+
+    # Add this method to list_display to show the assigned_by username
+    assigned_by_username.admin_order_field = 'assigned_by'  # Allow sorting by assigned_by field
+    assigned_by_username.short_description = 'Assigned By'  # Custom column name in the admin
 
     # Optional: Customize detail view if needed
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        # You can add any additional filtering or annotations here if necessary
         return queryset
 
 admin.site.register(Task, TaskAdmin)
+
 
 @admin.register(TimeLog)
 class TimeLogAdmin(admin.ModelAdmin):
