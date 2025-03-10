@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { logout, clockIn, clockOut } from '../endpoints/api';
+import { logout, clockIn, clockOut, getClockHistory } from '../endpoints/api';  // Assuming getClockHistory is available to fetch clock history
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
@@ -16,6 +16,7 @@ const Menu = () => {
   const [loading, setLoading] = useState(true); // Add loading state
   const navigate = useNavigate();
   const { userProfile, fetchUserProfile } = useAuth();
+  
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -52,6 +53,19 @@ const Menu = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchClockHistory = async () => {
+      try {
+        const history = await getClockHistory();  // Fetch previous clock-in/out history
+        setClockHistory(history);  // Set previous history to state
+      } catch (error) {
+        console.error("Error fetching clock history:", error);
+      }
+    };
+
+    fetchClockHistory();  // Fetch clock history when the component mounts
+  }, []);
+
   const handleLogout = async () => {
     try {
       const success = await logout();
@@ -75,37 +89,56 @@ const Menu = () => {
 
   const handleClockIn = async () => {
     try {
-      await clockIn();
-      const clockInTime = new Date().toLocaleTimeString();
-      setClockInDetails({ shift, note, clockInTime });
+      const response = await clockIn();
+      const clockInTime = new Date(response.data.clock_in).toISOString();
+      const newClockInDetails = {
+        shift,
+        note,
+        clock_in: clockInTime,
+        username: userProfile?.user.username,
+      };
+      setClockInDetails(newClockInDetails);
       setIsClockedIn(true);
+      setClockHistory(prevHistory => [...prevHistory, newClockInDetails]);
     } catch (error) {
       console.error("Error during clock-in:", error);
     }
   };
-
+  
   const handleClockOut = async () => {
     try {
-      await clockOut();
-      const clockOutTime = new Date().toLocaleTimeString();
-      const clockRecord = { ...clockInDetails, clockOutTime };
-      
-      setClockHistory([...clockHistory, clockRecord]); 
+      const response = await clockOut();
+      const clockOutTime = new Date(response.data.clock_out).toISOString();
+      const updatedClockHistory = clockHistory.map((record) => {
+        if (record.clock_in === clockInDetails.clock_in) {
+          return { ...record, clock_out: clockOutTime };
+        }
+        return record;
+      });
+      setClockHistory(updatedClockHistory);
       setIsClockedIn(false);
-      setClockInDetails(null); 
+      setClockInDetails(null);
     } catch (error) {
       console.error("Error during clock-out:", error);
     }
   };
-
+  
   const handleTakeBreak = () => {
     console.log("Taking a break");
   };
 
-  const formatDateTime = (date) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true };
-    return date.toLocaleDateString('en-US', options);
+  const formatDateTime = (isoString) => {
+    if (!isoString) {
+      return 'Invalid Date';
+    }
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) { // Check if the date is valid
+      return 'Invalid Date';
+    }
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true };
+    return date.toLocaleString('en-US', options);
   };
+  
 
   if (loading) {
     return <div>Loading...</div>; // Display loading state
@@ -124,19 +157,19 @@ const Menu = () => {
               Dashboard
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
-               Schedule
+              Schedule
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
               Timesheets
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
-             View Tasks
+              View Tasks
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
               Reports
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
-               Rewards
+              Rewards
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
               Worker Details
@@ -154,8 +187,8 @@ const Menu = () => {
       {/* Main Content Area */}
       <div className="flex-grow p-8 flex flex-col">
         <div className="bg-[#F4F4F9] p-6 rounded shadow-md mb-6"> 
-        <h1 className="text-2xl font-bold mb-2 text-gray-800">
-        Hello {userProfile?.user.first_name || "Guest"},👋 Welcome,</h1>
+          <h1 className="text-2xl font-bold mb-2 text-gray-800">
+            Hello {userProfile?.user.first_name || "Guest"},👋 Welcome,</h1>
 
           <p className="text-lg text-gray-600">You can Clock In/Out from here</p>
         </div>
@@ -229,18 +262,20 @@ const Menu = () => {
           <table className="w-full table-auto border-collapse">
             <thead>
               <tr>
-                <th className="px-4 py-2 border border-gray-300">Shift</th>
+                <th className="px-4 py-2 border border-gray-300">Username</th>
                 <th className="px-4 py-2 border border-gray-300">Clock-in Time</th>
                 <th className="px-4 py-2 border border-gray-300">Clock-out Time</th>
                 <th className="px-4 py-2 border border-gray-300">Note</th>
               </tr>
             </thead>
             <tbody>
-              {clockHistory.map((record, index) => (
-                <tr key={index}>
-                  <td className="px-4 py-2 border border-gray-300">{record.shift}</td>
-                  <td className="px-4 py-2 border border-gray-300">{record.clockInTime}</td>
-                  <td className="px-4 py-2 border border-gray-300">{record.clockOutTime}</td>
+              {clockHistory.map((record) => (
+                <tr key={record.clock_in}>
+                  <td className="px-4 py-2 border border-gray-300">{record.username}</td>
+                  <td className="px-4 py-2 border border-gray-300">{formatDateTime(record.clock_in)}</td>
+                  <td className="px-4 py-2 border border-gray-300">
+                    {record.clock_out ? formatDateTime(record.clock_out) : 'Pending'}
+                  </td>
                   <td className="px-4 py-2 border border-gray-300">{record.note}</td>
                 </tr>
               ))}

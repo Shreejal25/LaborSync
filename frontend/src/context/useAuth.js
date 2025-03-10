@@ -271,20 +271,20 @@ const updateManagerProfileData= async (profileData) => {
      }
    }, []);
 
-   const fetchDashboard = useCallback(async () => {
-    try {
-      if (userRole === "manager") {
-        // If the user is a manager, fetch manager-specific dashboard data
-        const dashboardData = await getManagerDashboard(); // Replace with the actual API call for manager's dashboard
-        return dashboardData; // Return the fetched dashboard data
-      } else {
-        // If the user is not a manager, you can either show an error or return a default response
-        alert("You are not authorized to access the manager's dashboard.");
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard:", error);
-    }
-  }, [userRole]);
+  //  const fetchDashboard = useCallback(async () => {
+  //   try {
+  //     if (userRole === "manager") {
+  //       // If the user is a manager, fetch manager-specific dashboard data
+  //       const dashboardData = await getManagerDashboard(); // Replace with the actual API call for manager's dashboard
+  //       return dashboardData; // Return the fetched dashboard data
+  //     } else {
+  //       // If the user is not a manager, you can either show an error or return a default response
+  //       alert("You are not authorized to access the manager's dashboard.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching dashboard:", error);
+  //   }
+  // }, [userRole]);
   
 
    useEffect(() => {
@@ -319,7 +319,7 @@ const updateManagerProfileData= async (profileData) => {
        fetchUserTasks,
        fetchClockHistory,
        fetchWorkers,
-       fetchDashboard,
+       
        clockHistory,
        workers
      }}>

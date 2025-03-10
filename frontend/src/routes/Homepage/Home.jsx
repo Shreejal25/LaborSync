@@ -10,9 +10,12 @@ import blogImage2 from '../../assets/images/blogimg2.png'; // Import blog image
 import { Star } from "lucide-react"; // Import Lucide icons
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
+const Home = () => {
+    const [openDropdown, setOpenDropdown] = useState(null); // 'login' or 'register' or null
 
-const home = () => {
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const toggleDropdown = (dropdown) => {
+        setOpenDropdown(openDropdown === dropdown ? null : dropdown);
+    };
 
     return (
         <div className="bg-white shadow-md">
@@ -32,34 +35,59 @@ const home = () => {
                             Solutions
                         </Link>
 
-                        {/* Login Button */}
-                        <Link to="/login" className="bg-blue-500 text-white px-10 py-1 hover:bg-blue-600">
-                            Login
-                        </Link>
+                        {/* Login Button with Dropdown */}
+                        <div className="relative">
+                            <button
+                                className="bg-blue-500 text-white px-10 py-1 hover:bg-blue-600"
+                                onClick={() => toggleDropdown('login')}
+                            >
+                                Login
+                            </button>
+
+                            {/* Login Dropdown */}
+                            {openDropdown === 'login' && (
+                                <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md">
+                                    <Link
+                                        to="/login"
+                                        className="block px-4 py-2 text-gray-700 hover:bg-gray-200"
+                                        onClick={() => setOpenDropdown(null)}
+                                    >
+                                        Worker
+                                    </Link>
+                                    <Link
+                                        to="/login-manager"
+                                        className="block px-4 py-2 text-gray-700 hover:bg-gray-200"
+                                        onClick={() => setOpenDropdown(null)}
+                                    >
+                                        Manager
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Register Dropdown */}
                         <div className="relative">
                             <button
                                 className="bg-orange-400 px-8 py-1 rounded-full hover:bg-gray-300"
-                                onClick={() => setDropdownOpen(!dropdownOpen)}
+                                onClick={() => toggleDropdown('register')}
                             >
                                 Register
                             </button>
 
-                            {/* Dropdown Menu */}
-                            {dropdownOpen && (
+                            {/* Register Dropdown Menu */}
+                            {openDropdown === 'register' && (
                                 <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md">
                                     <Link
                                         to="/register"
                                         className="block px-4 py-2 text-gray-700 hover:bg-gray-200"
-                                        onClick={() => setDropdownOpen(false)}
+                                        onClick={() => setOpenDropdown(null)}
                                     >
                                         Worker
                                     </Link>
                                     <Link
                                         to="/register-manager"
                                         className="block px-4 py-2 text-gray-700 hover:bg-gray-200"
-                                        onClick={() => setDropdownOpen(false)}
+                                        onClick={() => setOpenDropdown(null)}
                                     >
                                         Manager
                                     </Link>
@@ -251,4 +279,4 @@ const home = () => {
     );
 };
 
-export default home;
+export default Home;

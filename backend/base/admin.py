@@ -55,14 +55,14 @@ class TimeLogAdmin(admin.ModelAdmin):
     def formatted_clock_in(self, obj):
         """Display the clock-in time in a readable format."""
         if obj.clock_in:
-            return localtime(obj.clock_in).strftime('%Y-%m-%d %H:%M:%S')  # Adjust format as needed
+            return localtime(obj.clock_in).strftime ('%b %d, %Y, %I:%M %p')  # Adjust format as needed
         return "N/A"
     formatted_clock_in.short_description = "Clock In"
 
     def formatted_clock_out(self, obj):
         """Display the clock-out time in a readable format."""
         if obj.clock_out:
-            return localtime(obj.clock_out).strftime('%Y-%m-%d %H:%M:%S')  # Adjust format as needed
+            return localtime(obj.clock_out).strftime('%b %d, %Y, %I:%M %p')  # Adjust format as needed
         return "N/A"
     formatted_clock_out.short_description = "Clock Out"
 

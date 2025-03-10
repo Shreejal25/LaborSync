@@ -10,10 +10,10 @@ const ManagerDashboard = () => {
   const [workers, setWorkers] = useState([]);  // Local state for workers
   const [clockHistory, setClockHistory] = useState([]);  // Local state for clock history
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(null);
+
 
   const navigate = useNavigate();
-  const { userProfile, fetchUserProfile, userRole, fetchDashboardData} = useAuth();
+  const { userProfile, fetchUserProfile} = useAuth();
   const formatDateTime = (isoString) => {
     const date = new Date(isoString);
     return date.toLocaleString(); // Adjust format as needed
@@ -58,17 +58,7 @@ const ManagerDashboard = () => {
     fetchData();
   }, []); // Only run once on component mount
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (userRole === "manager") {
-        const data = await fetchDashboardData(); // Fetch the dashboard data if the user is a manager
-        setDashboardData(data); // Set the fetched dashboard data
-      }
-    };
-
-    fetchData();
-  }, [userRole, fetchDashboardData]);
-
+  
   const handleLogout = async () => {
     try {
       const success = await logout();
@@ -82,7 +72,7 @@ const ManagerDashboard = () => {
     }
   };
 
-  if (userRole) return <div className="text-center text-gray-600">Please log in.</div>;
+  
 
 
   return (
@@ -106,7 +96,7 @@ const ManagerDashboard = () => {
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
               Reports
             </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/worker-details')}>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
               Worker Details
             </li>
           </ul>

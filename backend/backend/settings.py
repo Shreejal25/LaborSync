@@ -158,6 +158,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'dagolshreejal@gmail.com'  # Replace with your Gmail address
-EMAIL_HOST_PASSWORD ='zvpk tppk elou zirc'  # Replace with your Gmail password or App Password
+EMAIL_HOST_USER = 'dagolshreejal@gmail.com'  # Gmail address
+EMAIL_HOST_PASSWORD ='zvpk tppk elou zirc'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Shorter
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Longer refresh
+}

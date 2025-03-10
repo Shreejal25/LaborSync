@@ -12,17 +12,29 @@ const ManagerLogin = () => {
   const { loginUser } = useAuth(); // Access loginUser function from Auth context
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevent form reload on submit
-    setLoading(true); // Start loading state
-
+    e.preventDefault();
+    setLoading(true);
+  
     try {
-      await loginUser(username, password); // Call login function
-      navigate('/menu'); // Navigate to dashboard after successful login
+      const response = await loginUser(username, password);
+      console.log('Login Response:', response); // Debugging log
+  
+      if (response && response.data && response.data.dashboard_type) {
+        if (response.data.dashboard_type === 'Managers') {
+          navigate('/manager-dashboard'); // Redirect to manager dashboard
+        } else {
+          navigate('/menu'); // Redirect to normal user dashboard
+        }
+      } else {
+        console.error('Dashboard type missing from login response');
+        
+        navigate('/manager-dashboard'); // Default fallback
+      }
     } catch (error) {
-      console.error('Login error:', error); // Log errors
-      alert('Login failed. Please check your credentials.'); // Alert user of errors
+      console.error('Login error:', error);
+      alert('Login failed. Please check your credentials.');
     } finally {
-      setLoading(false); // End loading state
+      setLoading(false);
     }
   };
 

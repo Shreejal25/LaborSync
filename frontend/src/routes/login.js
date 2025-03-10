@@ -14,20 +14,21 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
       const response = await loginUser(username, password);
+      console.log('Login Response:', response); // Debugging log
+  
       if (response && response.data && response.data.dashboard_type) {
         if (response.data.dashboard_type === 'Managers') {
-          navigate('/manager-dashboard'); // Navigate to manager dashboard
+          navigate('/manager-dashboard'); // Redirect to manager dashboard
         } else {
-          navigate('/menu'); // Navigate to user dashboard
+          navigate('/menu'); // Redirect to normal user dashboard
         }
       } else {
-        // Handle case where dashboard_type is missing
         console.error('Dashboard type missing from login response');
-        alert('Login successful, but dashboard type could not be determined.');
-        navigate('/menu'); // Default to user dashboard
+       
+        navigate('/menu'); // Default fallback
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -36,6 +37,7 @@ const Login = () => {
       setLoading(false);
     }
   };
+  
 
   const handleNav = () => {
     navigate('/register');

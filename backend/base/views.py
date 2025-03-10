@@ -81,26 +81,31 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomRefreshTokenView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
-            refresh_token = request.COOKIES.get('refresh_token')
+            refresh_token = request.COOKIES.get('refresh_token')  # Read from cookie
+            if not refresh_token:
+                return Response({'error': 'No refresh token found'}, status=status.HTTP_401_UNAUTHORIZED)
+
             request.data['refresh'] = refresh_token
             response = super().post(request, *args, **kwargs)
 
-            tokens = response.data
-            access_token = tokens['access']
+            if 'access' not in response.data:
+                return Response({'error': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
 
-            res = Response()
-            res.data = {'refreshed': True}
+            access_token = response.data['access']
+
+            res = Response({'refreshed': True})
             res.set_cookie(
                 key='access_token',
                 value=access_token,
                 httponly=True,
-                secure=False,
+                secure=False,  # Set True in production
                 samesite='None',
                 path='/'
             )
             return res
         except:
-            return Response({'refreshed': False})
+            return Response({'error': 'Refresh failed'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 
 @api_view(['POST'])

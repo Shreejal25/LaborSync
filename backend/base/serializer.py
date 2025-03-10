@@ -179,7 +179,8 @@ class DashboardSerializer(serializers.ModelSerializer):
 
 class ClockInClockOutSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
-    
+    clock_in = serializers.DateTimeField(format='iso-8601', read_only=True)  
+    clock_out = serializers.DateTimeField(format='iso-8601', read_only=True)
     
     class Meta:
         model = TimeLog

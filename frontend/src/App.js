@@ -38,7 +38,7 @@ function App() {
         <Route path='/manager-profile' element={<ManagerProfilePage/>}/>
         <Route path='/assign-task' element={<AssignTaskComponent/>}/>
         <Route path='/view-task' element={<UserTasksComponent/>}/>
-        <Route path='/menu'element={<PrivateRoute><Menu/></PrivateRoute>}/>
+        <Route path='/menu'element={<Menu/>}/>
         <Route path="/manager-dashboard" element={<ManagerDashboard />} />
       </Routes>
       </AuthProvider>
