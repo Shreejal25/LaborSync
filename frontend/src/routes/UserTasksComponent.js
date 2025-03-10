@@ -20,7 +20,7 @@ const UserTasksComponent = () => {
         </div>
         <nav className="flex-grow">
           <ul className="flex flex-col py-4">
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/')}>
+            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
               Dashboard
             </li>
             <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>

@@ -43,7 +43,7 @@ const AssignTaskComponent = () => {
     e.preventDefault();
     const result = await assignTaskToUser(taskData);
     if (result) {
-      alert('Task assigned successfully!');
+     
       setTaskData({
         project_name: '',
         task_title: '',

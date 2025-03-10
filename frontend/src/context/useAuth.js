@@ -22,11 +22,15 @@ import {
   getUserRole
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
+import Notification from "../routes/Components/Notification";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const storedAuth = localStorage.getItem("isAuthenticated");
+    return storedAuth === "true";
+  });
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null); // State for user profile
   const [managerProfile, setManagerProfile] = useState(null); // State for manager profile
@@ -34,13 +38,30 @@ export const AuthProvider = ({ children }) => {
   const [clockHistory, setClockHistory] = useState([]); // State for clock history
   const [workers, setWorkers] = useState([]); // State for workers
   const [userRole, setUserRole] = useState(null); // State for storing user role
+  const [notification, setNotification] = useState({
+    message: "",
+    show: false, });
 
   const navigate = useNavigate(); // Initialize navigate
 
-  // Check if the user is authenticated
+
+  // Fetch user profile
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const profile = await getUserProfile();
+      setUserProfile(profile);
+      return profile; // Add this line to return fetched profile
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return null; // Return null on error for safety
+    }
+  }, []);
+  
+
   const getAuthenticated = useCallback(async () => {
     try {
-      const success = await isAuthenticated();
+      const storedAuth = localStorage.getItem("isAuthenticated");
+      const success = storedAuth === "true";
       setIsAuthenticated(success);
       if (success) {
         await fetchUserProfile(); // Fetch user profile if authenticated
@@ -49,9 +70,10 @@ export const AuthProvider = ({ children }) => {
       console.error("Authentication check failed:", error);
       setIsAuthenticated(false);
     } finally {
-      setLoading(false); // Ensure loading is set to false after check
+      setLoading(false);
     }
-  }, []);
+  }, [fetchUserProfile]);
+  
 
   useEffect(() => {
     getAuthenticated(); // Call getAuthenticated when the component mounts
@@ -100,24 +122,32 @@ export const AuthProvider = ({ children }) => {
   
 
 
-  // Login user and update authentication state
   const loginUser = async (username, password) => {
     try {
       const success = await login(username, password);
       if (success) {
-        setIsAuthenticated(true);
-        await fetchUserProfile(); // Fetch user profile on successful login
-        navigate('/'); // Redirect to home page on successful login
+        localStorage.setItem("isAuthenticated", "true");
+        setIsAuthenticated(true); // set state
+        const profile = await fetchUserProfile(); // wait to fetch profile
+       
+        if (profile && profile.groups && profile.groups.includes("manager")) {
+          navigate("/manager-dashboard");
+        } else {
+          navigate("/menu"); // regular user dashboard
+        }
       } else {
         setIsAuthenticated(false);
+        localStorage.removeItem("isAuthenticated");
         alert("Invalid username or password");
       }
     } catch (error) {
       console.error("Login failed:", error);
       setIsAuthenticated(false);
+      localStorage.removeItem("isAuthenticated");
       alert("Login failed. Please try again.");
     }
   };
+  
 
   // Register user with personal information
   const registerUser = async (username, email, password, cPassword, first_name, last_name) => {
@@ -158,6 +188,7 @@ export const AuthProvider = ({ children }) => {
        if (success) {
          setIsAuthenticated(true);
          await fetchUserProfile(); // Fetch user profile on successful login
+         localStorage.setItem("isAuthenticated", "true"); // Store auth state
          navigate('/'); // Redirect to home page on successful login
        } else {
          setIsAuthenticated(false);
@@ -165,20 +196,13 @@ export const AuthProvider = ({ children }) => {
        }
      } catch (error) {
        console.error("Login failed:", error);
-       setIsAuthenticated(false);
+       setIsAuthenticated(false)
+       localStorage.removeItem("isAuthenticated"); // Remove auth state;
        alert("Login failed. Please try again.");
      }
    };
 
-   // Fetch user profile
-   const fetchUserProfile = useCallback(async () => {
-     try {
-       const profile = await getUserProfile();
-       setUserProfile(profile);
-     } catch (error) {
-       console.error("Error fetching user profile:", error);
-     }
-   }, []);
+   
 
    // Update user profile
    const updateProfile = async (profileData) => {
@@ -248,19 +272,26 @@ const updateManagerProfileData= async (profileData) => {
 
    // Assign a task to a user by username
    const assignTaskToUser = async (taskData) => {
-     try {
-       const result = await assignTask(taskData); // Call the API function to assign the task
-       if (result) {
-         alert('Task assigned successfully!');
-         return result; // Return the result if needed for further processing
-       } else {
-         alert('Failed to assign task.');
-       }
-     } catch (error) {
-       console.error('Error assigning task:', error);
-       alert('Error assigning task. Please try again.');
-     }
-   };
+    try {
+      const result = await assignTask(taskData);
+      if (result) {
+        setNotification({ message: "Task assigned successfully!", show: true });
+        return result;
+      } else {
+        setNotification({ message: "Failed to assign task.", show: true });
+      }
+    } catch (error) {
+      console.error("Error assigning task:", error);
+      setNotification({
+        message: "Error assigning task. Please try again.",
+        show: true,
+      });
+    }
+  };
+
+  const closeNotification = () => {
+    setNotification({ ...notification, show: false });
+  };
 
    const fetchUserTasks = useCallback(async () => {
      try {
@@ -287,18 +318,13 @@ const updateManagerProfileData= async (profileData) => {
   // }, [userRole]);
   
 
-   useEffect(() => {
-     if (isAuthenticated) {
-       fetchUserTasks(); // Fetch tasks when authenticated
-       fetchUserRole(); // Fetch user role when authenticated
-       fetchUserProfile(); // Fetch user profile when authenticated
-
-       if (userRole === "manager") {
-        fetchDashboard(); // Fetch manager dashboard
-      }
-     }
-   }, [isAuthenticated, fetchUserTasks]);
-
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserTasks();
+      fetchUserRole();
+      fetchUserProfile();
+    }
+  }, [isAuthenticated, fetchUserTasks]);
    return (
      <AuthContext.Provider value={{ 
        isAuthenticated,
@@ -319,10 +345,12 @@ const updateManagerProfileData= async (profileData) => {
        fetchUserTasks,
        fetchClockHistory,
        fetchWorkers,
-       
        clockHistory,
        workers
      }}>
+       {notification.show && (
+        <Notification message={notification.message} onClose={closeNotification} />
+      )}
        {children}
      </AuthContext.Provider>
    );

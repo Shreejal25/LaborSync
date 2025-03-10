@@ -5,7 +5,7 @@ import { useAuth } from "../context/useAuth";
 
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
 
-const Menu = () => {
+const UserDashboard = () => {
   const [notes, setNotes] = useState([]);
   const [note, setNote] = useState("");
   const [shift, setShift] = useState("");
@@ -15,7 +15,7 @@ const Menu = () => {
   const [clockHistory, setClockHistory] = useState([]);
   const [loading, setLoading] = useState(true); // Add loading state
   const navigate = useNavigate();
-  const { userProfile, fetchUserProfile } = useAuth();
+  const { userProfile, fetchUserProfile, isAuthenticated } = useAuth();
   
 
   useEffect(() => {
@@ -31,6 +31,17 @@ const Menu = () => {
 
     fetchProfile();
   }, [fetchUserProfile]);
+
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated && !loading) {
+        navigate('/menu');
+      }
+    };
+    checkAuth();
+  }, [isAuthenticated, navigate, loading]);
+
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -143,6 +154,8 @@ const Menu = () => {
   if (loading) {
     return <div>Loading...</div>; // Display loading state
   }
+
+  
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -287,4 +300,4 @@ const Menu = () => {
   );
 };
 
-export default Menu;
+export default UserDashboard;
