@@ -37,11 +37,11 @@ function App() {
 
           {/* Private Routes (Wrapped with PrivateRoute) */}
           <Route path='/user-profile' element={<PrivateRoute><UserProfile /></PrivateRoute>} />
-          <Route path='/manager-profile' element={<PrivateRoute><ManagerProfilePage /></PrivateRoute>} />
-          <Route path='/assign-task' element={<PrivateRoute><AssignTaskComponent /></PrivateRoute>} />
+          
+          
           <Route path='/view-task' element={<PrivateRoute><UserTasksComponent /></PrivateRoute>} />
           
-          <Route path="/manager-dashboard" element={<PrivateRoute><ManagerDashboard /></PrivateRoute>} />
+          
           {/* Unauthorized Route */}
         <Route path="/unauthorized" element={<Unauthorized />} />
           <Route 
@@ -52,7 +52,42 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
+        <Route 
+          path="/user-profile" 
+          element={
+            <RoleProtectedRoute role="user">
+              <UserProfile />
+            </RoleProtectedRoute>
+          } 
+        />
+       
+        <Route 
+          path="/manager-dashboard" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < ManagerDashboard />
+            </RoleProtectedRoute>
+          } 
+        />
+         <Route 
+          path="/assign-task" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < AssignTaskComponent />
+            </RoleProtectedRoute>
+          } 
+        />
+
+          <Route 
+          path="/manager-profile" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < ManagerProfilePage />
+            </RoleProtectedRoute>
+          } 
+        />
         </Routes>
+        
       </AuthProvider>
     </Router>
   );

@@ -71,7 +71,18 @@ const ManagerProfilePage = () => {
   };
 
   if (loading) return <div className="text-center text-gray-600">Loading...</div>;
-  if (!managerProfile) return <div className="text-center text-gray-600">Please log in.</div>;
+  if (!managerProfile) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 max-w-md w-full rounded-md shadow-md">
+          <p className="font-semibold text-center">
+            Please log in as Manager to View.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
 
   return (
     <div className="flex h-90 bg-gray-50">
