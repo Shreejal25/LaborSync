@@ -203,7 +203,7 @@ def manager_dashboard_view(request):
         return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Fetch manager-specific data
-    tasks = Task.objects.filter(assigned_to=user)
+    tasks = Task.objects.filter(assigned_by=user)
     total_tasks_assigned = tasks.count()
     active_tasks = tasks.filter(status='in_progress').count()
     completed_tasks = tasks.filter(status='completed').count()
@@ -256,55 +256,6 @@ def user_role_view(request):
 
 
 
-
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def dashboard_view(request):
-#     user = request.user
-
-#     if user.groups.filter(name='Managers').exists():
-#         # Manager Dashboard
-#         try:
-#             manager_profile = ManagerProfile.objects.get(user=user)
-#         except ManagerProfile.DoesNotExist:
-#             return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-#         total_tasks_assigned = Task.objects.filter(assigned_to=user).count()
-#         active_tasks = Task.objects.filter(assigned_to=user, status='in_progress').count()
-#         completed_tasks = Task.objects.filter(assigned_to=user, status='completed').count()
-#         recent_tasks = Task.objects.filter(assigned_to=user).order_by('-created_at')[:5]
-
-#         manager_serializer = ManagerProfileSerializer(manager_profile)
-#         task_serializer = TaskViewSerializer(recent_tasks, many=True)
-
-#         return Response({
-#             'dashboard_type': 'Managers',
-#             'manager_profile': manager_serializer.data,
-#             'stats': {
-#                 'total_tasks_assigned': total_tasks_assigned,
-#                 'active_tasks': active_tasks,
-#                 'completed_tasks': completed_tasks,
-#             },
-#             'recent_tasks': task_serializer.data
-#         })
-
-#     else:
-#         # User Dashboard
-#         dashboards = Dashboard.objects.filter(user=user)
-#         serializer = DashboardSerializer(dashboards, many=True)
-#         return Response({
-#             'dashboard_type': 'user',
-#             'dashboards': serializer.data
-#         })
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def dashboard_view(request):
-#     user = request.user
-#     dashboards = Dashboard.objects.filter(user=user)
-#     serializer = DashboardSerializer(dashboards, many=True)
-#     return Response(serializer.data)
 
 
 
@@ -406,6 +357,18 @@ def manager_profile_view(request):
 @permission_classes([IsAuthenticated])
 def clock_in(request):
     user = request.user
+    task_id = request.data.get('task_id')
+    task =None
+    
+    if task_id:
+        try:
+            task = Task.objects.get(id=task_id, assigned_to=user, status = 'pending')
+        except Task.DoesNotExist:
+            return Response({'message': f'Task with ID {task_id} not found or not assigned to you.'}, status=400)
+        except ValueError:
+            return Response({'message': 'Invalid task ID format.'}, status=400)
+        
+        
     # Check for the latest TimeLog
     latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
 
@@ -413,7 +376,12 @@ def clock_in(request):
         return Response({"message": "You are already clocked in."}, status=400)
 
     # Create a new TimeLog if no active clock-in
-    new_log = TimeLog.objects.create(user=user, clock_in=timezone.now())
+    new_log = TimeLog.objects.create(user=user, clock_in=timezone.now(), task=task)
+    
+    if task:
+        task.status = 'in_progress'
+        task.save()
+        
     serializer = ClockInClockOutSerializer(new_log)
     return Response({"message": "Clocked in successfully.", "data": serializer.data}, status=200)
 
@@ -431,6 +399,10 @@ def clock_out(request):
     # Update the existing TimeLog
     latest_log.clock_out = timezone.now()
     latest_log.save()
+    
+    if latest_log.task:
+        latest_log.task.status = 'completed'
+        latest_log.task.save()
     serializer = ClockInClockOutSerializer(latest_log)
     return Response({"message": "Clocked out successfully.", "data": serializer.data}, status=200)
 

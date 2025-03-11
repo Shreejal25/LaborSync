@@ -120,31 +120,43 @@ const ManagerDashboard = () => {
         </div>
 
         {/* Recent Tasks */}
-        <div className="bg-white p-6 rounded shadow-md mb-6">
-          <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
-          {tasks.length > 0 ? (
-            <table className="w-full table-auto border-collapse">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 border border-gray-300">Task Title</th>
-                  <th className="px-4 py-2 border border-gray-300">Assigned To</th>
-                  <th className="px-4 py-2 border border-gray-300">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task) => (
-                  <tr key={task.id}>
-                    <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
-                    <td className="px-4 py-2 border border-gray-300">{task.assigned_to}</td>
-                    <td className="px-4 py-2 border border-gray-300">{task.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-gray-500">No tasks available</p>
-          )}
-        </div>
+<div className="bg-white p-6 rounded shadow-md mb-6">
+  <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
+  {tasks.length > 0 ? (
+    <table className="w-full table-auto border-collapse">
+      <thead>
+        <tr>
+          <th className="px-4 py-2 border border-gray-300">Task Title</th>
+          <th className="px-4 py-2 border border-gray-300">Assigned To</th>
+          <th className="px-4 py-2 border border-gray-300">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tasks.map((task) => (
+          <tr key={task.id}>
+            <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
+            <td className="px-4 py-2 border border-gray-300">{task.assigned_to}</td>
+            <td className="px-4 py-2 border border-gray-300 flex items-center gap-2">
+              <span
+                className={`h-3 w-3 rounded-full ${
+                  task.status === 'pending'
+                    ? 'bg-red-500'
+                    : task.status === 'in_progress'
+                    ? 'bg-yellow-500'
+                    : 'bg-green-500'
+                }`}
+              ></span>
+              {task.status.replace('_', ' ').toUpperCase()}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <p className="text-gray-500">No tasks available</p>
+  )}
+</div>
+
 
         {/* Worker Details */}
         <div className="bg-white p-6 rounded shadow-md mb-6">

@@ -55,6 +55,7 @@ function App() {
         <Route 
           path="/user-profile" 
           element={
+
             <RoleProtectedRoute role="user">
               <UserProfile />
             </RoleProtectedRoute>
@@ -64,9 +65,12 @@ function App() {
         <Route 
           path="/manager-dashboard" 
           element={
+            <PrivateRoute>
             <RoleProtectedRoute role="manager">
               < ManagerDashboard />
             </RoleProtectedRoute>
+          </PrivateRoute>
+
           } 
         />
          <Route 

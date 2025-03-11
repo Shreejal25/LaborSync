@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { logout, clockIn, clockOut, getClockHistory } from '../endpoints/api';  // Assuming getClockHistory is available to fetch clock history
+import { logout, clockIn, clockOut, getClockHistory, getUserTasks } from '../endpoints/api';  // Assuming getClockHistory is available to fetch clock history
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
@@ -15,6 +15,10 @@ const UserDashboard = () => {
   const [clockHistory, setClockHistory] = useState([]);
   const [loading, setLoading] = useState(true); // Add loading state
   const navigate = useNavigate();
+  const [tasks, setTasks] = useState([]);
+  const [selectedTask, setSelectedTask] = useState("");
+
+// ... rest of your component ...
   const { userProfile, fetchUserProfile, isAuthenticated } = useAuth();
   
 
@@ -31,6 +35,19 @@ const UserDashboard = () => {
 
     fetchProfile();
   }, [fetchUserProfile]);
+
+  useEffect(() => {
+        const fetchUserTasks = async () => {
+            try {
+                const fetchedTasks = await getUserTasks();
+                setTasks(fetchedTasks);
+            } catch (error) {
+                console.error("Error fetching user tasks:", error);
+            }
+        };
+
+        fetchUserTasks();
+    }, []);
 
 
   useEffect(() => {
@@ -100,13 +117,17 @@ const UserDashboard = () => {
 
   const handleClockIn = async () => {
     try {
-      const response = await clockIn();
+      const response = await clockIn(selectedTask);
       const clockInTime = new Date(response.data.clock_in).toISOString();
+      const taskId = response.data.task; // Extract task ID from response
+      console.log("Selected Task:", selectedTask); // Debugging
+      
       const newClockInDetails = {
         shift,
         note,
         clock_in: clockInTime,
         username: userProfile?.user.username,
+        task: taskId
       };
       setClockInDetails(newClockInDetails);
       setIsClockedIn(true);
@@ -115,24 +136,33 @@ const UserDashboard = () => {
       console.error("Error during clock-in:", error);
     }
   };
-  
+
   const handleClockOut = async () => {
     try {
-      const response = await clockOut();
-      const clockOutTime = new Date(response.data.clock_out).toISOString();
-      const updatedClockHistory = clockHistory.map((record) => {
-        if (record.clock_in === clockInDetails.clock_in) {
-          return { ...record, clock_out: clockOutTime };
-        }
-        return record;
-      });
-      setClockHistory(updatedClockHistory);
-      setIsClockedIn(false);
-      setClockInDetails(null);
+        const response = await clockOut(selectedTask);
+        const clockOutTime = new Date(response.data.clock_out).toISOString();
+
+        const updatedClockHistory = clockHistory.map(record => {
+            if (record.clock_in === clockInDetails.clock_in && record.task === selectedTask) {
+                return { ...record, clock_out: clockOutTime };
+            }
+            return record;
+        });
+
+        setClockHistory([...updatedClockHistory]);
+        setIsClockedIn(false);
+        setClockInDetails(null);
+
+        // Re-fetch clock history from the server
+        const fetchedHistory = await getClockHistory();
+        setClockHistory(fetchedHistory);
+
     } catch (error) {
-      console.error("Error during clock-out:", error);
+        console.error("Error during clock-out:", error);
     }
-  };
+};
+  
+  
   
   const handleTakeBreak = () => {
     console.log("Taking a break");
@@ -245,6 +275,19 @@ const UserDashboard = () => {
                   <option value="afternoon">Afternoon Shift</option>
                   <option value="night">Night Shift</option>
                 </select>
+
+                  <select
+                  value={selectedTask}
+                  onChange={(e) => setSelectedTask(e.target.value)}
+                  className="w-full p-2 mb-4 border border-gray-300 rounded">
+                  <option value="" disabled>Select Task</option>
+                  {tasks.map((task) => (
+                      <option key={task.id} value={task.id}>
+                          {task.task_title}
+                      </option>
+                  ))}
+                  </select>
+
                 <textarea
                   value={note}
                   onChange={handleNoteChange}

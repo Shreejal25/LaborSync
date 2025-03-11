@@ -86,38 +86,7 @@ export const AuthProvider = ({ children }) => {
 
 
 
-  // const loginUser = async (username, password) => {
-  //   try {
-  //     const success = await login(username, password);
   
-  //     if (success) {
-  //       setIsAuthenticated(true);
-  
-  //       // Ensure fetchUserProfile() completes before navigating
-  //       const userProfile = await fetchUserProfile(); 
-  
-  //       if (userProfile && userProfile.groups) {
-  //         console.log("User Groups:", userProfile.groups); // Debugging: Check groups in console
-  
-  //         if (userProfile.groups.includes("manager")) {
-  //           navigate("/manager-dashboard"); // Redirect to Manager Dashboard
-  //         } else {
-  //           navigate("/menu"); // Redirect to Normal User Dashboard
-  //         }
-  //       } else {
-  //         console.error("User profile is undefined or missing groups.");
-  //         alert("Failed to fetch user group. Please try again.");
-  //       }
-  //     } else {
-  //       setIsAuthenticated(false);
-  //       alert("Invalid username or password");
-  //     }
-  //   } catch (error) {
-  //     console.error("Login failed:", error);
-  //     setIsAuthenticated(false);
-  //     alert("Login failed. Please try again.");
-  //   }
-  // };
   
   
 
@@ -129,24 +98,44 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("isAuthenticated", "true");
         setIsAuthenticated(true); // set state
         const profile = await fetchUserProfile(); // wait to fetch profile
-       
+  
         if (profile && profile.groups && profile.groups.includes("manager")) {
           navigate("/manager-dashboard");
         } else {
           navigate("/menu"); // regular user dashboard
         }
+  
+        // Optional: Success notification (if needed)
+        setNotification({
+          message: "Login successful!",
+          show: true,
+        });
+  
       } else {
         setIsAuthenticated(false);
         localStorage.removeItem("isAuthenticated");
-        alert("Invalid username or password");
+        // Show notification instead of alert
+        setNotification({
+          message: "Invalid username or password",
+          show: true,
+        });
+        // Stay on login page or redirect back to login
+        navigate('/login'); 
       }
     } catch (error) {
       console.error("Login failed:", error);
       setIsAuthenticated(false);
       localStorage.removeItem("isAuthenticated");
-      alert("Login failed. Please try again.");
+      // Show notification on login error
+      setNotification({
+        message: "Login failed. Please try again.",
+        show: true,
+      });
+      // Stay on login page or redirect back to login
+      navigate('/login');
     }
   };
+  
   
 
   // Register user with personal information
@@ -302,20 +291,7 @@ const updateManagerProfileData= async (profileData) => {
      }
    }, []);
 
-  //  const fetchDashboard = useCallback(async () => {
-  //   try {
-  //     if (userRole === "manager") {
-  //       // If the user is a manager, fetch manager-specific dashboard data
-  //       const dashboardData = await getManagerDashboard(); // Replace with the actual API call for manager's dashboard
-  //       return dashboardData; // Return the fetched dashboard data
-  //     } else {
-  //       // If the user is not a manager, you can either show an error or return a default response
-  //       alert("You are not authorized to access the manager's dashboard.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching dashboard:", error);
-  //   }
-  // }, [userRole]);
+
   
 
   useEffect(() => {

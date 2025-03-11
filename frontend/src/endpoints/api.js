@@ -274,25 +274,26 @@ export const updateManagerProfile = async (profileData) => {
         return callRefresh(error, () => axios.put(MANAGER_PROFILE_URL, dataToUpdate, { withCredentials: true }));
     }
 };
-export const clockIn = async () => {
+
+export const clockIn = async (taskId) => {
     try {
-        const response = await axios.post(CLOCK_IN_URL, {}, { withCredentials: true });
+        const response = await axios.post(CLOCK_IN_URL, { task_id: taskId }, { withCredentials: true });
         console.log('Clocked in:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error clocking in:', error);
-        return callRefresh(error, () => axios.post(CLOCK_IN_URL, {}, { withCredentials: true }));
+        return callRefresh(error, () => axios.post(CLOCK_IN_URL, { task_id: taskId }, { withCredentials: true }));
     }
 };
 
-export const clockOut = async () => {
+export const clockOut = async (taskId) => {
     try {
-        const response = await axios.post(CLOCK_OUT_URL, {}, { withCredentials: true });
+        const response = await axios.post(CLOCK_OUT_URL, { task_id: taskId }, { withCredentials: true });
         console.log('Clocked out:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error clocking out:', error);
-        return callRefresh(error, () => axios.post(CLOCK_OUT_URL, {}, { withCredentials: true }));
+        return callRefresh(error, () => axios.post(CLOCK_OUT_URL, { task_id: taskId }, { withCredentials: true }));
     }
 };
 

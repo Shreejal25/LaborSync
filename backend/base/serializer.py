@@ -45,6 +45,44 @@ class CombinedUserSerializer(serializers.ModelSerializer):
             'work_schedule_preference'
         ]
         extra_kwargs = {'password': {'write_only': True}}
+    def validate_phone_number(self, value):
+        if value and len(value) > 15:
+            raise serializers.ValidationError("Phone number is too long (max 15 characters).")
+        return value
+
+    def validate_gender(self, value):
+        if value and len(value) > 10:
+            raise serializers.ValidationError("Gender is too long (max 10 characters).")
+        return value
+
+    def validate_city_town(self, value):
+        if value and len(value) > 100:
+            raise serializers.ValidationError("City/Town is too long (max 100 characters).")
+        return value
+
+    def validate_state_province(self, value):
+        if value and len(value) > 100:
+            raise serializers.ValidationError("State/Province is too long (max 100 characters).")
+        return value
+
+    def validate_education_level(self, value):
+        if value and len(value) > 100:
+            raise serializers.ValidationError("Education level is too long (max 100 characters).")
+        return value
+
+    def validate_work_availability(self, value):
+        if value and len(value) > 15:
+            raise serializers.ValidationError("Work availability is too long (max 15 characters).")
+        return value
+
+    def validate_work_schedule_preference(self, value):
+        if value and len(value) > 100:
+            raise serializers.ValidationError("Work schedule preference is too long (max 100 characters).")
+        return value
+    def validate_role(self, value):
+        if value and len(value) > 30:
+            raise serializers.ValidationError('Role is too long (max 30 characters).')
+        return value    
 
     def create(self, validated_data):
         user_profile_data = validated_data.pop('userprofile', {})
@@ -181,10 +219,10 @@ class ClockInClockOutSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     clock_in = serializers.DateTimeField(format='iso-8601', read_only=True)  
     clock_out = serializers.DateTimeField(format='iso-8601', read_only=True)
-    
+    task = serializers.PrimaryKeyRelatedField(read_only=True) #add task field.
     class Meta:
         model = TimeLog
-        fields = ['username','clock_in', 'clock_out']
+        fields = ['username','clock_in', 'clock_out', 'task']  
 
     def update(self, instance, validated_data):
         # Update clock_in and clock_out instead of clock_in_time and clock_out_time
@@ -227,7 +265,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class TaskViewSerializer(serializers.ModelSerializer):
     assigned_by = serializers.CharField(source="assigned_by.username", read_only=True)  # Get assigned_by username
-    
+    assigned_to = serializers.CharField(source="assigned_to.username", read_only=True)  # Get assigned_to username
     class Meta:
         model = Task
         fields = [
@@ -239,6 +277,7 @@ class TaskViewSerializer(serializers.ModelSerializer):
             'assigned_shift',
             'assigned_to',
             'assigned_by',
+            'status'  # Include status field
             
             # This will show the username of the assigned user
         ]
