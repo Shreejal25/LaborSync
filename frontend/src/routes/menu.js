@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { logout, clockIn, clockOut, getClockHistory, getUserTasks } from '../endpoints/api';  // Assuming getClockHistory is available to fetch clock history
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import Notification from './Components/Notification';
 
 import logo from '../assets/images/LaborSynclogo.png'; // Import logo
 
@@ -17,6 +18,9 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState("");
+  const [notification, setNotification] = useState({
+    message: "",
+    show: false, });
 
 // ... rest of your component ...
   const { userProfile, fetchUserProfile, isAuthenticated } = useAuth();
@@ -116,26 +120,40 @@ const UserDashboard = () => {
   };
 
   const handleClockIn = async () => {
-    try {
-      const response = await clockIn(selectedTask);
-      const clockInTime = new Date(response.data.clock_in).toISOString();
-      const taskId = response.data.task; // Extract task ID from response
-      console.log("Selected Task:", selectedTask); // Debugging
-      
-      const newClockInDetails = {
-        shift,
-        note,
-        clock_in: clockInTime,
-        username: userProfile?.user.username,
-        task: taskId
-      };
-      setClockInDetails(newClockInDetails);
-      setIsClockedIn(true);
-      setClockHistory(prevHistory => [...prevHistory, newClockInDetails]);
-    } catch (error) {
-      console.error("Error during clock-in:", error);
+    if (!selectedTask) {
+        setNotification({
+            message: "Please select a task before clocking in.",
+            show: true,
+            type: "error",
+        });
+        setTimeout(() => {
+          setNotification({ ...notification, show: false }); 
+      }, 5000); 
+        return;
     }
-  };
+    try {
+        const response = await clockIn(selectedTask);
+        const clockInTime = new Date(response.data.clock_in).toISOString();
+        const taskId = response.data.task;
+        console.log("Selected Task:", selectedTask);
+        const newClockInDetails = {
+            shift,
+            note,
+            clock_in: clockInTime,
+            username: userProfile?.user.username,
+            task: taskId,
+        };
+        setClockInDetails(newClockInDetails);
+        setIsClockedIn(true);
+        setClockHistory((prevHistory) => [...prevHistory, newClockInDetails]);
+    } catch (error) {
+        console.error("Error during clock-in:", error);
+    }
+};
+
+const closeNotification = () => {
+    setNotification({ ...notification, show: false });
+};
 
   const handleClockOut = async () => {
     try {
@@ -247,10 +265,14 @@ const UserDashboard = () => {
               <p className="text-gray-500">No notes available</p>
             )}
           </div>
+          
 
           {/* Clock In/Out Box */}
           <div className="w-1/3 bg-white p-6 rounded shadow-md flex flex-col">
             <h2 className="text-xl font-bold mb-4">{formatDateTime(currentDateTime)}</h2>
+            {notification.show && (
+                <Notification message={notification.message} onClose={closeNotification} type={notification.type} />
+            )}
 
             {isClockedIn ? (
               <div>

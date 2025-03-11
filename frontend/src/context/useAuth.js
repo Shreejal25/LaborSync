@@ -109,6 +109,7 @@ export const AuthProvider = ({ children }) => {
         setNotification({
           message: "Login successful!",
           show: true,
+          type: "success"
         });
   
       } else {
@@ -118,6 +119,7 @@ export const AuthProvider = ({ children }) => {
         setNotification({
           message: "Invalid username or password",
           show: true,
+          type: "error",
         });
         // Stay on login page or redirect back to login
         navigate('/login'); 
@@ -130,6 +132,7 @@ export const AuthProvider = ({ children }) => {
       setNotification({
         message: "Login failed. Please try again.",
         show: true,
+        type: "error",
       });
       // Stay on login page or redirect back to login
       navigate('/login');

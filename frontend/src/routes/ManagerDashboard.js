@@ -168,7 +168,7 @@ const ManagerDashboard = () => {
                 <th className="px-4 py-2 border border-gray-300">UserName</th>
                   <th className="px-4 py-2 border border-gray-300">Full Name</th>
                   <th className="px-4 py-2 border border-gray-300">Email</th>
-                  <th className="px-4 py-2 border border-gray-300">Role</th>
+                  
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +177,7 @@ const ManagerDashboard = () => {
                     <td className="px-4 py-2 border border-gray-300">{worker.user.username}</td>
                     <td className="px-4 py-2 border border-gray-300">{worker.user.first_name} {worker.user.last_name}</td>
                     <td className="px-4 py-2 border border-gray-300">{worker.user.email}</td>
-                    <td className="px-4 py-2 border border-gray-300">{worker.user.role}</td>
+                   
                   </tr>
                 ))}
               </tbody>

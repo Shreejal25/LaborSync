@@ -1,7 +1,7 @@
 // Notification.js
 import React, { useEffect } from 'react';
 
-const Notification = ({ message, onClose }) => {
+const Notification = ({ message, onClose, type}) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -10,13 +10,15 @@ const Notification = ({ message, onClose }) => {
     return () => clearTimeout(timer); // Clear timeout on unmount
   }, [onClose]);
 
-  return (
-    <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded shadow-md">
-      {message}
-      <button onClick={onClose} className="ml-2">
-        &times;
-      </button>
-    </div>
+  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+    return (
+        <div className={`fixed top-4 right-4 ${bgColor} text-white p-4 rounded shadow-md`}>
+            {message}
+            <button onClick={onClose} className="ml-2">
+                &times;
+            </button>
+        </div>
   );
 };
 
