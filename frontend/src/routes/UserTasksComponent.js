@@ -2,14 +2,28 @@ import React, { useEffect } from 'react';
 import { useAuth } from '../context/useAuth'; // Adjust path as necessary
 import { useNavigate } from 'react-router-dom'; // Ensure you have this import for navigation
 import logo from '../assets/images/LaborSynclogo.png'; // Import log
+import { logout } from '../endpoints/api';
 
 const UserTasksComponent = () => {
-  const { userTasks, fetchUserTasks, handleLogout } = useAuth();
+  const { userTasks, fetchUserTasks } = useAuth();
   const navigate = useNavigate(); // Hook for navigation
 
   useEffect(() => {
     fetchUserTasks(); // Fetch tasks when component mounts
   }, [fetchUserTasks]);
+
+   const handleLogout = async () => {
+      try {
+        const success = await logout();
+        if (success) {
+          navigate('/login');
+        } else {
+          console.error("Logout failed");
+        }
+      } catch (error) {
+        console.error("Error during logout:", error);
+      }
+    };
 
   return (
     <div className="flex h-screen bg-gray-50">

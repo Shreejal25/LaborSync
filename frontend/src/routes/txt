@@ -19,3 +19,25 @@
       </div>
     );
   }
+
+
+  <input type="text" name="project_name" placeholder="Project Name" value={taskData.project_name} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
+              <input type="text" name="task_title" placeholder="Task Title" value={taskData.task_title} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
+              <textarea name="description" placeholder="Description" value={taskData.description} onChange={handleChange} required className="w-full p-2 border rounded mb-4"></textarea>
+              <input type="datetime-local" name="estimated_completion_datetime" value={taskData.estimated_completion_datetime} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
+              <input type="text" name="assigned_shift" placeholder="Assigned Shift" value={taskData.assigned_shift} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
+              <select name="assigned_to" value={taskData.assigned_to} onChange={handleChange} required className="w-full p-2 border rounded mb-4">
+                <option value="" disabled>Select a user</option>
+                {worker.length > 0 ? (
+                  worker.map((worker) => (
+                    <option key={worker.user.username} value={worker.user.username}>{worker.user.username}</option>
+                  ))
+                ) : (
+                  <option value="" disabled>Loading workers...</option>
+                )}
+              </select>
+              <div className="flex justify-between">
+                <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">Assign Task</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400">Cancel</button>
+              </div>
+            </form>
