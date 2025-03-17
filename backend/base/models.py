@@ -52,6 +52,28 @@ class Dashboard(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Dashboard"
+    
+    
+# Project Model
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Project(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('on_hold', 'On Hold'),
+    ]
+
+    name = models.CharField(max_length=255)
+    workers = models.ManyToManyField(User, related_name='projects')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
 
 
 
@@ -75,16 +97,16 @@ class Task(models.Model):
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
     ]
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    project_name = models.CharField(max_length=255)
+    project = models.ForeignKey(Project, null=True, blank=True, on_delete=models.SET_NULL, related_name='tasks')
     task_title = models.CharField(max_length=255)
     description = models.TextField()
     estimated_completion_datetime = models.DateTimeField()
     assigned_shift = models.CharField(max_length=100)
-    assigned_to = models.ForeignKey(User, on_delete=models.CASCADE)
-    assigned_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_tasks", null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)  # Corrected line
+    assigned_to = models.ManyToManyField(User, related_name='assigned_tasks')  # Editable per task
+    assigned_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.task_title

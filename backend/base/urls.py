@@ -1,4 +1,5 @@
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     # dashboard_view,
     CustomTokenObtainPairView,
@@ -20,11 +21,16 @@ from .views import (
     user_dashboard_view,
     user_role_view,
     get_clock_history,
-    get_workers
+    get_workers, 
+    get_project_workers,
+    create_project
+    
    
 )
 
+
 urlpatterns = [
+    
     # path('dashboard/', dashboard_view, name='dashboard'),
     path('manager-dashboard/', manager_dashboard_view, name='manager-dashboard'),
     path('user-dashboard/', user_dashboard_view, name='user-dashboard'),
@@ -48,5 +54,7 @@ urlpatterns = [
     path('view/tasks/', view_user_tasks, name='view_user_tasks'),
     path('forgot_password/', forgot_password, name='forgot_password'),
     path('reset_password_confirm/<uidb64>/<token>/', reset_password_confirm, name='reset_password_confirm'),
+    path('projects/', create_project, name='create_project'),
+    path('projects/<int:project_id>/workers/', get_project_workers, name='get_project_workers'),  # Corrected line 
     
 ]

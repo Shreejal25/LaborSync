@@ -19,7 +19,9 @@ import {
   updateManagerProfile,
   getClockHistory,
   getWorkers,
-  getUserRole
+  getUserRole,
+  createProject,
+  getProjectWorkers
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
 import Notification from "../routes/Components/Notification";
@@ -80,64 +82,61 @@ export const AuthProvider = ({ children }) => {
   }, [getAuthenticated]);
 
 
-
-
-
-
-
-
-  
-  
-  
-
-
   const loginUser = async (username, password) => {
     try {
-      const success = await login(username, password);
-      if (success) {
-        localStorage.setItem("isAuthenticated", "true");
-        setIsAuthenticated(true); // set state
-        const profile = await fetchUserProfile(); // wait to fetch profile
-  
-        if (profile && profile.groups && profile.groups.includes("manager")) {
-          navigate("/manager-dashboard");
+        const success = await login(username, password);
+        if (success) {
+            localStorage.setItem("isAuthenticated", "true");
+            setIsAuthenticated(true);
+            const profile = await fetchUserProfile();
+
+            if (profile && profile.groups && profile.groups.includes("manager")) {
+                setUserRole("manager"); // Set userRole to "manager" in context
+                navigate("/manager-dashboard");
+            } else {
+                setUserRole("user"); // Set userRole to "user" in context
+                navigate("/menu");
+            }
+
+            setNotification({
+                message: "Login successful!",
+                show: true,
+                type: "success",
+            });
         } else {
-          navigate("/menu"); // regular user dashboard
+            setIsAuthenticated(false);
+            localStorage.removeItem("isAuthenticated");
+            setNotification({
+                message: "Invalid username or password",
+                show: true,
+                type: "error",
+            });
+            navigate('/login');
         }
-  
-        // Optional: Success notification (if needed)
-        setNotification({
-          message: "Login successful!",
-          show: true,
-          type: "success"
-        });
-  
-      } else {
+    } catch (error) {
+        console.error("Login failed:", error);
         setIsAuthenticated(false);
         localStorage.removeItem("isAuthenticated");
-        // Show notification instead of alert
         setNotification({
-          message: "Invalid username or password",
-          show: true,
-          type: "error",
+            message: "Login failed. Please try again.",
+            show: true,
+            type: "error",
         });
-        // Stay on login page or redirect back to login
-        navigate('/login'); 
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
-      setIsAuthenticated(false);
-      localStorage.removeItem("isAuthenticated");
-      // Show notification on login error
-      setNotification({
-        message: "Login failed. Please try again.",
-        show: true,
-        type: "error",
-      });
-      // Stay on login page or redirect back to login
-      navigate('/login');
+        navigate('/login');
     }
-  };
+};
+
+
+
+
+
+
+  
+  
+  
+
+
+  
   
   
 
@@ -249,6 +248,41 @@ const fetchUserRole = useCallback(async () => {
 
 
 
+// Create a new project
+
+const createNewProject = async (projectData) => {
+  try {
+      const result = await createProject(projectData);
+      if (result) {
+          setNotification({ message: "Project created successfully!", show: true });
+          return result;
+      } else {
+          setNotification({ message: "Failed to create project.", show: true });
+          return null;
+      }
+  } catch (error) {
+      console.error("Error creating project:", error);
+      setNotification({
+          message: "Error creating project. Please try again.",
+          show: true,
+      });
+      return null;
+  }
+};
+
+const fetchProjectWorkers = async (projectId) => {
+  try {
+      const workers = await getProjectWorkers(projectId);
+      return workers;
+  } catch (error) {
+      console.error("Error fetching project workers:", error);
+      return null;
+  }
+};
+
+
+
+
 // Update manager profile
     // AuthContext.js
 const updateManagerProfileData= async (profileData) => {
@@ -325,10 +359,14 @@ const updateManagerProfileData= async (profileData) => {
        fetchClockHistory,
        fetchWorkers,
        clockHistory,
-       workers
+       workers,
+       notification,
+       setNotification,
+       createNewProject,
+       fetchProjectWorkers
      }}>
        {notification.show && (
-        <Notification message={notification.message} onClose={closeNotification} />
+    <Notification message={notification.message} onClose={closeNotification} type={notification.type} />
       )}
        {children}
      </AuthContext.Provider>

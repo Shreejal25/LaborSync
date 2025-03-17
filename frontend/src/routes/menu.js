@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { logout, clockIn, clockOut, getClockHistory, getUserTasks } from '../endpoints/api';  // Assuming getClockHistory is available to fetch clock history
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
@@ -24,6 +24,7 @@ const UserDashboard = () => {
 
 // ... rest of your component ...
   const { userProfile, fetchUserProfile, isAuthenticated } = useAuth();
+  const logoutTimer = useRef(null);
   
 
   useEffect(() => {
@@ -98,6 +99,36 @@ const UserDashboard = () => {
     fetchClockHistory();  // Fetch clock history when the component mounts
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+        startLogoutTimer();
+    }
+
+    return () => {
+        clearTimeout(logoutTimer.current);
+    };
+}, [isAuthenticated]);
+
+const startLogoutTimer = () => {
+    clearTimeout(logoutTimer.current); // Clear any existing timer
+    logoutTimer.current = setTimeout(async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error("Error during auto-logout:", error);
+        }
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+};
+
+const resetLogoutTimer = () => {
+    if (isAuthenticated) {
+        startLogoutTimer(); // Reset the timer on any user interaction
+    }
+};
+
+
+
   const handleLogout = async () => {
     try {
       const success = await logout();
@@ -146,6 +177,7 @@ const UserDashboard = () => {
         setClockInDetails(newClockInDetails);
         setIsClockedIn(true);
         setClockHistory((prevHistory) => [...prevHistory, newClockInDetails]);
+        resetLogoutTimer();
     } catch (error) {
         console.error("Error during clock-in:", error);
     }
@@ -174,6 +206,7 @@ const closeNotification = () => {
         // Re-fetch clock history from the server
         const fetchedHistory = await getClockHistory();
         setClockHistory(fetchedHistory);
+        resetLogoutTimer();
 
     } catch (error) {
         console.error("Error during clock-out:", error);
@@ -184,6 +217,7 @@ const closeNotification = () => {
   
   const handleTakeBreak = () => {
     console.log("Taking a break");
+    resetLogoutTimer();
   };
 
   const formatDateTime = (isoString) => {
@@ -206,7 +240,7 @@ const closeNotification = () => {
   
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50" onClick={resetLogoutTimer}>
       {/* Side Panel */}
       <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
         <div className="flex items-center justify-center py-4 border-b">

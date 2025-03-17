@@ -1,5 +1,5 @@
 from rest_framework import generics,serializers,permissions
-from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile
+from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -206,6 +206,19 @@ class ManagerSerializer(serializers.ModelSerializer):
         Manager.objects.create(user=user, company_name=company_name, work_location=work_location)
 
         return user  # Return the created user instance (or you can return the manager instance if needed)
+    
+    
+# Project Serializer
+
+class ProjectSerializer(serializers.ModelSerializer):
+    workers = serializers.SlugRelatedField(
+        queryset=User.objects.all(),
+        slug_field='username',
+        many=True
+    )
+    class Meta:
+        model = Project
+        fields = '__all__'
 
 
 class DashboardSerializer(serializers.ModelSerializer):
@@ -239,27 +252,30 @@ from rest_framework import serializers
 from .models import Task
 
 class TaskSerializer(serializers.ModelSerializer):
-    assigned_by = serializers.ReadOnlyField(source="assigned_by.username") 
+    assigned_by = serializers.ReadOnlyField(source="assigned_by.username")
     assigned_to = serializers.SlugRelatedField(
-        queryset=User.objects.all(), 
-        slug_field='username'  # Accepts username instead of ID
+        queryset=User.objects.all(),
+        slug_field='username'
     )
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), allow_null=True, required=False) #add project
 
     class Meta:
         model = Task
         fields = [
-            'project_name',
+            'id', #add id
+            'project', #add project
             'task_title',
             'description',
             'estimated_completion_datetime',
             'assigned_shift',
             'assigned_to',
-            'assigned_by'
+            'assigned_by',
+            'status' #add status
         ]
 
     def create(self, validated_data):
-        request = self.context.get('request')  # Get the request context
-        validated_data["assigned_by"] = request.user  # Set assigned_by automatically
+        request = self.context.get('request')
+        validated_data["assigned_by"] = request.user
         return super().create(validated_data)
 
 

@@ -3,13 +3,14 @@ import { formButton } from '../Style/tailwindStyles';
 import { useAuth } from '../context/useAuth';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/images/LaborSynclogo.png';
+import Notification from './Components/Notification';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { loginUser } = useAuth();
+  const { loginUser, notification, setNotification } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -32,7 +33,11 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Login failed. Please check your credentials.');
+      setNotification({
+        message: 'Login failed. Please check your credentials.',
+        show: true,
+        type: 'error',
+    });
     } finally {
       setLoading(false);
     }
@@ -42,6 +47,11 @@ const Login = () => {
   const handleNav = () => {
     navigate('/register');
   };
+
+  const closeNotification = () => {
+    setNotification({ ...notification, show: false });
+};
+
 
   return (
     <div className="h-screen flex items-center justify-center bg-white">
@@ -114,6 +124,10 @@ const Login = () => {
               </span>
             </div>
           </form>
+          {notification.show && (
+          <Notification message={notification.message} onClose={closeNotification} type={notification.type} />
+          )}
+
         </div>
       </div>
     </div>

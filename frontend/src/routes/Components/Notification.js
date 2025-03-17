@@ -1,17 +1,21 @@
 // Notification.js
 import React, { useEffect } from 'react';
 
-const Notification = ({ message, onClose, type}) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000); // Close after 3 seconds
+const Notification = ({ message, onClose, type }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 3000);
 
-    return () => clearTimeout(timer); // Clear timeout on unmount
-  }, [onClose]);
+        return () => clearTimeout(timer);
+    }, [onClose]);
 
-  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    console.log("Notification type:", type); // Log the type
+    console.log("Typeof type:", typeof type); // Log the type
 
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+    console.log("bgColor:", bgColor); //log the bgColor
     return (
         <div className={`fixed top-4 right-4 ${bgColor} text-white p-4 rounded shadow-md`}>
             {message}
@@ -19,7 +23,7 @@ const Notification = ({ message, onClose, type}) => {
                 &times;
             </button>
         </div>
-  );
+    );
 };
 
 export default Notification;

@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework.authtoken.models import Token  # Correct import
-
+from rest_framework import viewsets, status
 from django.utils.http import urlsafe_base64_encode
 
 from django.core.mail import send_mail
@@ -21,11 +21,11 @@ from django.conf import settings
     
 
 
-from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task
+from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -409,13 +409,23 @@ def clock_out(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def create_project(request):
+    serializer = ProjectSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def assign_task(request):
     user = request.user
 
     if not user.groups.filter(name='Managers').exists():
         return Response({'error': 'You do not have permission to assign tasks.'}, status=403)
 
-    serializer = TaskSerializer(data=request.data, context={'request': request})  # Pass request context
+    serializer = TaskSerializer(data=request.data, context={'request': request})
 
     if serializer.is_valid():
         serializer.save()
@@ -425,6 +435,18 @@ def assign_task(request):
 
 
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_project_workers(request, project_id):
+    try:
+        project = Project.objects.get(pk=project_id)
+        workers = project.workers.all()
+        serializer = UserSerializer(workers, many=True)
+        return Response(serializer.data)
+    except Project.DoesNotExist:
+        return Response({'error': 'Project not found.'}, status=404)
+    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def view_user_tasks(request):

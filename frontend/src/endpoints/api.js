@@ -22,6 +22,8 @@ const USER_DASHBOARD_URL = `${BASE_URL}user-dashboard/`;
 const USER_ROLE_URL = `${BASE_URL}user-role/`;
 const WORKERS_URL = `${BASE_URL}workers/`;
 const CLOCK_HISTORY_URL = `${BASE_URL}clock-history/`;
+const CREATE_PROJECT_URL = `${BASE_URL}projects/`;
+const GET_PROJECT_WORKERS_URL = `${BASE_URL}projects/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -62,6 +64,31 @@ const callRefresh = async (error, func) => {
 //         return callRefresh(error, () => axios.get(DASHBOARD_URL, { withCredentials: true }));
 //     }
 // };
+
+
+
+export const createProject = async (projectData) => {
+    try {
+        const response = await axios.post(CREATE_PROJECT_URL, projectData, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error creating project:", error);
+        return null;
+    }
+};
+
+export const getProjectWorkers = async (projectId) => {
+    try {
+        const response = await axios.get(`${GET_PROJECT_WORKERS_URL}${projectId}/workers/`, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching project workers:", error);
+        return null;
+    }
+};
+
+
+
 
 export const getUserRole = async () => {
     try {

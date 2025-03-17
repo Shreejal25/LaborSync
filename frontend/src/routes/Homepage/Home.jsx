@@ -68,7 +68,7 @@ const Home = () => {
                         {/* Register Dropdown */}
                         <div className="relative">
                             <button
-                                className="bg-orange-400 px-8 py-1 rounded-full hover:bg-gray-300"
+                                className="bg-orange-400 px-8 py-1  hover:bg-gray-300"
                                 onClick={() => toggleDropdown('register')}
                             >
                                 Register

@@ -1,26 +1,29 @@
-// src/components/RoleProtectedRoute.js
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useRole from './userRole';
+import { useAuth } from '../../context/useAuth';
 
 const RoleProtectedRoute = ({ role, children }) => {
-  const { userRole, loading } = useRole();  // Get the user's role and loading state
-  const navigate = useNavigate();
+    const { userRole, loading } = useRole();
+    const { isAuthenticated } = useAuth(); // Get isAuthenticated from context
+    const navigate = useNavigate();
 
-  // If the role is still loading
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+        navigate('/login'); // Redirect to login if not authenticated
+        return null; // Prevent further rendering
+    }
 
-  // Check if the user role matches the required role
-  if (userRole !== role) {
-    // Redirect to unauthorized or home page if the user role doesn't match
-    navigate('/unauthorized');  // You can create an Unauthorized page for better UX
-    return null;  // Don't render the protected route
-  }
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
-  return children;  // Render the protected route if the role matches
+    if (userRole !== role) {
+        navigate('/unauthorized');
+        return null;
+    }
+
+    return children;
 };
 
 export default RoleProtectedRoute;

@@ -15,19 +15,44 @@ admin.site.register(ManagerProfile)
 from .models import Task
 
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['task_title', 'project_name', 'assigned_to', 'assigned_by', 'estimated_completion_datetime', 'assigned_shift']
-    search_fields = ['task_title', 'project_name', 'assigned_to__username', 'assigned_by__username']  # Allow searching by assigned user's username
+    list_display = [
+        'task_title', 
+        'get_project_name', 
+        'get_assigned_to_username',  # Display the assigned_to user's username
+        'assigned_by_username', 
+        'estimated_completion_datetime', 
+        'assigned_shift'
+    ]
+    search_fields = [
+        'task_title', 
+        'project_name__name',  # Search by project name if it's a ForeignKey
+        'assigned_to__username', 
+        'assigned_by__username'
+    ]  # Allow searching by assigned user's username
     list_filter = ['assigned_shift']  # Filter tasks by assigned shift
 
-    # Optional: Customize the display of assigned_by field in list_display
+    # Customize the display of 'assigned_by' field in list_display
     def assigned_by_username(self, obj):
         return obj.assigned_by.username if obj.assigned_by else "N/A"  # Display "N/A" if assigned_by is null
 
-    # Add this method to list_display to show the assigned_by username
     assigned_by_username.admin_order_field = 'assigned_by'  # Allow sorting by assigned_by field
     assigned_by_username.short_description = 'Assigned By'  # Custom column name in the admin
 
-    # Optional: Customize detail view if needed
+    # Display the project name if the task has a project assigned
+    def get_project_name(self, obj):
+        return obj.project_name.name if obj.project_name else "No Project"  # Assuming 'project_name' is a ForeignKey to a Project model
+
+    get_project_name.admin_order_field = 'project_name'  # Allow sorting by project name
+    get_project_name.short_description = 'Project Name'  # Custom column name for the project
+
+    # Display the username of the assigned worker
+    def get_assigned_to_username(self, obj):
+        return obj.assigned_to.username if obj.assigned_to else "N/A"  # Display "N/A" if assigned_to is null
+
+    get_assigned_to_username.admin_order_field = 'assigned_to'  # Allow sorting by assigned_to field
+    get_assigned_to_username.short_description = 'Assigned To'  # Custom column name for assigned worker
+
+    # Optional: Customize the detail view if needed
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset
