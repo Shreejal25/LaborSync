@@ -218,8 +218,25 @@ class ProjectSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = Project
-        fields = '__all__'
+        fields = ['id', 'name', 'workers', 'created_at', 'updated_at']
 
+
+class ProjectWorkerSerializer(serializers.Serializer):
+    project_name = serializers.CharField(source='name')  # Access project name
+    workers = serializers.SerializerMethodField()
+
+    class Meta:
+         model = Project
+         fields = ['workers']
+         
+    def get_workers(self, obj):
+        workers = obj.workers.all()
+        return UserSerializer(workers, many=True).data
+         
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name']
 
 class DashboardSerializer(serializers.ModelSerializer):
     class Meta:
@@ -255,38 +272,45 @@ class TaskSerializer(serializers.ModelSerializer):
     assigned_by = serializers.ReadOnlyField(source="assigned_by.username")
     assigned_to = serializers.SlugRelatedField(
         queryset=User.objects.all(),
-        slug_field='username'
+        slug_field='username',
+       
     )
-    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), allow_null=True, required=False) #add project
+    project = serializers.SlugRelatedField(
+        queryset=Project.objects.all(),
+        slug_field='name'
+    )
 
     class Meta:
         model = Task
         fields = [
-            'id', #add id
-            'project', #add project
+            'id',
+            'project',
             'task_title',
             'description',
             'estimated_completion_datetime',
             'assigned_shift',
             'assigned_to',
             'assigned_by',
-            'status' #add status
+            'status',
+            
         ]
 
     def create(self, validated_data):
         request = self.context.get('request')
         validated_data["assigned_by"] = request.user
         return super().create(validated_data)
-
-
+    
+    
+    
 class TaskViewSerializer(serializers.ModelSerializer):
     assigned_by = serializers.CharField(source="assigned_by.username", read_only=True)  # Get assigned_by username
     assigned_to = serializers.CharField(source="assigned_to.username", read_only=True)  # Get assigned_to username
+    project = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Task
         fields = [
             'id',
-            'project_name',
+            'project',
             'task_title',
             'description',
             'estimated_completion_datetime',

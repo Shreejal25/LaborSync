@@ -1,36 +1,68 @@
-import React, { useEffect } from 'react';
-import { useAuth } from '../context/useAuth'; // Adjust path as necessary
-import { useNavigate } from 'react-router-dom'; // Ensure you have this import for navigation
-import logo from '../assets/images/LaborSynclogo.png'; // Import log
-import { logout } from '../endpoints/api';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/useAuth';
+import { useNavigate } from 'react-router-dom';
+import logo from '../assets/images/LaborSynclogo.png';
+import { logout, getProjects } from '../endpoints/api';
 
 const UserTasksComponent = () => {
   const { userTasks, fetchUserTasks } = useAuth();
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
+
+  const [projects, setProjects] = useState([]);
+  const [tasksWithProjectNames, setTasksWithProjectNames] = useState([]);
 
   useEffect(() => {
-    fetchUserTasks(); // Fetch tasks when component mounts
-  }, [fetchUserTasks]);
+    fetchUserTasks();
+  }, []);
 
-   const handleLogout = async () => {
+  useEffect(() => {
+    const fetchProjects = async () => {
       try {
-        const success = await logout();
-        if (success) {
-          navigate('/login');
-        } else {
-          console.error("Logout failed");
-        }
+        const projectsData = await getProjects();
+        console.log('Fetched projects:', projectsData);
+        setProjects(projectsData || []);
       } catch (error) {
-        console.error("Error during logout:", error);
+        console.error('Error fetching projects:', error);
       }
     };
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    console.log('User Tasks:', userTasks);
+    console.log('Projects:', projects);
+    if (userTasks.length > 0 && projects.length > 0) {
+      const updatedTasks = userTasks.map((task) => {
+        const project = projects.find((p) => p.id === task.project);
+        return {
+          ...task,
+          projectName: project ? project.name : 'Unknown Project',
+        };
+      });
+      console.log('Updated Tasks:', updatedTasks);
+      setTasksWithProjectNames(updatedTasks);
+    }
+  }, [userTasks, projects]);
+
+  const handleLogout = async () => {
+    try {
+      const success = await logout();
+      if (success) {
+        navigate('/login');
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Side Panel */}
       <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
         <div className="flex items-center justify-center py-4 border-b">
-          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" /> {/* Adjust logo path */}
+          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
         </div>
         <nav className="flex-grow">
           <ul className="flex flex-col py-4">
@@ -62,41 +94,34 @@ const UserTasksComponent = () => {
         </button>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 w-full">
         <h2 className="text-3xl font-bold text-gray-800 mb-6">Your Assigned Tasks</h2>
 
-        {userTasks && userTasks.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-4">
-            {userTasks.map((task) => (
-              <div
-                key={task.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200"
-              >
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  {task.task_title}
-                </h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  <span className="font-medium text-gray-600">Project:</span> {task.project_name}
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  <span className="font-medium text-gray-600">Description:</span> {task.description}
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  <span className="font-medium text-gray-600">Estimated Completion:</span>{' '}
-                  {new Date(task.estimated_completion_datetime).toLocaleString()}
-                </p>
-                <p className="text-sm text-gray-500">
-                  <span className="font-medium text-gray-600">Assigned Shift:</span>{' '}
-                  {task.assigned_shift}
-                </p>
-                <p className="text-sm text-gray-500">
-                  <span className="font-medium text-gray-600">Assigned by:</span>{' '}
-                  {task.assigned_by}
-                </p>
-              </div>
-            ))}
-          </div>
+        {tasksWithProjectNames.length > 0 ? (
+          tasksWithProjectNames.map((task) => (
+            <div key={task.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-200 w-3/4 mb-4">
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">{task.task_title}</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                <span className="font-medium text-gray-600">Project:</span> {task.projectName}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                <span className="font-medium text-gray-600">Description:</span> {task.description}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                <span className="font-medium text-gray-600">Estimated Completion:</span>{' '}
+                {task.estimated_completion_datetime
+                  ? new Date(task.estimated_completion_datetime).toLocaleString()
+                  : 'N/A'}
+              </p>
+              <p className="text-sm text-gray-500">
+                <span className="font-medium text-gray-600">Assigned Shift:</span> {task.assigned_shift}
+              </p>
+              <p className="text-sm text-gray-500">
+                <span className="font-medium text-gray-600">Assigned by:</span> {task.assigned_by}
+              </p>
+            </div>
+          ))
         ) : (
           <p className="text-gray-600 text-center mt-6">No tasks assigned.</p>
         )}

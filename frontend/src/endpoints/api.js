@@ -22,7 +22,8 @@ const USER_DASHBOARD_URL = `${BASE_URL}user-dashboard/`;
 const USER_ROLE_URL = `${BASE_URL}user-role/`;
 const WORKERS_URL = `${BASE_URL}workers/`;
 const CLOCK_HISTORY_URL = `${BASE_URL}clock-history/`;
-const CREATE_PROJECT_URL = `${BASE_URL}projects/`;
+const GET_PROJECTS_URL = `${BASE_URL}projects/`;
+const CREATE_PROJECT_URL = `${BASE_URL}projects/create/`;
 const GET_PROJECT_WORKERS_URL = `${BASE_URL}projects/`;
 export const login = async (username, password) => {
     try {
@@ -86,6 +87,20 @@ export const getProjectWorkers = async (projectId) => {
         return null;
     }
 };
+
+export const getProjects = async () => {
+    try {
+        console.log("Fetching projects...");
+        const response = await axios.get(GET_PROJECTS_URL, { withCredentials: true });
+
+        console.log("Fetched projects:", response.data); // Debugging
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching projects:", error.response?.data || error.message);
+        return [];
+    }
+};
+
 
 
 
@@ -329,10 +344,23 @@ export const clockOut = async (taskId) => {
 export const assignTask = async (taskData) => {
     try {
         const response = await axios.post(ASSIGN_TASK_URL, taskData, { withCredentials: true });
-        return response.data; // Return success message or task details
+        return response.data;
     } catch (error) {
         console.error("Error assigning task:", error);
-        return null; // Handle error appropriately
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.error("Server response:", error.response.data);
+            console.error("Server status:", error.response.status);
+            console.error("Server headers:", error.response.headers);
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error("No response received:", error.request);
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error("Error message:", error.message);
+        }
+        throw error;
     }
 };
 

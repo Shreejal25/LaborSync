@@ -25,7 +25,7 @@ from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -417,6 +417,18 @@ def create_project(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_projects(request):
+    projects = Project.objects.all()
+
+    if not projects.exists():
+        return Response({"message": "No projects found"}, status=200)
+
+    # Use the ProjectSerializer to include related workers
+    serializer = ProjectSerializer(projects, many=True)
+    return Response(serializer.data, status=200)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def assign_task(request):
@@ -435,14 +447,12 @@ def assign_task(request):
 
 
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_project_workers(request, project_id):
     try:
         project = Project.objects.get(pk=project_id)
-        workers = project.workers.all()
-        serializer = UserSerializer(workers, many=True)
+        serializer = ProjectWorkerSerializer(project) #serialize the project object
         return Response(serializer.data)
     except Project.DoesNotExist:
         return Response({'error': 'Project not found.'}, status=404)

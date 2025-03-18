@@ -21,7 +21,8 @@ import {
   getWorkers,
   getUserRole,
   createProject,
-  getProjectWorkers
+  getProjectWorkers,
+  getProjects
 } from "../endpoints/api"; // Import additional info function
 import { useNavigate } from "react-router-dom";
 import Notification from "../routes/Components/Notification";
@@ -40,6 +41,7 @@ export const AuthProvider = ({ children }) => {
   const [clockHistory, setClockHistory] = useState([]); // State for clock history
   const [workers, setWorkers] = useState([]); // State for workers
   const [userRole, setUserRole] = useState(null); // State for storing user role
+  const [projects, setProjects] = useState([]); // State for storing projects
   const [notification, setNotification] = useState({
     message: "",
     show: false, });
@@ -270,6 +272,15 @@ const createNewProject = async (projectData) => {
   }
 };
 
+const fetchProjects = useCallback(async () => {
+  try {
+    const projectList = await getProjects(); // API call to fetch projects
+    setProjects(projectList); // Update state with fetched projects
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+  }
+}, []);
+
 const fetchProjectWorkers = async (projectId) => {
   try {
       const workers = await getProjectWorkers(projectId);
@@ -336,6 +347,7 @@ const updateManagerProfileData= async (profileData) => {
       fetchUserTasks();
       fetchUserRole();
       fetchUserProfile();
+      fetchProjects();
     }
   }, [isAuthenticated, fetchUserTasks]);
    return (
@@ -363,7 +375,11 @@ const updateManagerProfileData= async (profileData) => {
        notification,
        setNotification,
        createNewProject,
-       fetchProjectWorkers
+       fetchProjectWorkers,
+       getProjectWorkers,
+       getProjects,
+       projects,
+       fetchProjects
      }}>
        {notification.show && (
     <Notification message={notification.message} onClose={closeNotification} type={notification.type} />

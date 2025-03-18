@@ -23,7 +23,8 @@ from .views import (
     get_clock_history,
     get_workers, 
     get_project_workers,
-    create_project
+    create_project,
+    get_projects
     
    
 )
@@ -54,7 +55,8 @@ urlpatterns = [
     path('view/tasks/', view_user_tasks, name='view_user_tasks'),
     path('forgot_password/', forgot_password, name='forgot_password'),
     path('reset_password_confirm/<uidb64>/<token>/', reset_password_confirm, name='reset_password_confirm'),
-    path('projects/', create_project, name='create_project'),
+    path('projects/create/', create_project, name='create_project'),
+    path('projects/', get_projects, name='get_projects'),
     path('projects/<int:project_id>/workers/', get_project_workers, name='get_project_workers'),  # Corrected line 
     
 ]

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dashboard, UserProfile, TimeLog, ManagerProfile
+from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project
 from django.utils.timezone import localtime
 
 
@@ -16,48 +16,50 @@ from .models import Task
 
 class TaskAdmin(admin.ModelAdmin):
     list_display = [
-        'task_title', 
-        'get_project_name', 
-        'get_assigned_to_username',  # Display the assigned_to user's username
-        'assigned_by_username', 
-        'estimated_completion_datetime', 
+        'task_title',
+        'project_display',  # Custom method for project
+        'assigned_to_display',  # Custom method for assigned users
+        'assigned_by_username',
+        'estimated_completion_datetime',
         'assigned_shift'
     ]
     search_fields = [
-        'task_title', 
-        'project_name__name',  # Search by project name if it's a ForeignKey
-        'assigned_to__username', 
+        'task_title',
+        'project__name',
+        'assigned_to__username',
         'assigned_by__username'
-    ]  # Allow searching by assigned user's username
-    list_filter = ['assigned_shift']  # Filter tasks by assigned shift
+    ]
+    list_filter = ['assigned_shift']
 
-    # Customize the display of 'assigned_by' field in list_display
     def assigned_by_username(self, obj):
-        return obj.assigned_by.username if obj.assigned_by else "N/A"  # Display "N/A" if assigned_by is null
+        return obj.assigned_by.username if obj.assigned_by else "N/A"
 
-    assigned_by_username.admin_order_field = 'assigned_by'  # Allow sorting by assigned_by field
-    assigned_by_username.short_description = 'Assigned By'  # Custom column name in the admin
+    assigned_by_username.admin_order_field = 'assigned_by'
+    assigned_by_username.short_description = 'Assigned By'
 
-    # Display the project name if the task has a project assigned
-    def get_project_name(self, obj):
-        return obj.project_name.name if obj.project_name else "No Project"  # Assuming 'project_name' is a ForeignKey to a Project model
+    def project_display(self, obj):
+        return obj.project.name if obj.project else "No Project"
 
-    get_project_name.admin_order_field = 'project_name'  # Allow sorting by project name
-    get_project_name.short_description = 'Project Name'  # Custom column name for the project
+    project_display.short_description = 'Project'
 
-    # Display the username of the assigned worker
-    def get_assigned_to_username(self, obj):
-        return obj.assigned_to.username if obj.assigned_to else "N/A"  # Display "N/A" if assigned_to is null
+    def assigned_to_display(self, obj):
+        return ", ".join([user.username for user in obj.assigned_to.all()]) if obj.assigned_to.exists() else "N/A"
 
-    get_assigned_to_username.admin_order_field = 'assigned_to'  # Allow sorting by assigned_to field
-    get_assigned_to_username.short_description = 'Assigned To'  # Custom column name for assigned worker
+    assigned_to_display.short_description = 'Assigned To'
 
-    # Optional: Customize the detail view if needed
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset
 
 admin.site.register(Task, TaskAdmin)
+
+
+# Project Admin (add this)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_at']  # Customize as needed
+    search_fields = ['name']
+
+admin.site.register(Project, ProjectAdmin)
 
 
 @admin.register(TimeLog)
