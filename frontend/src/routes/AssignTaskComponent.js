@@ -28,6 +28,11 @@ const AssignTaskComponent = () => {
     });
 
     const navigate = useNavigate();
+    const formatDateTime = (isoString) => {
+        const date = new Date(isoString);
+        return date.toLocaleString(); // Adjust format as needed
+      };
+    
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -203,56 +208,86 @@ const AssignTaskComponent = () => {
                     </button>
                 </div>
 
-                <div className="bg-white p-6 rounded shadow-md mb-6">
-                    <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
-                    {tasks.length > 0 ? (
-                        <table className="w-full table-auto border-collapse">
+                {/* Recent Tasks */}
+                        <div className="bg-white p-6 rounded shadow-md mb-6">
+                        <h2 className="text-xl font-bold mb-4">Project Detaisl</h2>
+                        {tasks.length > 0 ? (
+                            <table className="w-full table-auto border-collapse">
                             <thead>
-                                <tr>
-                                    <th className="px-4 py-2 border border-gray-300">Task Title</th>
-                                    <th className="px-4 py-2 border border-gray-300">Assigned To</th>
-                                    <th className="px-4 py-2 border border-gray-300">Status</th>
-                                </tr>
-                            </thead>
+                            <tr>
+                                <th className="px-4 py-2 border border-gray-300">Project Name</th>
+                                <th className="px-4 py-2 border border-gray-300">Task Title</th>
+                                <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
+                                <th className="px-4 py-2 border border-gray-300">Created At</th>
+                                <th className="px-4 py-2 border border-gray-300">Updated At</th>
+                                <th className="px-4 py-2 border border-gray-300">Status</th>
+                            </tr>
+                        </thead>
                             <tbody>
                             {tasks.map((task) => (
-                                <tr key={task.id}>
-                                    <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
-                                    <td className="px-4 py-2 border border-gray-300">
-                                        {/* Display project workers */}
-                                        {projects
-                                            .find((project) => project.id === task.project)?.workers?.length > 0
-                                            ? projects
-                                                .find((project) => project.id === task.project)
-                                                .workers.map((worker, index) => (
-                                                    <span key={index}>
-                                                        {worker}
-                                                        {index < projects.find((project) => project.id === task.project).workers.length - 1 && ', '}
-                                                    </span>
-                                                ))
-                                            : 'Not Assigned'}
-                                    </td>
-                                    <td className="px-4 py-2 border border-gray-300 flex items-center gap-2">
-                                        {/* Display task status */}
-                                        <span
-                                            className={`h-3 w-3 rounded-full ${
-                                                task.status === 'pending'
-                                                    ? 'bg-red-500'
-                                                    : task.status === 'in_progress'
-                                                    ? 'bg-yellow-500'
-                                                    : 'bg-green-500'
-                                            }`}
-                                        ></span>
-                                        {task.status.replace('_', ' ').toUpperCase()}
-                                    </td>
-                                </tr>
-                                ))}
+                            <tr key={task.id}>
+                                <td className="px-4 py-2 border border-gray-300">
+                                    {/* Display project name */}
+                                    {projects.find((project) => project.id === task.project)?.name ? (
+                                        projects.find((project) => project.id === task.project).name
+                                    ) : (
+                                        'No Project'
+                                    )}
+                                </td>
+                                <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
+                                <td className="px-4 py-2 border border-gray-300">
+                                    {/* Display project workers */}
+                                    {projects
+                                        .find((project) => project.id === task.project)?.workers?.length > 0
+                                        ? projects
+                                            .find((project) => project.id === task.project)
+                                            .workers.map((worker, index) => (
+                                                <span key={index}>
+                                                    {worker}
+                                                    {index < projects.find((project) => project.id === task.project).workers.length - 1 && ', '}
+                                                </span>
+                                            ))
+                                        : 'Not Assigned'}
+                                </td>
+                                <td className="px-4 py-2 border border-gray-300">
+                                    {/* Display created_at */}
+                                    {projects.find((project) => project.id === task.project)?.created_at ? (
+                                        formatDateTime(projects.find((project) => project.id === task.project).created_at)
+                                    ) : (
+                                        'N/A'
+                                    )}
+                                </td>
+                                <td className="px-4 py-2 border border-gray-300">
+                                    {/* Display updated_at */}
+                                    {projects.find((project) => project.id === task.project)?.updated_at ? (
+                                        formatDateTime(projects.find((project) => project.id === task.project).updated_at)
+                                    ) : (
+                                        'N/A'
+                                    )}
+                                </td>
+                                <td className="px-4 py-2 border border-gray-300 flex items-center gap-2">
+                                    {/* Display task status */}
+                                    <span
+                                        className={`h-3 w-3 rounded-full ${
+                                            task.status === 'pending'
+                                                ? 'bg-red-500'
+                                                : task.status === 'in_progress'
+                                                ? 'bg-yellow-500'
+                                                : 'bg-green-500'
+                                        }`}
+                                    ></span>
+                                    {task.status.replace('_', ' ').toUpperCase()}
+                                </td>
+                            </tr>
+                        ))}
                             </tbody>
-                        </table>
-                    ) : (
-                        <p className="text-gray-500">No tasks available</p>
-                    )}
-                </div>
+                            </table>
+                        ) : (
+                            <p className="text-gray-500">No tasks available</p>
+                        )}
+                        </div>
+
+
 
                 {isModalOpen && (
                     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
