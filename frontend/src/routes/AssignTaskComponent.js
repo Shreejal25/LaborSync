@@ -75,20 +75,24 @@ const AssignTaskComponent = () => {
     useEffect(() => {
         const fetchProjectWorkersData = async () => {
             if (selectedProject) {
-                try {
-                    const workers = await getProjectWorkers(selectedProject);
-                    console.log("Fetched workers:", workers); // Debugging
-                    if (workers) {
-                        setProjectWorkers(workers);
-                    }
-                } catch (error) {
-                    console.error('Error fetching project workers:', error);
+                // Find the selected project from the projects array
+                const selectedProjectData = projects.find(project => project.id === parseInt(selectedProject));
+
+                if (selectedProjectData && selectedProjectData.workers) {
+                    // Directly use the workers array from the project object
+                    const workers = selectedProjectData.workers.map(workerUsername => ({ username: workerUsername })); //format to match what was being returned from API.
+                    setProjectWorkers(workers);
+                } else {
+                    // Handle the case where the project or workers array is not found
+                    setProjectWorkers([]);
                 }
+            } else {
+                setProjectWorkers([]);
             }
         };
 
         fetchProjectWorkersData();
-    }, [selectedProject, getProjectWorkers]); // Add fetchProjectWorkers to dependency array
+    }, [selectedProject, projects]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -111,11 +115,12 @@ const AssignTaskComponent = () => {
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
 
-        if (name === 'selectedProject') {
+        if (name === 'project') {
             setSelectedProject(value);
             setTaskData((prevData) => ({
                 ...prevData,
                 project: value,
+                assigned_to: '',
             }));
         } else if (name === 'workers') {
             const selectedWorkers = [...newProjectData.workers];
@@ -143,6 +148,7 @@ const AssignTaskComponent = () => {
             }));
         }
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -209,8 +215,8 @@ const AssignTaskComponent = () => {
                 </div>
 
                 {/* Recent Tasks */}
-                        <div className="bg-white p-6 rounded shadow-md mb-6">
-                        <h2 className="text-xl font-bold mb-4">Project Detaisl</h2>
+                        <div className="bg-white p-6 my-24 rounded shadow-md mb-6">
+                        <h2 className="text-xl font-bold mb-4">Project Details</h2>
                         {tasks.length > 0 ? (
                             <table className="w-full table-auto border-collapse">
                             <thead>
@@ -227,28 +233,26 @@ const AssignTaskComponent = () => {
                             {tasks.map((task) => (
                             <tr key={task.id}>
                                 <td className="px-4 py-2 border border-gray-300">
-                                    {/* Display project name */}
-                                    {projects.find((project) => project.id === task.project)?.name ? (
-                                        projects.find((project) => project.id === task.project).name
-                                    ) : (
-                                        'No Project'
-                                    )}
-                                </td>
-                                <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
-                                <td className="px-4 py-2 border border-gray-300">
-                                    {/* Display project workers */}
-                                    {projects
-                                        .find((project) => project.id === task.project)?.workers?.length > 0
-                                        ? projects
-                                            .find((project) => project.id === task.project)
-                                            .workers.map((worker, index) => (
-                                                <span key={index}>
-                                                    {worker}
-                                                    {index < projects.find((project) => project.id === task.project).workers.length - 1 && ', '}
-                                                </span>
-                                            ))
-                                        : 'Not Assigned'}
-                                </td>
+                            {projects && projects.find((project) => project.id === task.project)?.name || 'No Project'} 
+                        </td>
+                        <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
+                        <td className="px-4 py-2 border border-gray-300">
+                            {projects && // Check if projects exists
+                                projects.find((project) => project.id === task.project)?.workers?.length > 0
+                                ? projects
+                                    .find((project) => project.id === task.project)
+                                    .workers.map((worker, index) => (
+                                        <span key={index}>
+                                            {worker}
+                                            {index <
+                                                projects.find(
+                                                    (project) => project.id === task.project
+                                                ).workers.length -
+                                                    1 && ', '}
+                                        </span>
+                                    ))
+                                : 'Not Assigned'}
+                        </td>
                                 <td className="px-4 py-2 border border-gray-300">
                                     {/* Display created_at */}
                                     {projects.find((project) => project.id === task.project)?.created_at ? (
