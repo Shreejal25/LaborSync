@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/useAuth';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/images/LaborSynclogo.png';
-import { getWorkers, getManagerDashboard, getProjects, getProjectWorkers } from '../endpoints/api';
+import { getWorkers, getManagerDashboard, getProjects, getProjectWorkers, assignTask} from '../endpoints/api';
 
 const AssignTaskComponent = () => {
     const { assignTaskToUser, handleLogout, createNewProject, fetchProjectWorkers } = useAuth();
@@ -12,7 +12,7 @@ const AssignTaskComponent = () => {
         description: '',
         estimated_completion_datetime: '',
         assigned_shift: '',
-        assigned_to: '',
+        assigned_to: [],
     });
     const [worker, setWorker] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -120,7 +120,7 @@ const AssignTaskComponent = () => {
             setTaskData((prevData) => ({
                 ...prevData,
                 project: value,
-                assigned_to: '',
+                assigned_to: [],
             }));
         } else if (name === 'workers') {
             const selectedWorkers = [...newProjectData.workers];
@@ -152,17 +152,28 @@ const AssignTaskComponent = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const result = await assignTaskToUser(taskData);
-        if (result) {
-            setTaskData({
-                project: '',
-                task_title: '',
-                description: '',
-                estimated_completion_datetime: '',
-                assigned_shift: '',
-                assigned_to: '',
-            });
-            setIsModalOpen(false);
+        try {
+            const result = await assignTaskToUser(taskData);
+            if (result) {
+                setTaskData({
+                    project: '',
+                    task_title: '',
+                    description: '',
+                    estimated_completion_datetime: '',
+                    assigned_shift: '',
+                    assigned_to: [],
+                });
+                setIsModalOpen(false);
+                console.log("task assigned successfully");
+            } else {
+                console.log("task assign failed");
+            }
+        } catch (error) {
+            console.error('Error assigning task:', error);
+            if (error.response && error.response.data) {
+                console.log('Backend error details:', error.response.data); // Inspect the backend response
+            }
+            // Display an error message to the user
         }
     };
 

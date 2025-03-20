@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/useAuth";
-import { logout, getManagerDashboard, getWorkers, getClockHistory, getProjects } from '../endpoints/api'; // Add manager-specific API functions
+import { useAuth } from "../../context/useAuth";
+import { logout, getManagerDashboard, getWorkers, getClockHistory, getProjects } from '../../endpoints/api'; // Add manager-specific API functions
 
-import logo from '../assets/images/LaborSynclogo.png'; // Import logo
+import logo from '../../assets/images/LaborSynclogo.png'; // Import logo
 
 const ManagerDashboard = () => {
   const [tasks, setTasks] = useState([]);

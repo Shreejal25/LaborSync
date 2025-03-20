@@ -5,21 +5,24 @@ import Login from './routes/login';
 import UserDashboard from './routes/menu';
 import PrivateRoute from './components/PrivateRoute';
 import UserProfile from './routes/UserProfilePage';
-import ManagerProfilePage from './routes/ManagerProfile';
+import ManagerProfilePage from './routes/Manager Routes/ManagerProfile';
 import Register from './routes/register';
 import AssignTaskComponent from './routes/AssignTaskComponent';
-import RegisterManager from './routes/ManagerRegister';
-import ManagerLogin from './routes/ManagerLogin';
+import RegisterManager from './routes/Manager Routes/ManagerRegister';
+import ManagerLogin from './routes/Manager Routes/ManagerLogin';
 import ForgotPassword from './routes/ForgotPassword';
 import ResetPassword from './routes/ResetPassword';
-import ManagerDashboard from './routes/ManagerDashboard';
+import ManagerDashboard from './routes/Manager Routes/ManagerDashboard';
 import UserTasksComponent from './routes/UserTasksComponent';
 import RoleProtectedRoute from './routes/Components/RoleProtectedRoute';
 import Unauthorized from './routes/Components/unauthorized';
+import CreateProject from './routes/Manager Routes/Project';
+import AddUserProfile from './routes/AddUserProfile';
 
 
 import Home from './routes/Homepage/Home';
 import { AuthProvider } from './context/useAuth';
+
 
 function App() {
   return (
@@ -52,6 +55,15 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
+         <Route 
+          path="/add-user-profile" 
+          element={
+
+            <RoleProtectedRoute role="user">
+              <AddUserProfile />
+            </RoleProtectedRoute>
+          } 
+        />
         <Route 
           path="/user-profile" 
           element={
@@ -78,6 +90,14 @@ function App() {
           element={
             <RoleProtectedRoute role="manager">
               < AssignTaskComponent />
+            </RoleProtectedRoute>
+          } 
+        />
+         <Route 
+          path="/create-project" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < CreateProject />
             </RoleProtectedRoute>
           } 
         />

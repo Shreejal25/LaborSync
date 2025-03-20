@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { formButton } from '../Style/tailwindStyles'; // Import styles
-import { useAuth } from '../context/useAuth'; // Import authentication context
+import { formButton } from '../../Style/tailwindStyles'; // Import styles
+import { useAuth } from '../../context/useAuth'; // Import authentication context
 import { useNavigate } from 'react-router-dom'; // React Router for navigation
-import logo from '../assets/images/LaborSynclogo.png'; // Import logo
+import logo from '../../assets/images/LaborSynclogo.png'; // Import logo
 
 const ManagerLogin = () => {
   const [username, setUsername] = useState('');

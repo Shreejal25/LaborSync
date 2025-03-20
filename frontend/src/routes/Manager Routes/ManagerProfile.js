@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/images/LaborSynclogo.png";
+import logo from "../../assets/images/LaborSynclogo.png";
 
 const ManagerProfilePage = () => {
   const { managerProfile, fetchManagerProfile, updateManagerProfileData, loading, handleLogout } = useAuth();

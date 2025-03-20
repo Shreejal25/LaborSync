@@ -8,7 +8,7 @@ class CombinedUserSerializer(serializers.ModelSerializer):
     user_profile = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.all(), required=False
     )
-    
+    role = serializers.CharField(source='userprofile.role', required=False) 
     phone_number = serializers.CharField(source='userprofile.phone_number', required=False)
     gender = serializers.CharField(source='userprofile.gender', required=False)
     current_address = serializers.CharField(source='userprofile.current_address', required=False)
@@ -31,6 +31,7 @@ class CombinedUserSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'user_profile',
+            'role',
             'phone_number',
             'gender',
             'current_address',
@@ -95,7 +96,7 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         )
         UserProfile.objects.create(
             user=user,
-            role = models.CharField(max_length=10, choices=[('manager', 'Manager'), ('worker', 'Worker')], default='worker'),
+            
             phone_number=user_profile_data.get('phone_number', ''),
             gender=user_profile_data.get('gender', ''),
             current_address=user_profile_data.get('current_address', ''),
@@ -169,6 +170,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = [
             'user',
+            'role',
             'phone_number', 'gender', 'current_address', 'permanent_address',
             'city_town', 'state_province', 'education_level', 'certifications',
             'skills', 'languages_spoken', 'work_availability', 'work_schedule_preference'
@@ -273,6 +275,7 @@ class TaskSerializer(serializers.ModelSerializer):
     assigned_to = serializers.SlugRelatedField(
         queryset=User.objects.all(),
         slug_field='username',
+        many = True,
        
     )
     project = serializers.SlugRelatedField(
@@ -298,7 +301,10 @@ class TaskSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get('request')
         validated_data["assigned_by"] = request.user
-        return super().create(validated_data)
+        assigned_to = validated_data.pop('assigned_to') # pop the assigned_to field
+        task = super().create(validated_data) # create the task
+        task.assigned_to.set(assigned_to) # set the many to many field.
+        return task
     
     
     

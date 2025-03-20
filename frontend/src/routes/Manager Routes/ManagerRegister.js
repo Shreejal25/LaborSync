@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { formInput, formButton } from "../Style/tailwindStyles"; // Adjust import based on your styles
-import { useAuth } from "../context/useAuth"; // Adjust import based on your context
-import logo from "../assets/images/LaborSynclogo.png"; // Import logo
+import { formInput, formButton } from "../../Style/tailwindStyles"; // Adjust import based on your styles
+import { useAuth } from "../../context/useAuth"; // Adjust import based on your context
+import logo from "../../assets/images/LaborSynclogo.png"; // Import logo
 
 const RegisterManager = () => {
   const [username, setUsername] = useState("");

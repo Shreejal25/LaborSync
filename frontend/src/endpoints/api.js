@@ -272,6 +272,14 @@ export const updateUserProfile = async (profileData) => {
                 current_address: profileData.current_address,
                 permanent_address: profileData.permanent_address,
                 city_town: profileData.city_town,
+                state_province: profileData.state_province,
+                education_level: profileData.education_level,
+                certifications: profileData.certifications,
+                skills: profileData.skills,
+                languages_spoken: profileData.languages_spoken,
+                work_availability: profileData.work_availability,
+                work_schedule_preference: profileData.work_schedule_preference,
+                
             }
         };
 

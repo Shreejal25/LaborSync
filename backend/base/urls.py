@@ -24,7 +24,7 @@ from .views import (
     get_workers, 
     get_project_workers,
     create_project,
-    get_projects
+    get_projects,create_user_profile,
     
    
 )
@@ -48,6 +48,7 @@ urlpatterns = [
     path('clock_in/', clock_in, name='clock_in'),
     path('clock_out/', clock_out, name='clock_out'),
     path('user/profile/', user_profile_detail_view, name='user_profile_detail'),  # Corrected path
+    path('create-user-profile/', create_user_profile, name='create_user_profile'),
     path('manager-profile/', manager_profile_view, name='manager-profile'),
     path('register/manager/', register_manager, name='register_manager'),
     path('login/manager/', login_manager, name='login_manager'),

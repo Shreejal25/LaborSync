@@ -207,7 +207,7 @@ def manager_dashboard_view(request):
     total_tasks_assigned = tasks.count()
     active_tasks = tasks.filter(status='in_progress').count()
     completed_tasks = tasks.filter(status='completed').count()
-    recent_tasks = tasks.order_by('-created_at')[:5]
+    recent_tasks = tasks.order_by('-created_at')[:7]
 
     # Serialize data
     manager_serializer = ManagerProfileSerializer(manager_profile)
@@ -290,19 +290,38 @@ def get_clock_history(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def create_user_profile(request):
+    """
+    Creates a UserProfile instance for the authenticated user.
+    """
+    user = request.user
+    # Check if a profile already exists.
+    if UserProfile.objects.filter(user=user).exists():
+        return Response({"detail": "User profile already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = UserProfileSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save(user=user)  # Associate the profile with the user
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def user_profile_detail_view(request):
     user_profile = get_object_or_404(UserProfile, user=request.user)
-    
+
     if request.method == 'GET':
         serializer = UserProfileSerializer(user_profile)
         return Response(serializer.data)
-    
+
     elif request.method == 'PUT':
         # Extract user data and user profile data from the request
         user_data = request.data.get('user', {})
-        user_profile_data = request.data.get('user_profile', {})
+        user_profile_data = request.data.get('user_profile', request.data) #Get user profile data from request.data if user_profile is not provided
 
         # Update User if any user data is provided
         if user_data:

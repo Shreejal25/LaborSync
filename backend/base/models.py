@@ -4,19 +4,19 @@ from django.utils.timezone import now
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    role = models.CharField(max_length=50, choices=[('manager', 'Manager'), ('worker', 'Worker')], default='worker')
-    phone_number = models.CharField(max_length=20)  # Increased length
-    gender = models.CharField(max_length=20, choices=[('male', 'Male'), ('female', 'Female'), ('others', 'Others')]) # increased length
-    current_address = models.TextField()
-    permanent_address = models.TextField()
-    city_town = models.CharField(max_length=200) # increased length
-    state_province = models.CharField(max_length=200) # increased length
-    education_level = models.CharField(max_length=200) # increased length
+    role = models.CharField(max_length=50, choices=[('manager', 'Manager'), ('worker', 'Worker'), ('', '---------')], default='worker', null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    gender = models.CharField(max_length=20, choices=[('male', 'Male'), ('female', 'Female'), ('others', 'Others'), ('', '---------')], null=True, blank=True)
+    current_address = models.TextField(null=True, blank=True)
+    permanent_address = models.TextField(null=True, blank=True)
+    city_town = models.CharField(max_length=200, null=True, blank=True)
+    state_province = models.CharField(max_length=200, null=True, blank=True)
+    education_level = models.CharField(max_length=200, null=True, blank=True)
     certifications = models.TextField(blank=True, null=True)
-    skills = models.TextField()
-    languages_spoken = models.TextField()
-    work_availability = models.CharField(max_length=20, choices=[('fulltime', 'Fulltime'), ('parttime', 'Part-time'), ('freelance', 'Freelance')]) # increased length
-    work_schedule_preference = models.CharField(max_length=200) # increased length
+    skills = models.TextField(null=True, blank=True)
+    languages_spoken = models.TextField(null=True, blank=True)
+    work_availability = models.CharField(max_length=20, choices=[('fulltime', 'Fulltime'), ('parttime', 'Part-time'), ('freelance', 'Freelance'), ('', '---------')], null=True, blank=True)
+    work_schedule_preference = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return self.user.username
