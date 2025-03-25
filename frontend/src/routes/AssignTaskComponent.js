@@ -1,11 +1,114 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/images/LaborSynclogo.png';
-import { getWorkers, getManagerDashboard, getProjects, getProjectWorkers, assignTask} from '../endpoints/api';
+import { getWorkers, getManagerDashboard, getProjects, assignTask } from '../endpoints/api';
+import logo from "../assets/images/LaborSynclogo.png";
 
-const AssignTaskComponent = () => {
-    const { assignTaskToUser, handleLogout, createNewProject, fetchProjectWorkers } = useAuth();
+const AssignTaskPage = () => {
+    const { handleLogout } = useAuth();
+    const navigate = useNavigate();
+    const [showModal, setShowModal] = useState(false);
+    const [workers, setWorkers] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Fetch initial data when component mounts
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            setIsLoading(true);
+            try {
+                const [dashboardData, workerList, projectsList] = await Promise.all([
+                    getManagerDashboard(),
+                    getWorkers(),
+                    getProjects()
+                ]);
+                setProjects(dashboardData?.projects || projectsList || []);
+                setWorkers(workerList || []);
+            } catch (error) {
+                console.error('Error fetching initial data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchInitialData();
+    }, []);
+
+    return (
+        <div className="flex h-screen">
+            {/* Sidebar */}
+            <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
+                <div className="flex items-center justify-center py-4 border-b">
+                    <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
+                </div>
+                <nav className="flex-grow">
+                    <ul className="flex flex-col py-4">
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
+                            Dashboard
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
+                            Schedule
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
+                            Timesheets
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+                            Reports
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
+                            Rewards
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
+                            Worker Details
+                        </li>
+                    </ul>
+                </nav>
+                <button
+                    onClick={handleLogout}
+                    className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200"
+                >
+                    Logout
+                </button>
+            </div>
+
+            {/* Main Content */}
+            <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
+                <div className="p-8">
+                    <div className="flex justify-between items-center mb-8">
+                        <h1 className="text-2xl font-bold">Task Management</h1>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200"
+                        >
+                            Assign New Task
+                        </button>
+                    </div>
+
+                    {/* Task list or other content can go here */}
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <p className="text-gray-600">Your tasks and assignments will appear here.</p>
+                        {/* You can add task listing functionality here */}
+                    </div>
+                </div>
+
+                {/* Assign Task Modal */}
+                {showModal && (
+                    <AssignTaskModal 
+                        projects={projects}
+                        workers={workers}
+                        onClose={() => setShowModal(false)}
+                        onTaskAssigned={() => {
+                            setShowModal(false);
+                            // You might want to refresh the task list here
+                        }}
+                    />
+                )}
+            </main>
+        </div>
+    );
+};
+
+// Separate modal component
+const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
     const [taskData, setTaskData] = useState({
         project: '',
         task_title: '',
@@ -14,147 +117,53 @@ const AssignTaskComponent = () => {
         assigned_shift: '',
         assigned_to: [],
     });
-    const [worker, setWorker] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [tasks, setTasks] = useState([]);
-    const [projects, setProjects] = useState([]);
     const [selectedProject, setSelectedProject] = useState('');
     const [projectWorkers, setProjectWorkers] = useState([]);
-    const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false);
-    
-    const [newProjectData, setNewProjectData] = useState({
-        name: '',
-        workers: [],
-    });
-
-    const navigate = useNavigate();
-    const formatDateTime = (isoString) => {
-        const date = new Date(isoString);
-        return date.toLocaleString(); // Adjust format as needed
-      };
-    
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const dashboardData = await getManagerDashboard();
-                if (dashboardData && dashboardData.projects) {
-                    setProjects(dashboardData.projects);
-                }
-            } catch (error) {
-                console.error('Error fetching projects:', error);
-            }
-        };
-
-        fetchProjects();
-
-        const fetchWorkers = async () => {
-            try {
-                const workerList = await getWorkers();
-                if (workerList) {
-                    setWorker(workerList);
-                }
-            } catch (error) {
-                console.error('Error fetching workers:', error);
-            }
-        };
-        fetchWorkers();
-    }, []);
-
-    useEffect(() => {
-        const fetchProjects = async () => {
-            const projects = await getProjects();
-            if (projects) {
-                setProjects(projects);
-            }
-        };
-
-        fetchProjects();
-    }, []);
-
-    useEffect(() => {
-        const fetchProjectWorkersData = async () => {
-            if (selectedProject) {
-                // Find the selected project from the projects array
-                const selectedProjectData = projects.find(project => project.id === parseInt(selectedProject));
-
-                if (selectedProjectData && selectedProjectData.workers) {
-                    // Directly use the workers array from the project object
-                    const workers = selectedProjectData.workers.map(workerUsername => ({ username: workerUsername })); //format to match what was being returned from API.
-                    setProjectWorkers(workers);
-                } else {
-                    // Handle the case where the project or workers array is not found
-                    setProjectWorkers([]);
-                }
-            } else {
-                setProjectWorkers([]);
-            }
-        };
-
-        fetchProjectWorkersData();
+        if (selectedProject) {
+            const projectData = projects.find(p => p.id === parseInt(selectedProject));
+            setProjectWorkers(projectData?.workers || []);
+        } else {
+            setProjectWorkers([]);
+        }
     }, [selectedProject, projects]);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const dashboardData = await getManagerDashboard();
-                console.log('Dashboard Data:', dashboardData);
-                setTasks(dashboardData.recent_tasks);
-
-                const workersData = await getWorkers();
-                console.log('Workers Data:', workersData);
-                setWorker(workersData);
-            } catch (error) {
-                console.error('Error fetching manager dashboard data:', error);
-            }
-        };
-
-        fetchData();
-    }, []);
-
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, options } = e.target;
 
         if (name === 'project') {
             setSelectedProject(value);
-            setTaskData((prevData) => ({
-                ...prevData,
-                project: value,
+            const projectName = projects.find(p => p.id === parseInt(value))?.name || '';
+            setTaskData(prev => ({
+                ...prev,
+                project: projectName,
                 assigned_to: [],
             }));
-        } else if (name === 'workers') {
-            const selectedWorkers = [...newProjectData.workers];
-            if (checked) {
-                selectedWorkers.push(value);
-            } else {
-                const index = selectedWorkers.indexOf(value);
-                if (index > -1) {
-                    selectedWorkers.splice(index, 1);
-                }
-            }
-            setNewProjectData((prevData) => ({
-                ...prevData,
-                workers: selectedWorkers,
-            }));
-        } else if (name === 'name') {
-            setNewProjectData((prevData) => ({
-                ...prevData,
-                name: value,
-            }));
+        } else if (name === 'assigned_to') {
+            const selected = Array.from(options).filter(option => option.selected).map(option => option.value);
+            setTaskData(prev => ({ ...prev, assigned_to: selected }));
         } else {
-            setTaskData((prevData) => ({
-                ...prevData,
-                [name]: value,
-            }));
+            setTaskData(prev => ({ ...prev, [name]: value }));
         }
     };
 
-
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
+        setIsLoading(true);
+
         try {
-            const result = await assignTaskToUser(taskData);
-            if (result) {
+            const payload = {
+                ...taskData,
+                estimated_completion_datetime: new Date(taskData.estimated_completion_datetime).toISOString(),
+            };
+
+            const response = await assignTask(payload);
+            
+            if (response.message) {
                 setTaskData({
                     project: '',
                     task_title: '',
@@ -163,220 +172,143 @@ const AssignTaskComponent = () => {
                     assigned_shift: '',
                     assigned_to: [],
                 });
-                setIsModalOpen(false);
-                console.log("task assigned successfully");
-            } else {
-                console.log("task assign failed");
+                
+                onTaskAssigned();
             }
         } catch (error) {
             console.error('Error assigning task:', error);
-            if (error.response && error.response.data) {
-                console.log('Backend error details:', error.response.data); // Inspect the backend response
-            }
-            // Display an error message to the user
-        }
-    };
-
-    const handleCreateProjectSubmit = async (e) => {
-        e.preventDefault();
-        const result = await createNewProject(newProjectData);
-        if (result) {
-            setNewProjectData({ name: '', workers: [] });
-            setCreateProjectModalOpen(false);
-            const dashboardData = await getManagerDashboard();
-            setProjects(dashboardData.projects);
+            setError(error.response?.data?.message || 'Failed to assign task');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex h-screen bg-gray-50">
-            <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
-                <div className="flex items-center justify-center py-4 border-b">
-                    <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-                </div>
-                <nav className="flex-grow">
-                    <ul className="flex flex-col py-4">
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard ')}>Dashboard</li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>Schedule</li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>Timesheets</li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>Reports</li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>Rewards</li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>Worker Details</li>
-                    </ul>
-                </nav>
-                <button onClick={handleLogout} className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300">Logout</button>
-            </div>
-
-            <div className="flex-grow p-8 relative">
-                <div className="absolute top-6 left-6">
-                    <button
-                        onClick={() => setCreateProjectModalOpen(true)}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 shadow-md"
-                    >
-                        + Create Project
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Assign Task</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
                 </div>
-                <div className="absolute top-6 right-6">
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 shadow-md"
-                    >
-                        + Assign Task
-                    </button>
-                </div>
-
-                {/* Recent Tasks */}
-                        <div className="bg-white p-6 my-24 rounded shadow-md mb-6">
-                        <h2 className="text-xl font-bold mb-4">Project Details</h2>
-                        {tasks.length > 0 ? (
-                            <table className="w-full table-auto border-collapse">
-                            <thead>
-                            <tr>
-                                <th className="px-4 py-2 border border-gray-300">Project Name</th>
-                                <th className="px-4 py-2 border border-gray-300">Task Title</th>
-                                <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
-                                <th className="px-4 py-2 border border-gray-300">Created At</th>
-                                <th className="px-4 py-2 border border-gray-300">Updated At</th>
-                                <th className="px-4 py-2 border border-gray-300">Status</th>
-                            </tr>
-                        </thead>
-                            <tbody>
-                            {tasks.map((task) => (
-                            <tr key={task.id}>
-                                <td className="px-4 py-2 border border-gray-300">
-                            {projects && projects.find((project) => project.id === task.project)?.name || 'No Project'} 
-                        </td>
-                        <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
-                        <td className="px-4 py-2 border border-gray-300">
-                            {projects && // Check if projects exists
-                                projects.find((project) => project.id === task.project)?.workers?.length > 0
-                                ? projects
-                                    .find((project) => project.id === task.project)
-                                    .workers.map((worker, index) => (
-                                        <span key={index}>
-                                            {worker}
-                                            {index <
-                                                projects.find(
-                                                    (project) => project.id === task.project
-                                                ).workers.length -
-                                                    1 && ', '}
-                                        </span>
-                                    ))
-                                : 'Not Assigned'}
-                        </td>
-                                <td className="px-4 py-2 border border-gray-300">
-                                    {/* Display created_at */}
-                                    {projects.find((project) => project.id === task.project)?.created_at ? (
-                                        formatDateTime(projects.find((project) => project.id === task.project).created_at)
-                                    ) : (
-                                        'N/A'
-                                    )}
-                                </td>
-                                <td className="px-4 py-2 border border-gray-300">
-                                    {/* Display updated_at */}
-                                    {projects.find((project) => project.id === task.project)?.updated_at ? (
-                                        formatDateTime(projects.find((project) => project.id === task.project).updated_at)
-                                    ) : (
-                                        'N/A'
-                                    )}
-                                </td>
-                                <td className="px-4 py-2 border border-gray-300 flex items-center gap-2">
-                                    {/* Display task status */}
-                                    <span
-                                        className={`h-3 w-3 rounded-full ${
-                                            task.status === 'pending'
-                                                ? 'bg-red-500'
-                                                : task.status === 'in_progress'
-                                                ? 'bg-yellow-500'
-                                                : 'bg-green-500'
-                                        }`}
-                                    ></span>
-                                    {task.status.replace('_', ' ').toUpperCase()}
-                                </td>
-                            </tr>
-                        ))}
-                            </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-gray-500">No tasks available</p>
-                        )}
-                        </div>
-
-
-
-                {isModalOpen && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
-                            <h2 className="text-2xl font-bold mb-6 text-center">Assign Task</h2>
-                            <form onSubmit={handleSubmit}>
-                                <select name="project" value={taskData.project} onChange={handleChange} required className="w-full p-2 border rounded mb-4">
-                                    <option value="" disabled>Select a project</option>
-                                    {projects && projects.map((project) => (
-                                        <option key={project.id} value={project.id}>{project.name}</option>
-                                    ))}
-                                </select>
-
-                                <input type="text" name="task_title" placeholder="Task Title" value={taskData.task_title} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
-                                <textarea name="description" placeholder="Description" value={taskData.description} onChange={handleChange} required className="w-full p-2 border rounded mb-4"></textarea>
-                                <input type="datetime-local" name="estimated_completion_datetime" value={taskData.estimated_completion_datetime} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
-                                <input type="text" name="assigned_shift" placeholder="Assigned Shift" value={taskData.assigned_shift} onChange={handleChange} required className="w-full p-2 border rounded mb-4" />
-                                <select name="assigned_to" value={taskData.assigned_to} onChange={handleChange} required className="w-full p-2 border rounded mb-4">
-                                    <option value="" disabled>Select a user</option>
-                                    {projectWorkers && projectWorkers.map((worker) => (
-                                        <option key={worker.username} value={worker.username}>{worker.username}</option>
-                                    ))}
-                                </select>
-                                <div className="flex justify-between">
-                                    <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">Assign Task</button>
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
+                
+                {error && <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">{error}</div>}
+                
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Project</label>
+                        <select 
+                            name="project" 
+                            value={selectedProject} 
+                            onChange={handleChange} 
+                            required 
+                            className="w-full p-2 border rounded"
+                        >
+                            <option value="" disabled>Select a project</option>
+                            {projects.map((project) => (
+                                <option key={project.id} value={project.id}>{project.name}</option>
+                            ))}
+                        </select>
                     </div>
-                )}
 
-                {createProjectModalOpen && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
-                            <h2 className="text-2xl font-bold mb-6 text-center">Create Project</h2>
-                            <form onSubmit={handleCreateProjectSubmit}>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    placeholder="Project Name"
-                                    value={newProjectData.name}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full p-2 border rounded mb-4"
-                                />
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700">Workers:</label>
-                                    {worker.map((w) => (
-                                        <div key={w.user.username} className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                name="workers"
-                                                value={w.user.username}
-                                                checked={newProjectData.workers.includes(w.user.username)}
-                                                onChange={handleChange}
-                                                className="mr-2"
-                                            />
-                                            <label>{w.user.username}</label>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="flex justify-between">
-                                    <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">Create Project</button>
-                                    <button type="button" onClick={() => setCreateProjectModalOpen(false)} className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Task Title</label>
+                        <input 
+                            type="text" 
+                            name="task_title" 
+                            placeholder="Task Title" 
+                            value={taskData.task_title} 
+                            onChange={handleChange} 
+                            required 
+                            className="w-full p-2 border rounded" 
+                        />
                     </div>
-                )}
+
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Description</label>
+                        <textarea 
+                            name="description" 
+                            placeholder="Description" 
+                            value={taskData.description} 
+                            onChange={handleChange} 
+                            required 
+                            className="w-full p-2 border rounded"
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Estimated Completion</label>
+                        <input 
+                            type="datetime-local" 
+                            name="estimated_completion_datetime" 
+                            value={taskData.estimated_completion_datetime} 
+                            onChange={handleChange} 
+                            required 
+                            className="w-full p-2 border rounded" 
+                        />
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2">Assigned Shift</label>
+                        <input 
+                            type="text" 
+                            name="assigned_shift" 
+                            placeholder="Assigned Shift" 
+                            value={taskData.assigned_shift} 
+                            onChange={handleChange} 
+                            required 
+                            className="w-full p-2 border rounded" 
+                        />
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-gray-700 mb-2">Assign To</label>
+                        <select 
+                            name="assigned_to" 
+                            multiple 
+                            value={taskData.assigned_to} 
+                            onChange={handleChange} 
+                            required 
+                            className="w-full p-2 border rounded min-h-[100px]"
+                        >
+                            {!selectedProject ? (
+                                <option disabled>Select a project first</option>
+                            ) : projectWorkers.length === 0 ? (
+                                <option disabled>No workers in this project</option>
+                            ) : (
+                                projectWorkers.map((worker) => (
+                                    <option key={worker} value={worker}>{worker}</option>
+                                ))
+                            )}
+                        </select>
+                        <p className="text-sm text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple workers</p>
+                    </div>
+
+                    <div className="flex justify-end space-x-4">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400" 
+                            disabled={isLoading}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600" 
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Assigning...' : 'Assign Task'}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );
 };
 
-export default AssignTaskComponent;
-
+export default AssignTaskPage;

@@ -305,14 +305,13 @@ const fetchProjects = useCallback(async () => {
 
 const fetchProjectWorkers = async (projectId) => {
   try {
-      const workers = await getProjectWorkers(projectId);
-      return workers;
+      const response = await getProjectWorkers(projectId);
+      return Array.isArray(response) ? response : [];
   } catch (error) {
-      console.error("Error fetching project workers:", error);
-      return null;
+      console.error('Error fetching project workers:', error);
+      return [];
   }
 };
-
 
 
 

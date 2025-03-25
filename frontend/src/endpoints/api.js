@@ -84,7 +84,7 @@ export const getProjectWorkers = async (projectId) => {
         return response.data;
     } catch (error) {
         console.error("Error fetching project workers:", error);
-        return null;
+        return [];
     }
 };
 
