@@ -6,10 +6,12 @@ import logo from "../assets/images/LaborSynclogo.png";
 const UserProfilePage = () => {
   const { userProfile, fetchUserProfile, updateProfile, loading, handleLogout } = useAuth();
   const [profileData, setProfileData] = useState({
-    username: "",
-    email: "",
-    first_name: "",
-    last_name: "",
+    user: {
+      username: "",
+      email: "",
+      first_name: "",
+      last_name: "",
+    },
     phone_number: "",
     gender: "",
     current_address: "",
@@ -32,11 +34,14 @@ const UserProfilePage = () => {
 
   useEffect(() => {
     if (!loading && userProfile) {
+      console.log("userProfile data:", userProfile);
       setProfileData({
-        username: userProfile.user.username,
-        email: userProfile.user.email,
-        first_name: userProfile.user.first_name,
-        last_name: userProfile.user.last_name,
+        user: {
+          username: userProfile.user.username,
+          email: userProfile.user.email,
+          first_name: userProfile.user.first_name,
+          last_name: userProfile.user.last_name,
+        },
         phone_number: userProfile.phone_number,
         gender: userProfile.gender,
         current_address: userProfile.current_address,
@@ -48,21 +53,35 @@ const UserProfilePage = () => {
         skills: userProfile.skills,
         languages_spoken: userProfile.languages_spoken,
         work_availability: userProfile.work_availability,
-        work_schedule_preference: userProfile.work_schedule_preference
+        work_schedule_preference: userProfile.work_schedule_preference,
       });
     }
   }, [loading, userProfile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setProfileData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    
+    setProfileData((prevData) => {
+      if (["username", "email", "first_name", "last_name"].includes(name)) {
+        return {
+          ...prevData,
+          user: {
+            ...prevData.user,
+            [name]: value,
+          },
+        };
+      } else {
+        return {
+          ...prevData,
+          [name]: value,
+        };
+      }
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("profileData being sent:", profileData);
     updateProfile(profileData);
   };
 
@@ -140,14 +159,16 @@ const UserProfilePage = () => {
                       type="text"
                       id={field}
                       name={field}
-                      value={profileData[field] || ''}
+                      value={
+                        ["username", "email", "first_name", "last_name"].includes(field)
+                          ? profileData.user?.[field] || "" // Access from profileData.user
+                          : profileData[field] || "" // Access normally for other fields
+                      }
                       onChange={handleChange}
                       className="bg-indigo-50 border border-indigo-300 text-indigo-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5"
-                     
+                      disabled={["first_name", "last_name", "email"].includes(field)} // Disable fields
                     />
-                    
                   </div>
-                  
                 ))}
                 <div className="flex justify-between space-x-4">
                   <button

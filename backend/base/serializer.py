@@ -165,7 +165,7 @@ class ManagerProfileSerializer(serializers.ModelSerializer):
             
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer('user')
+    user = UserSerializer()
     class Meta:
         model = UserProfile
         fields = [
@@ -220,7 +220,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model = Project
-        fields = ['id', 'name', 'workers', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'workers', 'status', 'budget', 'documents', 'start_date', 'end_date', 'location', 'created_at', 'updated_at']
 
 
 class ProjectWorkerSerializer(serializers.Serializer):

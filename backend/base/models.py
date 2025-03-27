@@ -59,21 +59,43 @@ class Dashboard(models.Model):
 from django.db import models
 from django.contrib.auth.models import User
 
+# In models.py
+from django.db import models
+from django.utils import timezone
+from datetime import date, timedelta
+
+from django.db import models
+from django.utils import timezone
+from datetime import date, timedelta
+
 class Project(models.Model):
+    # Add these choices at the top of your model class
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('completed', 'Completed'),
         ('on_hold', 'On Hold'),
     ]
-
+    
+  
+    
+    # Existing fields
     name = models.CharField(max_length=255)
     workers = models.ManyToManyField(User, related_name='projects')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
+    # New fields
+    budget = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    documents = models.FileField(upload_to='projects/documents/', blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+   
+    start_date = models.DateField(default=date.today)
+    
     def __str__(self):
         return self.name
+
 
 
 
