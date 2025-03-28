@@ -86,6 +86,7 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     # New fields
+    description = models.TextField(blank=True, null=True)
     budget = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     documents = models.FileField(upload_to='projects/documents/', blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
