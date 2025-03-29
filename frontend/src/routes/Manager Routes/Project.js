@@ -18,10 +18,9 @@ const CreateProjectPage = () => {
     const navigate = useNavigate();
 
     const formatDateTime = (isoString) => {
-        if (!isoString) return 'N/A';
         const date = new Date(isoString);
-        return date.toLocaleString();
-    };
+        return date.toLocaleString(); // Adjust format as needed
+      };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -235,8 +234,8 @@ const CreateProjectPage = () => {
                                                     <td className="px-4 py-2 border border-gray-300">
                                                         {task.assigned_workers?.join(', ') || 'Not Assigned'}
                                                     </td>
-                                                    <td className="px-4 py-2 border border-gray-300">{formatDateTime(task.created_at)}</td>
-                                                    <td className="px-4 py-2 border border-gray-300">{formatDateTime(task.updated_at)}</td>
+                                                    <td className="px-4 py-2 border border-gray-300"> {projects.find((project) => project.id === task.project)?.created_at ? (formatDateTime(projects.find((project) => project.id === task.project).created_at)) : ('N/A' )}</td>
+                                                    <td className="px-4 py-2 border border-gray-300">{projects.find((project) => project.id === task.project)?.updated_at ? (formatDateTime(projects.find((project) => project.id === task.project).updated_at)  ) : ('N/A')}</td>
                                                     <td className="px-4 py-2 border border-gray-300">
                                                         <span className={`inline-flex items-center gap-1 ${
                                                             task.status === 'pending' ? 'text-red-600' :
