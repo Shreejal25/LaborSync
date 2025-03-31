@@ -18,6 +18,7 @@ import RoleProtectedRoute from './routes/Components/RoleProtectedRoute';
 import Unauthorized from './routes/Components/unauthorized';
 import CreateProject from './routes/Manager Routes/Project';
 import AddUserProfile from './routes/AddUserProfile';
+import WorkerProjectsPage from './routes/WorkerProjectsPage';
 
 
 import Home from './routes/Homepage/Home';
@@ -43,6 +44,7 @@ function App() {
           
           
           <Route path='/view-task' element={<PrivateRoute><UserTasksComponent /></PrivateRoute>} />
+          <Route path='/view-project' element={<PrivateRoute><WorkerProjectsPage /></PrivateRoute>} />
           
           
           {/* Unauthorized Route */}
