@@ -10,28 +10,56 @@ const AssignTaskPage = () => {
     const [showModal, setShowModal] = useState(false);
     const [workers, setWorkers] = useState([]);
     const [projects, setProjects] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [tasks, setTasks] = useState([]);
+    const [activeTab, setActiveTab] = useState('tasks'); // Default to tasks tab
+    
 
     // Fetch initial data when component mounts
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            setIsLoading(true);
+ useEffect(() => {
+        const fetchData = async () => {
             try {
-                const [dashboardData, workerList, projectsList] = await Promise.all([
-                    getManagerDashboard(),
+                const [workerList, projectList, dashboardData] = await Promise.all([
                     getWorkers(),
-                    getProjects()
+                    getProjects(),
+                    getManagerDashboard()
                 ]);
-                setProjects(dashboardData?.projects || projectsList || []);
-                setWorkers(workerList || []);
+                
+                if (workerList) setWorkers(workerList);
+                if (projectList) setProjects(projectList);
+                if (dashboardData) {
+                    setTasks(dashboardData.recent_tasks || []);
+                    setClockHistory(dashboardData.clock_history || []);
+                }
+                
+                
             } catch (error) {
-                console.error('Error fetching initial data:', error);
-            } finally {
-                setIsLoading(false);
+                console.error('Error fetching data:', error);
+                
             }
         };
-        fetchInitialData();
+        fetchData();
     }, []);
+
+    const formatDateTime = (dateString) => {
+        if (!dateString) return 'N/A';
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(dateString).toLocaleDateString('en-US', options);
+    };
+
+    const handleTaskAssigned = async () => {
+        try {
+            const updatedTasks = await getUserTasks();
+            setTasks(updatedTasks);
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+        }
+    };
 
     return (
         <div className="flex h-screen">
@@ -42,24 +70,24 @@ const AssignTaskPage = () => {
                 </div>
                 <nav className="flex-grow">
                     <ul className="flex flex-col py-4">
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-                            Dashboard
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
-                            Schedule
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
-                            Timesheets
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-                            Reports
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
-                            Rewards
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-                            Worker Details
-                        </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
+                    Dashboard
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
+                    Manage Schedule
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/create-project')}>
+                    Project
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
+                    Assign Tasks
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+                    Reports
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
+                    Worker Details
+                    </li>
                     </ul>
                 </nav>
                 <button
@@ -83,11 +111,76 @@ const AssignTaskPage = () => {
                         </button>
                     </div>
 
-                    {/* Task list or other content can go here */}
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <p className="text-gray-600">Your tasks and assignments will appear here.</p>
-                        {/* You can add task listing functionality here */}
-                    </div>
+         
+                   
+
+                                    {/* Tasks Tab */}
+                    {activeTab === 'tasks' && (
+                        <div className="bg-white p-6 rounded shadow-md mb-6">
+                            <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
+                            {tasks.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full table-auto border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-100">
+                                                <th className="px-4 py-2 border border-gray-300">Project Name</th>
+                                                <th className="px-4 py-2 border border-gray-300">Task Title</th>
+                                                <th className="px-4 py-2 border border-gray-300">Description</th>
+                                                <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
+                                                <th className="px-4 py-2 border border-gray-300">Due Date</th>
+                                                <th className="px-4 py-2 border border-gray-300">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tasks.map((task) => (
+                                                <tr key={task.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-2 border border-gray-300">
+                                                        {projects.find((project) => project.id === task.project)?.name || 'No Project'}
+                                                    </td>
+                                                    <td className="px-4 py-2 border border-gray-300 font-medium">{task.task_title}</td>
+                                                    <td className="px-4 py-2 border border-gray-300">{task.description}</td>
+                                                    <td className="px-4 py-2 border border-gray-300">
+                                                        {task.assigned_to && task.assigned_to.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {task.assigned_to.map((worker, index) => (
+                                                                    <span key={index} className="bg-gray-100 px-2 py-1 rounded text-sm">
+                                                                        {worker}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400">Not Assigned</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-2 border border-gray-300">
+                                                        {task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A'}
+                                                    </td>
+                                                    <td className="px-4 py-2 border border-gray-300">
+                                                        <span className={`inline-flex items-center gap-1 ${
+                                                            task.status === 'pending' ? 'text-red-600' :
+                                                            task.status === 'in_progress' ? 'text-yellow-600' :
+                                                            'text-green-600'
+                                                        }`}>
+                                                            <span className={`h-2 w-2 rounded-full ${
+                                                                task.status === 'pending' ? 'bg-red-500' :
+                                                                task.status === 'in_progress' ? 'bg-yellow-500' :
+                                                                'bg-green-500'
+                                                            }`}></span>
+                                                            {task.status ? task.status.replace('_', ' ').toUpperCase() : 'N/A'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500">No tasks available</p>
+                            )}
+                        </div>
+                    )}
+
+                    
                 </div>
 
                 {/* Assign Task Modal */}
@@ -96,10 +189,7 @@ const AssignTaskPage = () => {
                         projects={projects}
                         workers={workers}
                         onClose={() => setShowModal(false)}
-                        onTaskAssigned={() => {
-                            setShowModal(false);
-                            // You might want to refresh the task list here
-                        }}
+                        onTaskAssigned={handleTaskAssigned}
                     />
                 )}
             </main>
@@ -107,7 +197,7 @@ const AssignTaskPage = () => {
     );
 };
 
-// Separate modal component
+// Separate modal component (same as before)
 const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
     const [taskData, setTaskData] = useState({
         project: '',

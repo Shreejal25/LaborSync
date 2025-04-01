@@ -81,24 +81,24 @@ const CreateProjectPage = () => {
                 </div>
                 <nav className="flex-grow">
                     <ul className="flex flex-col py-4">
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-                            Dashboard
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
-                            Manage Schedule
-                        </li>
-                        <li className="flex items-center px-6 py-2 bg-gray-200 cursor-pointer">
-                            Project Management
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
-                            Assign Tasks
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-                            Reports
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-                            Worker Details
-                        </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
+                    Dashboard
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
+                    Manage Schedule
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/create-project')}>
+                    Project
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
+                    Assign Tasks
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+                    Reports
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
+                    Worker Details
+                    </li>
                     </ul>
                 </nav>
                 <button
@@ -224,12 +224,12 @@ const CreateProjectPage = () => {
                                 <div className="overflow-x-auto">
                                     <table className="w-full table-auto border-collapse">
                                         <thead>
-                                            <tr className="bg-gray-100">
+                                        <tr className="bg-gray-100">
                                                 <th className="px-4 py-2 border border-gray-300">Project Name</th>
                                                 <th className="px-4 py-2 border border-gray-300">Task Title</th>
+                                                <th className="px-4 py-2 border border-gray-300">Description</th>
                                                 <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
-                                                <th className="px-4 py-2 border border-gray-300">Created At</th>
-                                                <th className="px-4 py-2 border border-gray-300">Updated At</th>
+                                                <th className="px-4 py-2 border border-gray-300">Due Date</th>
                                                 <th className="px-4 py-2 border border-gray-300">Status</th>
                                             </tr>
                                         </thead>
@@ -237,14 +237,27 @@ const CreateProjectPage = () => {
                                             {tasks.map((task) => (
                                                 <tr key={task.id} className="hover:bg-gray-50">
                                                     <td className="px-4 py-2 border border-gray-300">
-                                                        {projects.find(p => p.id === task.project)?.name || 'No Project'}
+                                                        {projects.find((project) => project.id === task.project)?.name || 'No Project'}
                                                     </td>
-                                                    <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
+                                                    <td className="px-4 py-2 border border-gray-300 font-medium">{task.task_title}</td>
+                                                    <td className="px-4 py-2 border border-gray-300">{task.description}</td>
                                                     <td className="px-4 py-2 border border-gray-300">
-                                                        {task.assigned_workers?.join(', ') || 'Not Assigned'}
+                                                        {task.assigned_to && task.assigned_to.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {task.assigned_to.map((worker, index) => (
+                                                                    <span key={index} className="bg-gray-100 px-2 py-1 rounded text-sm">
+                                                                        {worker}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400">Not Assigned</span>
+                                                        )}
                                                     </td>
-                                                    <td className="px-4 py-2 border border-gray-300"> {projects.find((project) => project.id === task.project)?.created_at ? (formatDateTime(projects.find((project) => project.id === task.project).created_at)) : ('N/A' )}</td>
-                                                    <td className="px-4 py-2 border border-gray-300">{projects.find((project) => project.id === task.project)?.updated_at ? (formatDateTime(projects.find((project) => project.id === task.project).updated_at)  ) : ('N/A')}</td>
+                                                    
+                                                    <td className="px-4 py-2 border border-gray-300">
+                                                        {task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A'}
+                                                    </td>
                                                     <td className="px-4 py-2 border border-gray-300">
                                                         <span className={`inline-flex items-center gap-1 ${
                                                             task.status === 'pending' ? 'text-red-600' :
@@ -256,7 +269,7 @@ const CreateProjectPage = () => {
                                                                 task.status === 'in_progress' ? 'bg-yellow-500' :
                                                                 'bg-green-500'
                                                             }`}></span>
-                                                            {task.status.replace('_', ' ').toUpperCase()}
+                                                            {task.status ? task.status.replace('_', ' ').toUpperCase() : 'N/A'}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -829,7 +842,7 @@ const ProjectDetailsModal = ({ project, onClose }) => {
                                     <p><span className="font-medium">Budget:</span> ${project.budget}</p>
                                     <p><span className="font-medium">Location:</span> {project.location}</p>
                                     <p><span className="font-medium">Start Date:</span> {(project.start_date)}</p>
-                                    <p><span className="font-medium">End Date:</span> {formatDateTime(project.end_date)}</p>
+                                    <p><span className="font-medium">End Date:</span> {(project.end_date)}</p>
                                     <p><span className="font-medium">Created At:</span> {formatDateTime(project.created_at)}</p>
                                     <p><span className="font-medium">Updated At:</span> {formatDateTime(project.updated_at)}</p>
                                     <p><span className="font-medium">Documents:</span> {project.documents ? <a href={project.documents} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View Document</a> : 'No documents uploaded'}</p>

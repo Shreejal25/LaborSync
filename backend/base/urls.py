@@ -27,6 +27,8 @@ from .views import (
     get_projects,create_user_profile,
     update_project,
     delete_project,
+    view_manager_tasks,
+    debug_user_info
     
    
 )
@@ -63,5 +65,7 @@ urlpatterns = [
     path('projects/<int:project_id>/workers/', get_project_workers, name='get_project_workers'),  # Corrected line 
     path('projects/<int:project_id>/update/', update_project, name='update_project'),
     path('projects/<int:project_id>/delete/', delete_project, name='delete_project'),
+    path('view/manager-tasks/', view_manager_tasks, name='manager-tasks'),
+    path('debug/user-info/', debug_user_info, name='debug-user-info'),
     
 ]

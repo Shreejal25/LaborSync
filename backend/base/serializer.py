@@ -321,21 +321,25 @@ class TaskSerializer(serializers.ModelSerializer):
     
     
 class TaskViewSerializer(serializers.ModelSerializer):
-    assigned_by = serializers.CharField(source="assigned_by.username", read_only=True)  # Get assigned_by username
-    assigned_to = serializers.CharField(source="assigned_to.username", read_only=True)  # Get assigned_to username
-    project = serializers.PrimaryKeyRelatedField(read_only=True)
+    assigned_by = serializers.CharField(source="assigned_by.username", read_only=True)
+    assigned_to = serializers.SerializerMethodField()
+    project_name = serializers.CharField(source="project.name", read_only=True)
+    
     class Meta:
         model = Task
         fields = [
             'id',
             'project',
+            'project_name',
             'task_title',
             'description',
             'estimated_completion_datetime',
             'assigned_shift',
             'assigned_to',
             'assigned_by',
-            'status'  # Include status field
-            
-            # This will show the username of the assigned user
+            'status'
         ]
+    
+    def get_assigned_to(self, obj):
+        # Return array of assigned usernames
+        return [user.username for user in obj.assigned_to.all()]

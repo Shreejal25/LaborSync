@@ -525,14 +525,43 @@ def get_project_workers(request, project_id):
     except Project.DoesNotExist:
         return Response({'error': 'Project not found.'}, status=404)
     
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.contrib.auth.models import Group
+from .models import Task
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def view_user_tasks(request):
-    user = request.user  # Get the authenticated user
-    tasks = Task.objects.filter(assigned_to=user)  # Filter tasks assigned to this user
-    
-    serializer = TaskViewSerializer(tasks, many=True)  # Serialize the tasks
+    """View for regular users to see their assigned tasks"""
+    tasks = Task.objects.filter(assigned_to=request.user)
+    serializer = TaskViewSerializer(tasks, many=True)
     return Response(serializer.data)
+
+# views.py
+from .permission import IsManager
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsManager])
+def view_manager_tasks(request):
+    tasks = Task.objects.all().prefetch_related('assigned_to')
+    serializer = TaskViewSerializer(tasks, many=True)
+    return Response(serializer.data)  
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_user_info(request):
+    user = request.user
+    return Response({
+        'username': user.username,
+        'groups': [g.name for g in user.groups.all()],
+        'is_staff': user.is_staff,
+        'is_superuser': user.is_superuser,
+        'all_permissions': list(user.get_all_permissions())
+    })
+
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

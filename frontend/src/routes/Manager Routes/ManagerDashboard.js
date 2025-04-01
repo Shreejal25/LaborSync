@@ -131,7 +131,7 @@ const ManagerDashboard = () => {
 
         {/* Recent Tasks */}
 <div className="bg-white p-6 rounded shadow-md mb-6">
-  <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
+  <h2 className="text-xl font-bold mb-4">Recent Project and Tasks</h2>
   {tasks.length > 0 ? (
     <table className="w-full table-auto border-collapse">
       <thead>
@@ -139,8 +139,8 @@ const ManagerDashboard = () => {
         <th className="px-4 py-2 border border-gray-300">Project Name</th>
         <th className="px-4 py-2 border border-gray-300">Task Title</th>
         <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
-        <th className="px-4 py-2 border border-gray-300">Created At</th>
-        <th className="px-4 py-2 border border-gray-300">Updated At</th>
+        <th className="px-4 py-2 border border-gray-300">Project Created At</th>
+        <th className="px-4 py-2 border border-gray-300">Project Updated At</th>
         <th className="px-4 py-2 border border-gray-300">Status</th>
     </tr>
 </thead>

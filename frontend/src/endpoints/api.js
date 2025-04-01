@@ -27,6 +27,8 @@ const CREATE_PROJECT_URL = `${BASE_URL}projects/create/`;
 const GET_PROJECT_WORKERS_URL = `${BASE_URL}projects/`;
 const UPDATE_PROJECT_URL = `${BASE_URL}projects/`;
 const DELETE_PROJECT_URL = `${BASE_URL}projects/`;
+const MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
+const GET_MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -396,30 +398,62 @@ export const assignTask = async (taskData) => {
         const response = await axios.post(ASSIGN_TASK_URL, taskData, { withCredentials: true });
         return response.data;
     } catch (error) {
-        console.error("Error assigning task:", error);
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            console.error("Server response:", error.response.data);
-            console.error("Server status:", error.response.status);
-            console.error("Server headers:", error.response.headers);
-        } else if (error.request) {
-            // The request was made but no response was received
-            console.error("No response received:", error.request);
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            console.error("Error message:", error.message);
+        console.error("Error assigning task:", error.response?.data || error.message);
+        
+        // Handle 403 Forbidden (not a manager)
+        if (error.response?.status === 403) {
+            throw new Error("Only managers can assign tasks");
         }
+        
+        // Try token refresh if unauthorized
+        if (error.response?.status === 401) {
+            return callRefresh(error, () => axios.post(ASSIGN_TASK_URL, taskData, { withCredentials: true }));
+        }
+        
         throw error;
     }
 };
-
-export const getUserTasks = async () => {
+export const getUserTasks = async (isManager = false) => {
     try {
-        const response = await axios.get(GET_TASKS_URL, { withCredentials: true });
-        return response.data; // Return the list of tasks assigned to the user
+        const url = isManager ? GET_MANAGER_TASKS_URL : GET_TASKS_URL;
+        const response = await axios.get(url, { withCredentials: true });
+        return response.data;
     } catch (error) {
-        console.error("Error fetching user tasks:", error);
-        throw error; // Rethrow error for handling in context or component
+        console.error("Error fetching tasks:", error.response?.data || error.message);
+        
+        // Handle 403 Forbidden (not a manager)
+        if (error.response?.status === 403 && isManager) {
+            throw new Error("Manager access required");
+        }
+        
+        // Try token refresh if unauthorized
+        if (error.response?.status === 401) {
+            return callRefresh(error, () => axios.get(
+                isManager ? GET_MANAGER_TASKS_URL : GET_TASKS_URL, 
+                { withCredentials: true }
+            ));
+        }
+        
+        return [];
+    }
+};
+export const getManagerTasks = async () => {
+    try {
+        const response = await axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching manager tasks:", error.response?.data || error.message);
+        
+        // Handle 403 Forbidden (not a manager) specifically
+        if (error.response?.status === 403) {
+            throw new Error("You don't have manager privileges");
+        }
+        
+        // Try token refresh if unauthorized
+        if (error.response?.status === 401) {
+            return callRefresh(error, () => axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true }));
+        }
+        
+        return [];
     }
 };
