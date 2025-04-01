@@ -25,6 +25,7 @@ const CLOCK_HISTORY_URL = `${BASE_URL}clock-history/`;
 const GET_PROJECTS_URL = `${BASE_URL}projects/`;
 const CREATE_PROJECT_URL = `${BASE_URL}projects/create/`;
 const GET_PROJECT_WORKERS_URL = `${BASE_URL}projects/`;
+const UPDATE_PROJECT_URL = `${BASE_URL}projects/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -344,6 +345,32 @@ export const clockOut = async (taskId) => {
     } catch (error) {
         console.error('Error clocking out:', error);
         return callRefresh(error, () => axios.post(CLOCK_OUT_URL, { task_id: taskId }, { withCredentials: true }));
+    }
+};
+
+
+export const updateProject = async (projectId, projectData) => {
+    try {
+        const response = await axios.put(
+            `${UPDATE_PROJECT_URL}${projectId}/update/`,
+            projectData,
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error updating project:", error);
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            console.error("Server response:", error.response.data);
+            console.error("Server status:", error.response.status);
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error("No response received:", error.request);
+        } else {
+            // Something happened in setting up the request
+            console.error("Error message:", error.message);
+        }
+        throw error;
     }
 };
 

@@ -5,12 +5,13 @@ import { getProjects } from '../endpoints/api';
 import logo from "../assets/images/LaborSynclogo.png";
 
 const WorkerProjectsPage = () => {
-    const { userProfile, handleLogout } = useAuth();
+    const { userProfile, handleLogout, userTasks, fetchUserTasks } = useAuth();
     const navigate = useNavigate();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedProject, setSelectedProject] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [tasksWithProjectNames, setTasksWithProjectNames] = useState([]);
 
     const formatDate = (isoString) => {
         if (!isoString) return 'N/A';
@@ -34,6 +35,23 @@ const WorkerProjectsPage = () => {
         fetchProjects();
     }, [userProfile]);
 
+    useEffect(() => {
+        fetchUserTasks();
+    }, []);
+
+    useEffect(() => {
+        if (userTasks.length > 0 && projects.length > 0) {
+            const updatedTasks = userTasks.map((task) => {
+                const project = projects.find((p) => p.id === task.project);
+                return {
+                    ...task,
+                    projectName: project ? project.name : 'Unknown Project',
+                };
+            });
+            setTasksWithProjectNames(updatedTasks);
+        }
+    }, [userTasks, projects]);
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -53,28 +71,28 @@ const WorkerProjectsPage = () => {
                     <ul className="flex flex-col py-4">
                         <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
                             Dashboard
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
                             Schedule
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
                             Timesheets
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-project')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-project')}>
                             View Project
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
                             View Tasks
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
                             Reports
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
                             Rewards
-                            </li>
-                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
                             Worker Details
-                         </li>
+                        </li>
                     </ul>
                 </nav>
                 <button
@@ -150,6 +168,7 @@ const WorkerProjectsPage = () => {
                 {showDetailsModal && selectedProject && (
                     <ProjectDetailsModal 
                         project={selectedProject}
+                        tasks={tasksWithProjectNames.filter(task => task.project === selectedProject.id)}
                         onClose={() => setShowDetailsModal(false)}
                     />
                 )}
@@ -159,7 +178,7 @@ const WorkerProjectsPage = () => {
 };
 
 // Project Details Modal Component
-const ProjectDetailsModal = ({ project, onClose }) => {
+const ProjectDetailsModal = ({ project, tasks, onClose }) => {
     const formatDateTime = (isoString) => {
         if (!isoString) return 'N/A';
         const date = new Date(isoString);
@@ -212,9 +231,9 @@ const ProjectDetailsModal = ({ project, onClose }) => {
 
                     <div className="pt-4 border-t">
                         <h3 className="font-semibold text-lg mb-2">Your Tasks</h3>
-                        {project.tasks && project.tasks.length > 0 ? (
+                        {tasks.length > 0 ? (
                             <ul className="space-y-3">
-                                {project.tasks.map((task) => (
+                                {tasks.map((task) => (
                                     <li key={task.id} className="border rounded p-3">
                                         <div className="flex justify-between items-start">
                                             <div>

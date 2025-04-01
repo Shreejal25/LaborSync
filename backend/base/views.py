@@ -436,6 +436,26 @@ def create_project(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_project(request, project_id):
+    try:
+        project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        return Response({'error': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if the user is a manager
+    if not request.user.groups.filter(name='Managers').exists():
+        return Response({'error': 'Only managers can update projects.'}, 
+                       status=status.HTTP_403_FORBIDDEN)
+
+    serializer = ProjectSerializer(project, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_projects(request):
