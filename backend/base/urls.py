@@ -26,6 +26,7 @@ from .views import (
     create_project,
     get_projects,create_user_profile,
     update_project,
+    delete_project,
     
    
 )
@@ -61,5 +62,6 @@ urlpatterns = [
     path('projects/', get_projects, name='get_projects'),
     path('projects/<int:project_id>/workers/', get_project_workers, name='get_project_workers'),  # Corrected line 
     path('projects/<int:project_id>/update/', update_project, name='update_project'),
+    path('projects/<int:project_id>/delete/', delete_project, name='delete_project'),
     
 ]

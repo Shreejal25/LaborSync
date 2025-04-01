@@ -429,44 +429,73 @@ def clock_out(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_project(request):
-    serializer = ProjectSerializer(data=request.data)
+    data = request.data.copy()
+    serializer = ProjectSerializer(data=data, context={'request': request})
+    
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        # Automatically set created_by from request.user
+        project = serializer.save(created_by=request.user)
+        return Response(ProjectSerializer(project).data, status=201)
+    return Response(serializer.errors, status=400)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_project(request, project_id):
-    try:
-        project = Project.objects.get(pk=project_id)
-    except Project.DoesNotExist:
-        return Response({'error': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-    # Check if the user is a manager
-    if not request.user.groups.filter(name='Managers').exists():
-        return Response({'error': 'Only managers can update projects.'}, 
-                       status=status.HTTP_403_FORBIDDEN)
-
+    project = get_object_or_404(Project, pk=project_id)
+    
+    # Verify the requesting user is the project creator
+    if project.created_by != request.user:
+        return Response({'error': 'Not authorized to update this project'}, status=403)
+    
     serializer = ProjectSerializer(project, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=400)
+
+
+# @api_view(['PUT'])
+# @permission_classes([IsAuthenticated])
+# def update_project(request, project_id):
+#     try:
+#         project = Project.objects.get(pk=project_id)
+#     except Project.DoesNotExist:
+#         return Response({'error': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+#     # Check if the user is a manager
+#     if not request.user.groups.filter(name='Managers').exists():
+#         return Response({'error': 'Only managers can update projects.'}, 
+#                        status=status.HTTP_403_FORBIDDEN)
+
+#     serializer = ProjectSerializer(project, data=request.data, partial=True)
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response(serializer.data)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_projects(request):
-    projects = Project.objects.all()
-
-    if not projects.exists():
-        return Response({"message": "No projects found"}, status=200)
-
-    # Use the ProjectSerializer to include related workers
+    projects = Project.objects.filter(created_by=request.user)
     serializer = ProjectSerializer(projects, many=True)
-    return Response(serializer.data, status=200)
+    return Response(serializer.data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_project(request, project_id):
+    """
+    Delete a project (only if user is the creator)
+    """
+    project = get_object_or_404(Project, pk=project_id)
+    
+    # Verify the requesting user is the project creator
+    if project.created_by != request.user:
+        return Response({'error': 'Not authorized to delete this project'}, status=403)
+    
+    project.delete()
+    return Response({'message': 'Project deleted successfully'}, status=204)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

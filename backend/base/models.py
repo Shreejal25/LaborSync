@@ -85,12 +85,15 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    
     # New fields
     description = models.TextField(blank=True, null=True)
     budget = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     documents = models.FileField(upload_to='projects/documents/', blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
+    
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True,related_name='created_projects')  # Fixed field
    
     start_date = models.DateField(default=date.today)
     

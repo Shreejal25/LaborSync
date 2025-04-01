@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getWorkers, getManagerDashboard, getProjects, updateProject } from '../../endpoints/api';
+import { getWorkers, getManagerDashboard, getProjects, updateProject, deleteProject } from '../../endpoints/api';
 import logo from "../../assets/images/LaborSynclogo.png";
 
 const CreateProjectPage = () => {
@@ -555,6 +555,7 @@ const ProjectDetailsModal = ({ project, onClose }) => {
     const [editedProject, setEditedProject] = useState({ ...project });
     const [workers, setWorkers] = useState([]);
     const [loadingWorkers, setLoadingWorkers] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // New state for delete confirmation
 
     useEffect(() => {
         const fetchWorkers = async () => {
@@ -593,6 +594,15 @@ const ProjectDetailsModal = ({ project, onClose }) => {
         }
     };
 
+    const handleDelete = async () => {
+        try {
+            await deleteProject(project.id);
+            onClose(); // Close the modal after successful deletion
+        } catch (error) {
+            console.error('Error deleting project:', error);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -620,12 +630,21 @@ const ProjectDetailsModal = ({ project, onClose }) => {
                     </h2>
                     <div className="flex space-x-2">
                         {!editMode && (
+                            <>
                             <button 
                                 onClick={() => setEditMode(true)}
                                 className="bg-yellow-500 text-white py-1 px-3 rounded hover:bg-yellow-600 text-sm"
                             >
                                 Edit
                             </button>
+
+                            <button 
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm"
+                            >
+                            Delete
+                            </button>
+                            </>
                         )}
                         <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -634,6 +653,32 @@ const ProjectDetailsModal = ({ project, onClose }) => {
                         </button>
                     </div>
                 </div>
+
+
+                  {/* Delete Confirmation Modal */}
+                  {showDeleteConfirm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-lg">
+                            <h3 className="text-lg font-bold mb-4">Confirm Deletion</h3>
+                            <p className="mb-4">Are you sure you want to delete this project? This action cannot be undone.</p>
+                            <div className="flex justify-end space-x-4">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
+                                >
+                                    Delete Project
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
 
                 {editMode ? (
                     <form onSubmit={handleSubmit}>

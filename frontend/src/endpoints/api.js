@@ -26,6 +26,7 @@ const GET_PROJECTS_URL = `${BASE_URL}projects/`;
 const CREATE_PROJECT_URL = `${BASE_URL}projects/create/`;
 const GET_PROJECT_WORKERS_URL = `${BASE_URL}projects/`;
 const UPDATE_PROJECT_URL = `${BASE_URL}projects/`;
+const DELETE_PROJECT_URL = `${BASE_URL}projects/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -99,6 +100,20 @@ export const getProjects = async () => {
     } catch (error) {
         console.error("Error fetching projects:", error.response?.data || error.message);
         return [];
+    }
+};
+
+
+export const deleteProject = async (projectId) => {
+    try {
+        const response = await axios.delete(
+            `${BASE_URL}projects/${projectId}/delete/`,
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting project:", error);
+        throw error;
     }
 };
 

@@ -216,11 +216,23 @@ class ProjectSerializer(serializers.ModelSerializer):
     workers = serializers.SlugRelatedField(
         queryset=User.objects.all(),
         slug_field='username',
-        many=True
+        many=True,
+        required=False
     )
+    
+    created_by = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username'
+    )
+    
     class Meta:
         model = Project
-        fields = ['id', 'name', 'workers', 'status', 'budget', 'documents', 'start_date', 'end_date', 'location', 'created_at', 'updated_at','description']
+        fields = '__all__'
+        read_only_fields = ('created_by', 'created_at', 'updated_at')
+        extra_kwargs = {
+            'start_date': {'format': '%Y-%m-%d'},
+            'end_date': {'format': '%Y-%m-%d'},
+        }
 
 
 class ProjectWorkerSerializer(serializers.Serializer):
