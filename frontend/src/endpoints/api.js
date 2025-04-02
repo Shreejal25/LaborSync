@@ -29,6 +29,7 @@ const UPDATE_PROJECT_URL = `${BASE_URL}projects/`;
 const DELETE_PROJECT_URL = `${BASE_URL}projects/`;
 const MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 const GET_MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
+const GET_PROJECT_STATS_URL = `${BASE_URL}worker/productivity/stats/`;
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -452,6 +453,30 @@ export const getManagerTasks = async () => {
         // Try token refresh if unauthorized
         if (error.response?.status === 401) {
             return callRefresh(error, () => axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true }));
+        }
+        
+        return [];
+    }
+};
+
+
+export const getProjectStats = async () => {
+    try {
+        const response = await axios.get(GET_PROJECT_STATS_URL, { 
+            withCredentials: true 
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching project stats:", error.response?.data || error.message);
+        
+        // Handle 403 Forbidden (not a manager) specifically
+        if (error.response?.status === 403) {
+            throw new Error("You don't have manager privileges");
+        }
+        
+        // Try token refresh if unauthorized
+        if (error.response?.status === 401) {
+            return callRefresh(error, () => axios.get(GET_PROJECT_STATS_URL, { withCredentials: true }));
         }
         
         return [];

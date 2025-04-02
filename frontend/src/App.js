@@ -19,6 +19,7 @@ import Unauthorized from './routes/Components/unauthorized';
 import CreateProject from './routes/Manager Routes/Project';
 import AddUserProfile from './routes/AddUserProfile';
 import WorkerProjectsPage from './routes/WorkerProjectsPage';
+import WorkerProductivityCharts from './routes/WorkerProductivity';
 
 
 import Home from './routes/Homepage/Home';
@@ -112,7 +113,18 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
+
+        <Route 
+          path="/worker-productivity" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < WorkerProductivityCharts />
+            </RoleProtectedRoute>
+          } 
+        />
         </Routes>
+
+        
         
       </AuthProvider>
     </Router>

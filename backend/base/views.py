@@ -11,14 +11,14 @@ from django.utils.encoding import force_str
 from rest_framework.authtoken.models import Token  # Correct import
 from rest_framework import viewsets, status
 from django.utils.http import urlsafe_base64_encode
-
+from django.db.models import Count, Q
 from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.conf import settings
-    
+from .permission import IsManager
 
 
 from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project
@@ -180,10 +180,16 @@ def login_manager(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    serializer =CombinedUserSerializer(data=request.data, context={'request': request})
+    serializer = CombinedUserSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
-        serializer.save()
-        return Response({'message': 'User registered successfully!'}, status=201)
+        user = serializer.save()
+
+        # Automatically add the user to the "Workers" group
+        workers_group, created = Group.objects.get_or_create(name="Workers")
+        user.groups.add(workers_group)
+
+        return Response({'message': 'User registered successfully and added to Workers group!'}, status=201)
+    
     return Response(serializer.errors, status=400)
 
 
@@ -514,6 +520,37 @@ def assign_task(request):
     return Response(serializer.errors, status=400)
 
 
+#Views for charts and graphs
+
+# views.py
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsManager])
+def worker_productivity_stats(request):
+    # Get all workers (users in Workers group)
+    workers = User.objects.filter(
+        groups__name__in=['Worker', 'Workers']
+    ).annotate(
+        total_tasks=Count('assigned_tasks'),  # Using the related_name
+        completed_tasks=Count(
+            'assigned_tasks',
+            filter=Q(assigned_tasks__status='completed')
+        )
+    )
+    
+    data = []
+    for worker in workers:
+        total = worker.total_tasks
+        completed = worker.completed_tasks
+        
+        data.append({
+            'id': worker.id,
+            'username': worker.username,
+            'completed_tasks': completed,
+            'total_tasks': total,
+            'productivity': round((completed / total * 100), 2) if total > 0 else 0
+        })
+    
+    return Response(data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -623,3 +660,5 @@ def reset_password_confirm(request, uidb64, token):
     user.save()
 
     return Response({'success': True, 'message': 'Password has been reset successfully.'})
+
+

@@ -28,7 +28,8 @@ from .views import (
     update_project,
     delete_project,
     view_manager_tasks,
-    debug_user_info
+    debug_user_info,
+    worker_productivity_stats,
     
    
 )
@@ -67,5 +68,6 @@ urlpatterns = [
     path('projects/<int:project_id>/delete/', delete_project, name='delete_project'),
     path('view/manager-tasks/', view_manager_tasks, name='manager-tasks'),
     path('debug/user-info/', debug_user_info, name='debug-user-info'),
+    path('worker/productivity/stats/', worker_productivity_stats, name='worker-productivity-stats'),
     
 ]
