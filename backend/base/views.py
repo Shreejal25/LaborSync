@@ -552,6 +552,9 @@ def worker_productivity_stats(request):
     
     return Response(data)
 
+
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_project_workers(request, project_id):

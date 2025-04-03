@@ -30,6 +30,7 @@ const DELETE_PROJECT_URL = `${BASE_URL}projects/`;
 const MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 const GET_MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 const GET_PROJECT_STATS_URL = `${BASE_URL}worker/productivity/stats/`;
+
 export const login = async (username, password) => {
     try {
         const response = await axios.post(LOGIN_URL, { username, password }, { withCredentials: true });
@@ -458,6 +459,7 @@ export const getManagerTasks = async () => {
         return [];
     }
 };
+
 
 
 export const getProjectStats = async () => {

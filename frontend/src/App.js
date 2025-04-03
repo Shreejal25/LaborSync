@@ -19,7 +19,9 @@ import Unauthorized from './routes/Components/unauthorized';
 import CreateProject from './routes/Manager Routes/Project';
 import AddUserProfile from './routes/AddUserProfile';
 import WorkerProjectsPage from './routes/WorkerProjectsPage';
-import WorkerProductivityCharts from './routes/WorkerProductivity';
+import WorkerProductivityCharts from './routes/ReportsDashboard';
+import ProjectStatus from './routes/Manager Routes/ProjectStatus';
+import ReportDashboard from './routes/ReportsDashboard';
 
 
 import Home from './routes/Homepage/Home';
@@ -113,7 +115,7 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
-
+{/* 
         <Route 
           path="/worker-productivity" 
           element={
@@ -121,8 +123,28 @@ function App() {
               < WorkerProductivityCharts />
             </RoleProtectedRoute>
           } 
+        /> */}
+        <Route 
+          path="/project-status" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < ProjectStatus />
+            </RoleProtectedRoute>
+          } 
         />
+
+      < Route 
+          path="/reports" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < ReportDashboard />
+            </RoleProtectedRoute>
+          } 
+        />
+        
         </Routes>
+
+        
 
         
         

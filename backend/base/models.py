@@ -130,7 +130,12 @@ class Task(models.Model):
     description = models.TextField()
     estimated_completion_datetime = models.DateTimeField()
     assigned_shift = models.CharField(max_length=100)
-    assigned_to = models.ManyToManyField(User, related_name='assigned_tasks')  # Editable per task
+    assigned_to = models.ManyToManyField(
+        User,
+        related_name='assigned_tasks',
+        blank=True  # Makes the field optional
+    )
+    
     assigned_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
