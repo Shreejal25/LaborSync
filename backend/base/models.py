@@ -108,6 +108,8 @@ class TimeLog(models.Model):
     task = models.ForeignKey('Task', on_delete=models.SET_NULL, null=True, blank=True) #added task field.
     clock_in = models.DateTimeField(default=now)
     clock_out = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"TimeLog for {self.user.username}"

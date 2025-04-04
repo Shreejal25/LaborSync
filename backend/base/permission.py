@@ -15,3 +15,6 @@ class IsManager(BasePermission):
             user.is_staff,
             user.is_superuser
         ])
+        
+
+        

@@ -24,7 +24,7 @@ const WorkerProjectsPage = () => {
             try {
                 if (userProfile?.user?.username) {
                     const workerProjects = await getProjects(userProfile.user.username);
-                    setProjects(workerProjects || []);
+                    setProjects(workerProjects);
                 }
             } catch (error) {
                 console.error('Error fetching worker projects:', error);
@@ -34,7 +34,7 @@ const WorkerProjectsPage = () => {
         };
         fetchProjects();
     }, [userProfile]);
-
+    
     useEffect(() => {
         fetchUserTasks();
     }, []);

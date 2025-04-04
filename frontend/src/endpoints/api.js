@@ -94,13 +94,15 @@ export const getProjectWorkers = async (projectId) => {
     }
 };
 
-export const getProjects = async () => {
+export const getProjects = async (username) => {
     try {
-        console.log("Fetching projects...");
-        const response = await axios.get(GET_PROJECTS_URL, { withCredentials: true });
+        console.log(`Fetching projects for ${username}...`);
+        const response = await axios.get(`${GET_PROJECTS_URL}?username=${username}`, { 
+            withCredentials: true 
+        });
 
-        console.log("Fetched projects:", response.data); // Debugging
-        return response.data;
+        console.log("Fetched projects:", response.data);
+        return response.data.projects || [];
     } catch (error) {
         console.error("Error fetching projects:", error.response?.data || error.message);
         return [];

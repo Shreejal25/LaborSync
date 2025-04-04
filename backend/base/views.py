@@ -415,19 +415,31 @@ def clock_in(request):
 @permission_classes([IsAuthenticated])
 def clock_out(request):
     user = request.user
-    # Check for the latest TimeLog
     latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
 
     if not latest_log or latest_log.clock_out:
         return Response({"message": "You are not clocked in."}, status=400)
 
-    # Update the existing TimeLog
     latest_log.clock_out = timezone.now()
     latest_log.save()
-    
+
     if latest_log.task:
-        latest_log.task.status = 'completed'
-        latest_log.task.save()
+        task = latest_log.task
+        assigned_users = task.assigned_to.all()
+        
+        all_users_clocked_out = True
+        for assigned_user in assigned_users:
+            if not TimeLog.objects.filter(task=task, user=assigned_user, clock_out__isnull=False).exists():
+                all_users_clocked_out = False
+                break
+        
+        if all_users_clocked_out:
+            task.status = 'completed'
+            task.save()
+        else:
+            task.status = 'in_progress'
+            task.save()
+            
     serializer = ClockInClockOutSerializer(latest_log)
     return Response({"message": "Clocked out successfully.", "data": serializer.data}, status=200)
 
@@ -483,9 +495,30 @@ def update_project(request, project_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_projects(request):
-    projects = Project.objects.filter(created_by=request.user)
-    serializer = ProjectSerializer(projects, many=True)
-    return Response(serializer.data)
+    try:
+        # Get projects where user is creator OR assigned worker
+        projects = Project.objects.filter(
+            Q(created_by=request.user) | 
+            Q(workers__username=request.user.username)
+        ).distinct()
+        
+        if not projects.exists():
+            return Response(
+                {"detail": "No projects found."},
+                status=status.HTTP_200_OK
+            )
+            
+        serializer = ProjectSerializer(projects, many=True)
+        return Response({
+            "count": projects.count(),
+            "projects": serializer.data
+        })
+        
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @api_view(['DELETE'])
