@@ -30,6 +30,10 @@ from .views import (
     view_manager_tasks,
     debug_user_info,
     worker_productivity_stats,
+    update_task,
+    delete_task,
+    check_task_completion,
+    complete_task
     
    
 )
@@ -69,5 +73,9 @@ urlpatterns = [
     path('view/manager-tasks/', view_manager_tasks, name='manager-tasks'),
     path('debug/user-info/', debug_user_info, name='debug-user-info'),
     path('worker/productivity/stats/', worker_productivity_stats, name='worker-productivity-stats'),
+    path('tasks/<int:task_id>/', update_task, name='update-task'),
+    path('tasks/<int:task_id>/delete/', delete_task, name='delete-task'),
+    path('tasks/<int:task_id>/check-completion/', check_task_completion, name='check-task-completion'),
+    path('tasks/<int:task_id>/complete/', complete_task, name='complete-task'),
     
 ]

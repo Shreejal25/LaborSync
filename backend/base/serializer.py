@@ -287,12 +287,17 @@ class TaskSerializer(serializers.ModelSerializer):
     assigned_to = serializers.SlugRelatedField(
         queryset=User.objects.all(),
         slug_field='username',
-        many = True,
-       
+        many=True,
+        required=True  # Make this required for creation
     )
-    project = serializers.SlugRelatedField(
+    project = serializers.PrimaryKeyRelatedField(
         queryset=Project.objects.all(),
-        slug_field='name'
+        required=True  # Make this required for creation
+    )
+    status = serializers.ChoiceField(
+        choices=Task.STATUS_CHOICES,
+        default='pending',  # Set default status
+        required=False  # Not required as it has a default
     )
 
     class Meta:
@@ -307,17 +312,49 @@ class TaskSerializer(serializers.ModelSerializer):
             'assigned_to',
             'assigned_by',
             'status',
-            
         ]
+        extra_kwargs = {
+            'task_title': {'required': True},
+            'description': {'required': True},
+            'estimated_completion_datetime': {'required': True},
+            'assigned_shift': {'required': True},
+        }
 
     def create(self, validated_data):
-        request = self.context.get('request')
-        validated_data["assigned_by"] = request.user
-        assigned_to = validated_data.pop('assigned_to') # pop the assigned_to field
-        task = super().create(validated_data) # create the task
-        task.assigned_to.set(assigned_to) # set the many to many field.
-        return task
-    
+        try:
+            request = self.context.get('request')
+            assigned_to = validated_data.pop('assigned_to')
+            
+            # Create the task instance
+            task = Task.objects.create(
+                **validated_data,
+                assigned_by=request.user
+            )
+            
+            # Set many-to-many relationship
+            task.assigned_to.set(assigned_to)
+            
+            return task
+            
+        except Exception as e:
+            raise serializers.ValidationError({
+                'non_field_errors': [f"Failed to create task: {str(e)}"]
+            })
+
+    def update(self, instance, validated_data):
+        assigned_to = validated_data.pop('assigned_to', None)
+        
+        # Update regular fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        
+        # Update many-to-many relationship if provided
+        if assigned_to is not None:
+            instance.assigned_to.set(assigned_to)
+        
+        return instance
     
     
 class TaskViewSerializer(serializers.ModelSerializer):

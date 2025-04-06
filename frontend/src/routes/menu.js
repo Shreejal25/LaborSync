@@ -187,30 +187,42 @@ const closeNotification = () => {
     setNotification({ ...notification, show: false });
 };
 
-  const handleClockOut = async () => {
-    try {
-        const response = await clockOut(selectedTask);
-        const clockOutTime = new Date(response.data.clock_out).toISOString();
+const handleClockOut = async () => {
+  try {
+      const response = await clockOut(selectedTask);
+      console.log("Clock out response:", response); // Log the response for debugging
+      
+      // Update the clock-in details immediately
+      setIsClockedIn(false);
+      setClockInDetails(null);
 
-        const updatedClockHistory = clockHistory.map(record => {
-            if (record.clock_in === clockInDetails.clock_in && record.task === selectedTask) {
-                return { ...record, clock_out: clockOutTime };
-            }
-            return record;
-        });
+      // Re-fetch clock history from the server to ensure consistency
+      const fetchedHistory = await getClockHistory();
+      setClockHistory(fetchedHistory);
+      
+      resetLogoutTimer();
 
-        setClockHistory([...updatedClockHistory]);
-        setIsClockedIn(false);
-        setClockInDetails(null);
+      // Show success notification
+      setNotification({
+          message: "Clocked out successfully",
+          show: true,
+          type: "success"
+      });
+      setTimeout(() => {
+          setNotification({ ...notification, show: false }); 
+      }, 5000);
 
-        // Re-fetch clock history from the server
-        const fetchedHistory = await getClockHistory();
-        setClockHistory(fetchedHistory);
-        resetLogoutTimer();
-
-    } catch (error) {
-        console.error("Error during clock-out:", error);
-    }
+  } catch (error) {
+      console.error("Error during clock-out:", error);
+      setNotification({
+          message: "Error during clock-out",
+          show: true,
+          type: "error"
+      });
+      setTimeout(() => {
+          setNotification({ ...notification, show: false }); 
+      }, 5000);
+  }
 };
   
   

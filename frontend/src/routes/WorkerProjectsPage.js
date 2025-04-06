@@ -20,32 +20,34 @@ const WorkerProjectsPage = () => {
     };
 
     useEffect(() => {
-        const fetchProjects = async () => {
+        const loadData = async () => {
             try {
+                setLoading(true);
                 if (userProfile?.user?.username) {
-                    const workerProjects = await getProjects(userProfile.user.username);
-                    setProjects(workerProjects);
+                    const projectsData = await getProjects(userProfile.user.username);
+                    setProjects(projectsData);
                 }
+                await fetchUserTasks();
             } catch (error) {
-                console.error('Error fetching worker projects:', error);
+                console.error('Failed to load data:', error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchProjects();
-    }, [userProfile]);
-    
-    useEffect(() => {
-        fetchUserTasks();
-    }, []);
+        loadData();
+    }, [userProfile?.user?.username, fetchUserTasks]);
 
     useEffect(() => {
         if (userTasks.length > 0 && projects.length > 0) {
-            const updatedTasks = userTasks.map((task) => {
-                const project = projects.find((p) => p.id === task.project);
+            const updatedTasks = userTasks.map(task => {
+                const project = projects.find(p => 
+                    p.id == task.project || 
+                    p.id == task.project_id
+                );
                 return {
                     ...task,
-                    projectName: project ? project.name : 'Unknown Project',
+                    projectName: project?.name || 'Unknown Project',
+                    projectStatus: project?.status
                 };
             });
             setTasksWithProjectNames(updatedTasks);

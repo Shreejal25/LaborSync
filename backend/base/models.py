@@ -125,6 +125,11 @@ class Task(models.Model):
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
     ]
+    
+    min_clock_cycles = models.PositiveIntegerField(
+        default=1,
+        help_text="Number of clock-in/out cycles required per worker before task can be completed"
+    )
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     project = models.ForeignKey(Project, null=True, blank=True, on_delete=models.SET_NULL, related_name='tasks')

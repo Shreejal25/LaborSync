@@ -383,66 +383,140 @@ def manager_profile_view(request):
 def clock_in(request):
     user = request.user
     task_id = request.data.get('task_id')
-    task =None
+    task = None
     
     if task_id:
         try:
-            task = Task.objects.get(id=task_id, assigned_to=user, status = 'pending')
+            # Check if task exists and is assigned to user
+            task = Task.objects.get(id=task_id, assigned_to=user)
+            
+            # Only allow clock-in if task is pending or in_progress
+            if task.status not in ['pending', 'in_progress']:
+                return Response({'message': 'This task is already completed.'}, status=400)
+                
         except Task.DoesNotExist:
             return Response({'message': f'Task with ID {task_id} not found or not assigned to you.'}, status=400)
         except ValueError:
             return Response({'message': 'Invalid task ID format.'}, status=400)
         
-        
-    # Check for the latest TimeLog
+    # Check for existing active TimeLog for this user
     latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
 
     if latest_log and latest_log.clock_out is None:
         return Response({"message": "You are already clocked in."}, status=400)
 
-    # Create a new TimeLog if no active clock-in
+    # Create a new TimeLog
     new_log = TimeLog.objects.create(user=user, clock_in=timezone.now(), task=task)
     
     if task:
-        task.status = 'in_progress'
-        task.save()
+        # Set task to in_progress if it was pending
+        if task.status == 'pending':
+            task.status = 'in_progress'
+            task.save()
         
     serializer = ClockInClockOutSerializer(new_log)
     return Response({"message": "Clocked in successfully.", "data": serializer.data}, status=200)
 
 
+# views.py
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def clock_out(request):
     user = request.user
-    latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
+    task_id = request.data.get('task_id')
+    
+    try:
+        task = Task.objects.get(id=task_id, assigned_to=user)
+        latest_log = TimeLog.objects.filter(
+            user=user,
+            task=task,
+            clock_out__isnull=True
+        ).latest('clock_in')
 
-    if not latest_log or latest_log.clock_out:
-        return Response({"message": "You are not clocked in."}, status=400)
+        latest_log.clock_out = timezone.now()
+        latest_log.save()
 
-    latest_log.clock_out = timezone.now()
-    latest_log.save()
-
-    if latest_log.task:
-        task = latest_log.task
-        assigned_users = task.assigned_to.all()
-        
-        all_users_clocked_out = True
-        for assigned_user in assigned_users:
-            if not TimeLog.objects.filter(task=task, user=assigned_user, clock_out__isnull=False).exists():
-                all_users_clocked_out = False
-                break
-        
-        if all_users_clocked_out:
+        # Check if all workers have completed required cycles
+        if check_task_completion(task):
             task.status = 'completed'
             task.save()
-        else:
-            task.status = 'in_progress'
-            task.save()
-            
-    serializer = ClockInClockOutSerializer(latest_log)
-    return Response({"message": "Clocked out successfully.", "data": serializer.data}, status=200)
+            return Response({
+                "message": "Clocked out successfully. Task marked as completed!",
+                "completed": True
+            }, status=200)
 
+        return Response({
+            "message": "Clocked out successfully",
+            "completed": False
+        }, status=200)
+
+    except TimeLog.DoesNotExist:
+        return Response({"message": "No active clock-in found"}, status=400)
+    except Task.DoesNotExist:
+        return Response({"message": "Task not found"}, status=404)
+    
+def check_task_completion(task):
+    """Check if all workers have completed required clock cycles"""
+    for user in task.assigned_to.all():
+        completed_cycles = TimeLog.objects.filter(
+            user=user,
+            task=task,
+            clock_out__isnull=False
+        ).count()
+        
+        if completed_cycles < task.min_clock_cycles:
+            return False
+    return True
+
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsManager])
+def complete_task(request, task_id):
+    try:
+        task = Task.objects.get(id=task_id, assigned_to=request.user)
+        
+        if task.status == 'completed':
+            return Response({"message": "Task is already completed"}, status=400)
+            
+        if not check_task_completion(task):
+            return Response({
+                "message": "Cannot complete - workers haven't met clock cycle requirements",
+                "requirements": get_completion_progress(task)
+            }, status=400)
+            
+        task.status = 'completed'
+        task.completed_by = request.user
+        task.completed_at = timezone.now()
+        task.save()
+        
+        return Response({
+            "message": "Task successfully marked as completed",
+            "task": TaskSerializer(task).data
+        }, status=200)
+        
+    except Task.DoesNotExist:
+        return Response({"message": "Task not found"}, status=404)
+
+
+def get_completion_progress(task):
+    """Get completion progress for all workers"""
+    progress = []
+    for user in task.assigned_to.all():
+        completed = TimeLog.objects.filter(
+            user=user,
+            task=task,
+            clock_out__isnull=False
+        ).count()
+        progress.append({
+            "user": user.username,
+            "completed_cycles": completed,
+            "required_cycles": task.min_clock_cycles,
+            "complete": completed >= task.min_clock_cycles
+        })
+    return progress
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -551,6 +625,55 @@ def assign_task(request):
         return Response({'message': 'Task assigned successfully!'}, status=201)
 
     return Response(serializer.errors, status=400)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_task(request, task_id):
+    user = request.user
+    
+    if not user.groups.filter(name='Managers').exists():
+        return Response({'error': 'Permission denied'}, status=403)
+    
+    task = get_object_or_404(Task, pk=task_id)
+    
+    # Log for debugging
+    print("Incoming data:", request.data)
+    
+    serializer = TaskSerializer(
+        task, 
+        data=request.data, 
+        partial=True,
+        context={'request': request}
+    )
+    
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            'message': 'Task updated successfully!',
+            'task': serializer.data
+        }, status=200)
+    
+    print("Validation errors:", serializer.errors)
+    return Response({
+        'error': 'Validation failed',
+        'details': serializer.errors
+    }, status=400)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_task(request, task_id):
+    """
+    Delete a task (only if user is a manager)
+    """
+    user = request.user
+    
+    # Check if user is a manager
+    if not user.groups.filter(name='Managers').exists():
+        return Response({'error': 'You do not have permission to delete tasks.'}, status=403)
+    
+    task = get_object_or_404(Task, pk=task_id)
+    task.delete()
+    return Response({'message': 'Task deleted successfully'}, status=204)
 
 
 #Views for charts and graphs

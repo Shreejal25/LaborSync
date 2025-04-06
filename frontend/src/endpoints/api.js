@@ -30,6 +30,9 @@ const DELETE_PROJECT_URL = `${BASE_URL}projects/`;
 const MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 const GET_MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 const GET_PROJECT_STATS_URL = `${BASE_URL}worker/productivity/stats/`;
+const UPDATE_TASKS_URL = `${BASE_URL}tasks/<int:task_id>/`;
+const DELETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/delete/`;
+const COMPLETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/complete/`;
 
 export const login = async (username, password) => {
     try {
@@ -122,7 +125,82 @@ export const deleteProject = async (projectId) => {
         throw error;
     }
 };
+// export const updateTask = async (taskId, taskData) => {
+//     try {   
+//         const response = await axios.put(
+//             `${UPDATE_TASKS_URL}${taskId}/update/`,
+//             taskData,
+//             { withCredentials: true }
+//         );
+//         return response.data;
+//     } catch (error) {
+//         console.error("Error updating task:", error);
+//         if (error.response) {
+//             // The request was made and the server responded with a status code
+//             console.error("Server response:", error.response.data);
+//             console.error("Server status:", error.response.status);
+//         } else if (error.request) {
+//             // The request was made but no response was received
+//             console.error("No response received:", error.request);
+//         } else {
+//             // Something happened in setting up the request
+//             console.error("Error message:", error.message);
+//         }
+//         throw error;
+//     }
+// };
 
+// export const deleteTask = async (taskId) => {
+//     try {
+//         const response = await axios.delete(
+//             `${DELETE_TASK_URL}${taskId}/delete/`,
+//             { withCredentials: true }
+//         );
+//         return response.data;
+//     } catch (error) {
+//         console.error("Error deleting task:", error);
+//         if (error.response) {
+//             // The request was made and the server responded with a status code
+//             console.error("Server response:", error.response.data);
+//             console.error("Server status:", error.response.status);
+//         } else if (error.request) {
+//             // The request was made but no response was received
+//             console.error("No response received:", error.request);
+//         } else {
+//             // Something happened in setting up the request
+//             console.error("Error message:", error.message);
+//         }
+//         throw error;
+//     }
+// };
+
+
+export const updateTask = async (taskId, taskData) => {
+    try {
+        const response = await axios.put(
+            `${BASE_URL}tasks/${taskId}/`,
+            taskData,
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error updating task:", error);
+        throw error;
+    }
+};
+
+export const deleteTask = async (taskId) => {
+    try {
+        const response = await axios.delete(
+            `${BASE_URL}tasks/${taskId}/delete/`,
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting task:", error);
+        throw error;
+    }
+};
 
 
 
