@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask } from '../endpoints/api';
+import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask, completeTask } from '../endpoints/api';
 import logo from "../assets/images/LaborSynclogo.png";
 
 const AssignTaskPage = () => {
@@ -14,6 +14,15 @@ const AssignTaskPage = () => {
     const [selectedTask, setSelectedTask] = useState(null);
     const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+    // Show notification function
+    const showNotification = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+        setTimeout(() => {
+            setNotification({ show: false, message: '', type: '' });
+        }, 3000);
+    };
 
     // Fetch initial data when component mounts
     useEffect(() => {
@@ -32,6 +41,7 @@ const AssignTaskPage = () => {
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
+                showNotification('Error fetching data', 'error');
             }
         };
         fetchData();
@@ -57,16 +67,19 @@ const AssignTaskPage = () => {
             }
         } catch (error) {
             console.error('Error refreshing tasks:', error);
+            showNotification('Error refreshing tasks', 'error');
         }
     };
 
     const handleTaskAssigned = async () => {
         await refreshTasks();
+        showNotification('Task assigned successfully');
     };
 
     const handleTaskUpdated = async () => {
         await refreshTasks();
         setShowTaskDetailsModal(false);
+        showNotification('Task updated successfully');
     };
 
     const handleDeleteTask = async () => {
@@ -75,13 +88,50 @@ const AssignTaskPage = () => {
             await refreshTasks();
             setShowTaskDetailsModal(false);
             setShowDeleteConfirm(false);
+            showNotification('Task deleted successfully');
         } catch (error) {
             console.error('Error deleting task:', error);
+            showNotification('Error deleting task', 'error');
+        }
+    };
+
+    const handleCompleteTask = async (taskId) => {
+        try {
+            // Optimistically update the UI
+            setTasks(prevTasks => 
+                prevTasks.map(task => 
+                    task.id === taskId ? { ...task, status: 'completed' } : task
+                )
+            );
+            
+            const response = await completeTask(taskId);
+            if (response.success) {
+                await refreshTasks(); // Refresh to ensure data consistency
+                showNotification('Task marked as completed successfully!');
+            } else {
+                // Revert if API call fails
+                await refreshTasks();
+                showNotification(response.message || 'Failed to complete task', 'error');
+            }
+        } catch (error) {
+            console.error('Error completing task:', error);
+            // Revert if API call fails
+            await refreshTasks();
+            showNotification('Error completing task. Please try again.', 'error');
         }
     };
 
     return (
         <div className="flex h-screen">
+            {/* Notification Component */}
+            {notification.show && (
+                <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
+                    notification.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                }`}>
+                    {notification.message}
+                </div>
+            )}
+
             {/* Sidebar */}
             <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
                 <div className="flex items-center justify-center py-4 border-b">
@@ -186,15 +236,25 @@ const AssignTaskPage = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-2 border border-gray-300">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedTask(task);
-                                                            setShowTaskDetailsModal(true);
-                                                        }}
-                                                        className="text-blue-500 hover:text-blue-700"
-                                                    >
-                                                        View/Edit
-                                                    </button>
+                                                    <div className="flex space-x-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedTask(task);
+                                                                setShowTaskDetailsModal(true);
+                                                            }}
+                                                            className="text-blue-500 hover:text-blue-700"
+                                                        >
+                                                            View/Edit
+                                                        </button>
+                                                        {task.status !== 'completed' && (
+                                                            <button
+                                                                onClick={() => handleCompleteTask(task.id)}
+                                                                className="text-green-500 hover:text-green-700"
+                                                            >
+                                                                Complete
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -229,6 +289,7 @@ const AssignTaskPage = () => {
                         }}
                         onTaskUpdated={handleTaskUpdated}
                         onDeleteClick={() => setShowDeleteConfirm(true)}
+                        onCompleteTask={handleCompleteTask}
                     />
                 )}
 
@@ -260,7 +321,8 @@ const AssignTaskPage = () => {
     );
 };
 
-// AssignTaskModal Component (same as before)
+
+// AssignTaskModal Component
 const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
     const [taskData, setTaskData] = useState({
         project: '',
@@ -288,12 +350,12 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
         const { name, value, options } = e.target;
     
         if (name === 'project') {
-            setSelectedProject(value);  // Store the ID (value is from option's value attribute)
+            setSelectedProject(value);
             const projectName = projects.find(p => p.id === parseInt(value))?.name || '';
             setTaskData(prev => ({
                 ...prev,
-                project: projectName,  // For display purposes only
-                assigned_to: [],  // Reset assigned workers when project changes
+                project: projectName,
+                assigned_to: [],
             }));
         } else if (name === 'assigned_to') {
             const selected = Array.from(options).filter(option => option.selected).map(option => option.value);
@@ -309,23 +371,19 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
         setIsLoading(true);
     
         try {
-            // Create payload with project ID instead of name
             const payload = {
-                project: parseInt(selectedProject),  // Convert to number
+                project: parseInt(selectedProject),
                 task_title: taskData.task_title,
                 description: taskData.description,
                 estimated_completion_datetime: new Date(taskData.estimated_completion_datetime).toISOString(),
                 assigned_shift: taskData.assigned_shift,
                 assigned_to: taskData.assigned_to,
-                status: 'pending'  // Ensure status is included
+                status: 'pending'
             };
-    
-            console.log("Submitting payload:", payload);  // Debug log
     
             const response = await assignTask(payload);
             
             if (response.message) {
-                // Reset form
                 setTaskData({
                     project: '',
                     task_title: '',
@@ -475,7 +533,7 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
 };
 
 // TaskDetailsModal Component
-const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onDeleteClick }) => {
+const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onDeleteClick, onCompleteTask }) => {
     const [editMode, setEditMode] = useState(false);
     const [editedTask, setEditedTask] = useState({ ...task });
     const [selectedProject, setSelectedProject] = useState(task.project || '');
@@ -563,6 +621,17 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
                                 >
                                     Edit
                                 </button>
+                                {task.status !== 'completed' && (
+                                    <button 
+                                        onClick={() => {
+                                            onCompleteTask(task.id);
+                                            onClose();
+                                        }}
+                                        className="bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 text-sm"
+                                    >
+                                        Complete
+                                    </button>
+                                )}
                                 <button 
                                     onClick={onDeleteClick}
                                     className="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm"
@@ -626,18 +695,6 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-gray-700 mb-2">Estimated Completion</label>
-                            <input 
-                                type="datetime-local" 
-                                name="estimated_completion_datetime" 
-                                value={editedTask.estimated_completion_datetime} 
-                                onChange={handleChange} 
-                                required 
-                                className="w-full p-2 border rounded" 
-                            />
-                        </div>
-
-                        <div className="mb-4">
                             <label className="block text-gray-700 mb-2">Status</label>
                             <select
                                 name="status"
@@ -649,6 +706,18 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
                                 <option value="in_progress">In Progress</option>
                                 <option value="completed">Completed</option>
                             </select>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700 mb-2">Estimated Completion</label>
+                            <input 
+                                type="datetime-local" 
+                                name="estimated_completion_datetime" 
+                                value={editedTask.estimated_completion_datetime} 
+                                onChange={handleChange} 
+                                required 
+                                className="w-full p-2 border rounded" 
+                            />
                         </div>
 
                         <div className="mb-4">

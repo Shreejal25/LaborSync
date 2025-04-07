@@ -471,35 +471,40 @@ def check_task_completion(task):
 
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsManager])
 def complete_task(request, task_id):
     try:
-        task = Task.objects.get(id=task_id, assigned_to=request.user)
-        
+        # Get task first
+        task = Task.objects.get(id=task_id)
+
+        # Permission check
+        if (task.assigned_to != request.user and 
+            getattr(task, 'assigned_by', None) != request.user and 
+            not request.user.is_manager):
+            return Response(
+                {"message": "You don't have permission to complete this task"},
+                status=403
+            )
+
         if task.status == 'completed':
             return Response({"message": "Task is already completed"}, status=400)
-            
-        if not check_task_completion(task):
-            return Response({
-                "message": "Cannot complete - workers haven't met clock cycle requirements",
-                "requirements": get_completion_progress(task)
-            }, status=400)
-            
+
+        # ❗ Skip requirement check and force complete
         task.status = 'completed'
         task.completed_by = request.user
         task.completed_at = timezone.now()
         task.save()
-        
+
         return Response({
-            "message": "Task successfully marked as completed",
+            "message": "Task successfully completed",
             "task": TaskSerializer(task).data
         }, status=200)
-        
+
     except Task.DoesNotExist:
         return Response({"message": "Task not found"}, status=404)
 
+    
 
 def get_completion_progress(task):
     """Get completion progress for all workers"""
@@ -729,7 +734,7 @@ from .models import Task
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsManager])
 def view_user_tasks(request):
     """View for regular users to see their assigned tasks"""
     tasks = Task.objects.filter(assigned_to=request.user)
@@ -745,6 +750,9 @@ def view_manager_tasks(request):
     tasks = Task.objects.all().prefetch_related('assigned_to')
     serializer = TaskViewSerializer(tasks, many=True)
     return Response(serializer.data)  
+
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def debug_user_info(request):

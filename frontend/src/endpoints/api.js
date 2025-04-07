@@ -32,7 +32,7 @@ const GET_MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
 const GET_PROJECT_STATS_URL = `${BASE_URL}worker/productivity/stats/`;
 const UPDATE_TASKS_URL = `${BASE_URL}tasks/<int:task_id>/`;
 const DELETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/delete/`;
-const COMPLETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/complete/`;
+const COMPLETE_TASK_URL = `${BASE_URL}tasks/`;  // Just the base path
 
 export const login = async (username, password) => {
     try {
@@ -564,3 +564,17 @@ export const getProjectStats = async () => {
         return [];
     }
 };
+
+export const completeTask = async (taskId) => {
+    try {
+        const response = await axios.post(
+            `${COMPLETE_TASK_URL}${taskId}/complete/`,
+            {},
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error completing task:", error);
+        throw error;
+    }
+}

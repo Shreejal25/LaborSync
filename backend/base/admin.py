@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project
+from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project, TaskStatusHistory
 from django.utils.timezone import localtime
 
 
@@ -7,6 +7,7 @@ from django.utils.timezone import localtime
 admin.site.register(Dashboard)
 admin.site.register(UserProfile)
 admin.site.register(ManagerProfile)
+admin.site.register(TaskStatusHistory)
 
 
 

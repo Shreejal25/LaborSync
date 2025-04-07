@@ -149,4 +149,20 @@ class Task(models.Model):
     def __str__(self):
         return self.task_title
 
+
+
+
+class TaskStatusHistory(models.Model):
+    task = models.ForeignKey('Task', on_delete=models.CASCADE, related_name='status_history')
+    status = models.CharField(max_length=20, choices=Task.STATUS_CHOICES)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-changed_at']
+        verbose_name_plural = 'Task Status History'
+
+    def __str__(self):
+        return f"{self.task.task_title} - {self.get_status_display()} at {self.changed_at}"
     
