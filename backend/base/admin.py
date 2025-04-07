@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project, TaskStatusHistory
+from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project
 from django.utils.timezone import localtime
 
 
@@ -7,7 +7,7 @@ from django.utils.timezone import localtime
 admin.site.register(Dashboard)
 admin.site.register(UserProfile)
 admin.site.register(ManagerProfile)
-admin.site.register(TaskStatusHistory)
+
 
 
 
@@ -15,14 +15,21 @@ admin.site.register(TaskStatusHistory)
 
 from .models import Task
 
+from django.contrib import admin
+from django.utils.html import format_html
+
+
 class TaskAdmin(admin.ModelAdmin):
     list_display = [
         'task_title',
-        'project_display',  # Custom method for project
-        'assigned_to_display',  # Custom method for assigned users
+        'project_display',
+        'status_with_timestamp',  # Custom method to show status with change time
+        'assigned_to_display',
         'assigned_by_username',
         'estimated_completion_datetime',
-        'assigned_shift'
+        'assigned_shift',
+        'created_at',
+        'updated_at',
     ]
     search_fields = [
         'task_title',
@@ -30,27 +37,79 @@ class TaskAdmin(admin.ModelAdmin):
         'assigned_to__username',
         'assigned_by__username'
     ]
-    list_filter = ['assigned_shift']
+    list_filter = [
+        'assigned_shift',
+        'status',
+        ('created_at', admin.DateFieldListFilter),
+        ('updated_at', admin.DateFieldListFilter),
+    ]
+    readonly_fields = [
+        'created_at',
+        'updated_at',
+        'status_changed_at',
+        
+    ]
+    
+    # Add fields to the default ordering (newest first)
+    ordering = ['-created_at']
+    
+    # Fields to show in the detail/edit view
+    fieldsets = (
+        (None, {
+            'fields': ('task_title', 'description', 'status', 'project')
+        }),
+        ('Timing Information', {
+            'fields': (
+                'estimated_completion_datetime',
+                'assigned_shift',
+                ('created_at', 'updated_at', 'status_changed_at')
+            )
+        }),
+        ('Assignment Information', {
+            'fields': (
+                'assigned_to',
+                'assigned_by',
+                'min_clock_cycles'
+            )
+        }),
+        
+    )
 
     def assigned_by_username(self, obj):
         return obj.assigned_by.username if obj.assigned_by else "N/A"
-
     assigned_by_username.admin_order_field = 'assigned_by'
     assigned_by_username.short_description = 'Assigned By'
 
     def project_display(self, obj):
         return obj.project.name if obj.project else "No Project"
-
     project_display.short_description = 'Project'
+    project_display.admin_order_field = 'project__name'
 
     def assigned_to_display(self, obj):
         return ", ".join([user.username for user in obj.assigned_to.all()]) if obj.assigned_to.exists() else "N/A"
-
     assigned_to_display.short_description = 'Assigned To'
+
+    def status_with_timestamp(self, obj):
+        return format_html(
+            "{}<br><small>{}</small>",
+            obj.get_status_display(),
+            obj.status_changed_at.strftime("%Y-%m-%d %H:%M") if obj.status_changed_at else "N/A"
+        )
+    status_with_timestamp.short_description = 'Status'
+    status_with_timestamp.admin_order_field = 'status'
+
+   
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset
+        # Optimize by prefetching related data
+        return queryset.select_related(
+            'project',
+            'assigned_by'
+        ).prefetch_related(
+            'assigned_to',
+            
+        )
 
 admin.site.register(Task, TaskAdmin)
 

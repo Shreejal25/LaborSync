@@ -2,6 +2,7 @@ from rest_framework import generics,serializers,permissions
 from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 
 class CombinedUserSerializer(serializers.ModelSerializer):
@@ -312,12 +313,17 @@ class TaskSerializer(serializers.ModelSerializer):
             'assigned_to',
             'assigned_by',
             'status',
+            'created_at',
+            'updated_at',
+            'status_changed_at',
+            'min_clock_cycles',
         ]
         extra_kwargs = {
             'task_title': {'required': True},
             'description': {'required': True},
             'estimated_completion_datetime': {'required': True},
             'assigned_shift': {'required': True},
+            'min_clock_cycles': {'required': False, 'default': 1},
         }
 
     def create(self, validated_data):
@@ -328,7 +334,8 @@ class TaskSerializer(serializers.ModelSerializer):
             # Create the task instance
             task = Task.objects.create(
                 **validated_data,
-                assigned_by=request.user
+                assigned_by=request.user,
+                status_changed_at=timezone.now() 
             )
             
             # Set many-to-many relationship
@@ -343,6 +350,11 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         assigned_to = validated_data.pop('assigned_to', None)
+        
+        
+        
+        if 'status' in validated_data and instance.status != validated_data['status']:
+            validated_data['status_changed_at'] = timezone.now()
         
         # Update regular fields
         for attr, value in validated_data.items():
@@ -374,9 +386,16 @@ class TaskViewSerializer(serializers.ModelSerializer):
             'assigned_shift',
             'assigned_to',
             'assigned_by',
-            'status'
+            'status',
+            'created_at',
+            'updated_at',
+            'status_changed_at'
+            
         ]
     
     def get_assigned_to(self, obj):
         # Return array of assigned usernames
         return [user.username for user in obj.assigned_to.all()]
+    
+    
+    

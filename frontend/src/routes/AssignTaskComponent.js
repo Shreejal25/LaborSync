@@ -16,7 +16,6 @@ const AssignTaskPage = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
-    // Show notification function
     const showNotification = (message, type = 'success') => {
         setNotification({ show: true, message, type });
         setTimeout(() => {
@@ -24,7 +23,6 @@ const AssignTaskPage = () => {
         }, 3000);
     };
 
-    // Fetch initial data when component mounts
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -97,7 +95,6 @@ const AssignTaskPage = () => {
 
     const handleCompleteTask = async (taskId) => {
         try {
-            // Optimistically update the UI
             setTasks(prevTasks => 
                 prevTasks.map(task => 
                     task.id === taskId ? { ...task, status: 'completed' } : task
@@ -106,16 +103,14 @@ const AssignTaskPage = () => {
             
             const response = await completeTask(taskId);
             if (response.success) {
-                await refreshTasks(); // Refresh to ensure data consistency
+                await refreshTasks();
                 showNotification('Task marked as completed successfully!');
             } else {
-                // Revert if API call fails
                 await refreshTasks();
                 showNotification(response.message || 'Failed to complete task', 'error');
             }
         } catch (error) {
             console.error('Error completing task:', error);
-            // Revert if API call fails
             await refreshTasks();
             showNotification('Error completing task. Please try again.', 'error');
         }
@@ -123,7 +118,6 @@ const AssignTaskPage = () => {
 
     return (
         <div className="flex h-screen">
-            {/* Notification Component */}
             {notification.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
                     notification.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -132,7 +126,6 @@ const AssignTaskPage = () => {
                 </div>
             )}
 
-            {/* Sidebar */}
             <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
                 <div className="flex items-center justify-center py-4 border-b">
                     <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
@@ -167,7 +160,6 @@ const AssignTaskPage = () => {
                 </button>
             </div>
 
-            {/* Main Content */}
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
@@ -180,12 +172,11 @@ const AssignTaskPage = () => {
                         </button>
                     </div>
 
-                    {/* Tasks Table */}
                     <div className="bg-white p-6 rounded shadow-md mb-6">
                         <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
                         {tasks.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full table-auto border-collapse">
+                            <div className="overflow-x-auto ">
+                                <table className="w-full table-auto border-collapse ">
                                     <thead>
                                         <tr className="bg-gray-100">
                                             <th className="px-4 py-2 border border-gray-300">Project Name</th>
@@ -194,6 +185,10 @@ const AssignTaskPage = () => {
                                             <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
                                             <th className="px-4 py-2 border border-gray-300">Due Date</th>
                                             <th className="px-4 py-2 border border-gray-300">Status</th>
+                                            <th className="px-4 py-2 border border-gray-300">Assigned Shift</th>
+                                            <th className="px-4 py-2 border border-gray-300">Created At</th>
+                                            <th className="px-4 py-2 border border-gray-300">Updated At</th>
+                                            <th className="px-4 py-2 border border-gray-300">Status Changed at</th>
                                             <th className="px-4 py-2 border border-gray-300">Actions</th>
                                         </tr>
                                     </thead>
@@ -236,6 +231,22 @@ const AssignTaskPage = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-2 border border-gray-300">
+                                                    {task.assigned_shift || 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-2 border border-gray-300">
+                                                    {task.created_at ? formatDateTime(task.created_at) : 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-2 border border-gray-300">
+                                                    {task.updated_at ? formatDateTime(task.updated_at) : 'N/A'}
+
+                                                </td>
+
+                                                <td  className="px-4 py-2 border border-gray-300">
+                                                    {task.status_changed_at ? formatDateTime(task.status_changed_at) : 'N/A'}
+                                                </td>
+
+                                                
+                                                <td className="px-4 py-2 border border-gray-300">
                                                     <div className="flex space-x-2">
                                                         <button
                                                             onClick={() => {
@@ -256,6 +267,7 @@ const AssignTaskPage = () => {
                                                         )}
                                                     </div>
                                                 </td>
+                                               
                                             </tr>
                                         ))}
                                     </tbody>
@@ -267,7 +279,6 @@ const AssignTaskPage = () => {
                     </div>
                 </div>
 
-                {/* Assign Task Modal */}
                 {showModal && (
                     <AssignTaskModal 
                         projects={projects}
@@ -277,7 +288,6 @@ const AssignTaskPage = () => {
                     />
                 )}
 
-                {/* Task Details/Edit Modal */}
                 {showTaskDetailsModal && selectedTask && (
                     <TaskDetailsModal 
                         task={selectedTask}
@@ -293,7 +303,6 @@ const AssignTaskPage = () => {
                     />
                 )}
 
-                {/* Delete Confirmation Modal */}
                 {showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg shadow-lg">
@@ -321,8 +330,6 @@ const AssignTaskPage = () => {
     );
 };
 
-
-// AssignTaskModal Component
 const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
     const [taskData, setTaskData] = useState({
         project: '',
@@ -532,7 +539,6 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
     );
 };
 
-// TaskDetailsModal Component
 const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onDeleteClick, onCompleteTask }) => {
     const [editMode, setEditMode] = useState(false);
     const [editedTask, setEditedTask] = useState({ ...task });
@@ -605,9 +611,21 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
         return new Date(dateString).toLocaleDateString('en-US', options);
     };
 
+    const formatDateTimeForTimeline = (dateString) => {
+        if (!dateString) return '';
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(dateString).toLocaleDateString('en-US', options);
+    };
+
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
+            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold">
                         {editMode ? `Edit Task: ${task.task_title}` : `Task Details: ${task.task_title}`}
@@ -776,63 +794,109 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
                     </form>
                 ) : (
                     <>
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="font-medium">Project</h3>
-                                <p>{projects.find(p => p.id === task.project)?.name || 'No Project'}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="font-medium">Project</h3>
+                                    <p>{projects.find(p => p.id === task.project)?.name || 'No Project'}</p>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-medium">Task Title</h3>
+                                    <p>{task.task_title}</p>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-medium">Description</h3>
+                                    <p>{task.description || 'No description'}</p>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-medium">Assigned Workers</h3>
+                                    {task.assigned_to && task.assigned_to.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {task.assigned_to.map((worker, index) => (
+                                                <span key={index} className="bg-gray-100 px-2 py-1 rounded text-sm">
+                                                    {worker}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-400">Not Assigned</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h3 className="font-medium">Due Date</h3>
+                                    <p>{task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A'}</p>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-medium">Status</h3>
+                                    <p>
+                                        <span className={`inline-flex items-center gap-1 ${
+                                            task.status === 'pending' ? 'text-red-600' :
+                                            task.status === 'in_progress' ? 'text-yellow-600' :
+                                            'text-green-600'
+                                        }`}>
+                                            <span className={`h-2 w-2 rounded-full ${
+                                                task.status === 'pending' ? 'bg-red-500' :
+                                                task.status === 'in_progress' ? 'bg-yellow-500' :
+                                                'bg-green-500'
+                                            }`}></span>
+                                            {task.status ? task.status.replace('_', ' ').toUpperCase() : 'N/A'}
+                                        </span>
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <h3 className="font-medium">Assigned Shift</h3>
+                                    <p>{task.assigned_shift || 'N/A'}</p>
+                                </div>
                             </div>
 
                             <div>
-                                <h3 className="font-medium">Task Title</h3>
-                                <p>{task.task_title}</p>
-                            </div>
+                                <h3 className="font-medium mb-4">Task Timeline</h3>
+                                <ol className="relative border-s border-gray-200">
+                                    <li className="mb-6 ms-4">
+                                        <div className="absolute w-3 h-3 bg-blue-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                        <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                            {formatDateTimeForTimeline(task.created_at)}
+                                        </time>
+                                        <h3 className="text-base font-semibold text-gray-900">Task Created</h3>
+                                        <p className="text-sm font-normal text-gray-500">
+                                            Task was created by {task.assigned_by || 'system'}
+                                        </p>
+                                    </li>
 
-                            <div>
-                                <h3 className="font-medium">Description</h3>
-                                <p>{task.description || 'No description'}</p>
-                            </div>
+                                    {task.status_changed_at && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-green-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(task.status_changed_at)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Status Changed</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Status was changed to {task.status.replace('_', ' ').toUpperCase()}
+                                            </p>
+                                        </li>
+                                    )}
 
-                            <div>
-                                <h3 className="font-medium">Assigned Workers</h3>
-                                {task.assigned_to && task.assigned_to.length > 0 ? (
-                                    <div className="flex flex-wrap gap-1">
-                                        {task.assigned_to.map((worker, index) => (
-                                            <span key={index} className="bg-gray-100 px-2 py-1 rounded text-sm">
-                                                {worker}
-                                            </span>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-400">Not Assigned</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <h3 className="font-medium">Due Date</h3>
-                                <p>{task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A'}</p>
-                            </div>
-
-                            <div>
-                                <h3 className="font-medium">Status</h3>
-                                <p>
-                                    <span className={`inline-flex items-center gap-1 ${
-                                        task.status === 'pending' ? 'text-red-600' :
-                                        task.status === 'in_progress' ? 'text-yellow-600' :
-                                        'text-green-600'
-                                    }`}>
-                                        <span className={`h-2 w-2 rounded-full ${
-                                            task.status === 'pending' ? 'bg-red-500' :
-                                            task.status === 'in_progress' ? 'bg-yellow-500' :
-                                            'bg-green-500'
-                                        }`}></span>
-                                        {task.status ? task.status.replace('_', ' ').toUpperCase() : 'N/A'}
-                                    </span>
-                                </p>
-                            </div>
-
-                            <div>
-                                <h3 className="font-medium">Assigned Shift</h3>
-                                <p>{task.assigned_shift || 'N/A'}</p>
+                                    {task.updated_at && 
+                                        (!task.created_at || new Date(task.updated_at).getTime() !== new Date(task.created_at).getTime()) &&
+                                        (!task.status_changed_at || new Date(task.updated_at).getTime() !== new Date(task.status_changed_at).getTime()) && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-purple-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(task.updated_at)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Task Updated</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Task details were modified
+                                            </p>
+                                        </li>
+                                    )}
+                                </ol>
                             </div>
                         </div>
 

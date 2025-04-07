@@ -828,4 +828,3 @@ def reset_password_confirm(request, uidb64, token):
 
     return Response({'success': True, 'message': 'Password has been reset successfully.'})
 
-
