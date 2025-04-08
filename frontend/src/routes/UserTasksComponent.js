@@ -115,7 +115,8 @@ const UserTasksComponent = () => {
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-2xl font-bold">Your Tasks</h1>
+                        <h1 className="text-2xl font-bold">Your Tasks</h1> 
+                       
                         <p className="text-gray-600">View all tasks you're currently assigned to</p>
                     </div>
 

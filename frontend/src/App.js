@@ -22,6 +22,7 @@ import WorkerProjectsPage from './routes/WorkerProjectsPage';
 import WorkerProductivityCharts from './routes/ReportsDashboard';
 import ProjectStatus from './routes/Manager Routes/ProjectStatus';
 import ReportDashboard from './routes/ReportsDashboard';
+import AwardPoints from './routes/Manager Routes/AwardPoints';
 
 
 import Home from './routes/Homepage/Home';
@@ -141,6 +142,16 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
+        <Route 
+          path="/award-points" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < AwardPoints />
+            </RoleProtectedRoute>
+          }
+        />
+
+          {/* Add more routes as needed */}
         
         </Routes>
 

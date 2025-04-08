@@ -162,4 +162,75 @@ class Task(models.Model):
                 self.status_changed_at = timezone.now()
         super().save(*args, **kwargs)
 
-    
+
+
+#Reward Models
+
+from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class UserPoints(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='points')
+    total_points = models.PositiveIntegerField(default=0)
+    available_points = models.PositiveIntegerField(default=0)
+    redeemed_points = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username}'s Points"
+
+class Badge(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    points_required = models.PositiveIntegerField()
+    icon = models.CharField(max_length=50, default='medal')
+
+    def __str__(self):
+        return self.name
+
+class UserBadge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='badges')
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
+    date_earned = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'badge')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.badge.name}"
+
+class Reward(models.Model):
+    REWARD_TYPES = (
+        ('bonus', 'Cash Bonus'),
+        ('timeoff', 'Paid Time Off'),
+        ('other', 'Other')
+    )
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    point_cost = models.PositiveIntegerField()
+    reward_type = models.CharField(max_length=20, choices=REWARD_TYPES)
+    cash_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    days_off = models.PositiveIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+class PointsTransaction(models.Model):
+    TRANSACTION_TYPES = (
+        ('earn', 'Earned'),
+        ('redeem', 'Redeemed'),
+        ('adjust', 'Adjusted')
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='points_transactions')
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    points = models.IntegerField()
+    description = models.CharField(max_length=255)
+    related_task = models.ForeignKey('Task', on_delete=models.SET_NULL, null=True, blank=True)
+    related_feedback = models.IntegerField(null=True, blank=True) 
+   
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_transaction_type_display()} {self.points} points"

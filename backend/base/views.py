@@ -12,6 +12,7 @@ from rest_framework.authtoken.models import Token  # Correct import
 from rest_framework import viewsets, status
 from django.utils.http import urlsafe_base64_encode
 from django.db.models import Count, Q
+from django.db import transaction
 from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework.decorators import api_view, permission_classes
@@ -21,11 +22,11 @@ from django.conf import settings
 from .permission import IsManager
 
 
-from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project
+from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer, UserPointsSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -418,7 +419,7 @@ def clock_in(request):
     return Response({"message": "Clocked in successfully.", "data": serializer.data}, status=200)
 
 
-# views.py
+# Update your clock_out view to award points
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def clock_out(request):
@@ -436,10 +437,20 @@ def clock_out(request):
         latest_log.clock_out = timezone.now()
         latest_log.save()
 
-        # Check if all workers have completed required cycles
+        # Award points for task completion
         if check_task_completion(task):
             task.status = 'completed'
             task.save()
+            
+            # Award 5 points to each assigned user
+            for assigned_user in task.assigned_to.all():
+                award_points(
+                    user=assigned_user,
+                    points=5,
+                    description=f"Task completion: {task.task_title}",
+                    task=task
+                )
+            
             return Response({
                 "message": "Clocked out successfully. Task marked as completed!",
                 "completed": True
@@ -828,3 +839,106 @@ def reset_password_confirm(request, uidb64, token):
 
     return Response({'success': True, 'message': 'Password has been reset successfully.'})
 
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def award_points(request):
+    try:
+        points = request.data.get('points')
+        description = request.data.get('description')
+        username = request.data.get('username') # Get username from the request.
+        task_id = request.data.get('task')
+        feedback_id = request.data.get('feedback')
+
+        if not points or not description or not username:
+            return Response({'error': 'Points, description, and username are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(username=username) # Get user object by username
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            user_points, created = UserPoints.objects.get_or_create(user=user)
+            user_points.total_points += int(points)
+            user_points.available_points += int(points)
+            user_points.save()
+
+            PointsTransaction.objects.create(
+                user=user,
+                transaction_type='earn',
+                points=int(points),
+                description=description,
+                related_task=task_id,
+                related_feedback=feedback_id
+            )
+
+            check_badges(user)
+
+        return Response({'message': 'Points awarded successfully.'}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def check_badges(user):
+    badges = Badge.objects.filter(points_required__lte=user.points.total_points)
+    for badge in badges:
+        UserBadge.objects.get_or_create(user=user, badge=badge)
+
+
+# Add new views for points system
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_points(request):
+    points, created = UserPoints.objects.get_or_create(user=request.user)
+    serializer = UserPointsSerializer(points)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def redeem_points(request):
+    reward_name = request.data.get('reward_name')
+    try:
+        reward = Reward.objects.get(name=reward_name, is_active=True) # Get reward by name
+        user_points = UserPoints.objects.get(user=request.user)
+
+        if user_points.available_points < reward.point_cost:
+            return Response({"message": "Not enough points"}, status=400)
+
+        with transaction.atomic():
+            user_points.available_points -= reward.point_cost
+            user_points.redeemed_points += reward.point_cost
+            user_points.save()
+
+            PointsTransaction.objects.create(
+                user=request.user,
+                transaction_type='redeem',
+                points=-reward.point_cost,
+                description=f"Redeemed for {reward.name}"
+            )
+
+            # Handle the reward (this would need to be expanded based on reward type)
+            if reward.reward_type == 'bonus':
+                # Process bonus payment
+                pass
+            elif reward.reward_type == 'timeoff':
+                # Add PTO to user's account
+                pass
+
+            return Response({
+                "message": f"Successfully redeemed {reward.point_cost} points for {reward.name}",
+                "remaining_points": user_points.available_points
+            })
+
+    except Reward.DoesNotExist:
+        return Response({"message": "Invalid reward name"}, status=404) #Change error message
+
+    except Reward.MultipleObjectsReturned:
+        return Response({"message": "Multiple rewards found with this name. Please use reward ID."}, status=400)
+
+    except Exception as e:
+        return Response({"message": f"An error occurred: {str(e)}"}, status=500)

@@ -33,6 +33,7 @@ const GET_PROJECT_STATS_URL = `${BASE_URL}worker/productivity/stats/`;
 const UPDATE_TASKS_URL = `${BASE_URL}tasks/<int:task_id>/`;
 const DELETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/delete/`;
 const COMPLETE_TASK_URL = `${BASE_URL}tasks/`;  // Just the base path
+const AWARD_POINTS_URL = `${BASE_URL}points/award/`;
 
 export const login = async (username, password) => {
     try {
@@ -578,3 +579,17 @@ export const completeTask = async (taskId) => {
         throw error;
     }
 }
+
+export const awardPoints = async (data) => {
+    try {
+        const response = await axios.post(
+            `${AWARD_POINTS_URL}`, // Update this URL if needed
+            data,
+            { withCredentials: true }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error awarding points:", error);
+        throw error;
+    }
+};

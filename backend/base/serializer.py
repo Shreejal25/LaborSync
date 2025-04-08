@@ -1,5 +1,5 @@
 from rest_framework import generics,serializers,permissions
-from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project
+from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project,UserPoints, PointsTransaction, Badge, UserBadge, Reward
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
@@ -397,5 +397,35 @@ class TaskViewSerializer(serializers.ModelSerializer):
         # Return array of assigned usernames
         return [user.username for user in obj.assigned_to.all()]
     
+
+
+class PointsTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PointsTransaction
+        fields = ['id', 'transaction_type', 'points', 'description', 'timestamp']
+
+class BadgeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Badge
+        fields = ['id', 'name', 'description', 'points_required', 'icon']
+
+class UserBadgeSerializer(serializers.ModelSerializer):
+    badge = BadgeSerializer()
     
+    class Meta:
+        model = UserBadge
+        fields = ['id', 'badge', 'date_earned']
+
+class RewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reward
+        fields = ['id', 'name', 'description', 'point_cost', 'reward_type', 'cash_value', 'days_off']
+
+class UserPointsSerializer(serializers.ModelSerializer):
+    transactions = PointsTransactionSerializer(many=True, read_only=True)
+    badges = UserBadgeSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = UserPoints
+        fields = ['total_points', 'available_points', 'redeemed_points', 'transactions', 'badges']
     
