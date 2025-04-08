@@ -568,7 +568,7 @@ const ProjectDetailsModal = ({ project, onClose }) => {
     const [editedProject, setEditedProject] = useState({ ...project });
     const [workers, setWorkers] = useState([]);
     const [loadingWorkers, setLoadingWorkers] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // New state for delete confirmation
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         const fetchWorkers = async () => {
@@ -610,7 +610,7 @@ const ProjectDetailsModal = ({ project, onClose }) => {
     const handleDelete = async () => {
         try {
             await deleteProject(project.id);
-            onClose(); // Close the modal after successful deletion
+            onClose();
         } catch (error) {
             console.error('Error deleting project:', error);
         }
@@ -630,92 +630,144 @@ const ProjectDetailsModal = ({ project, onClose }) => {
 
     const formatDateTime = (isoString) => {
         if (!isoString) return 'N/A';
-        const date = new Date(isoString);
-        return date.toLocaleString();
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(isoString).toLocaleString('en-US', options);
+    };
+
+    const formatDateTimeForTimeline = (dateString) => {
+        if (!dateString) return '';
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(dateString).toLocaleDateString('en-US', options);
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">
-                        {editMode ? `Edit ${project.name}` : `${project.name} Details`}
-                    </h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+            {/* Main Modal Container */}
+            <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-100">
+                {/* Header Section */}
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            {editMode ? `Edit ${project.name}` : project.name}
+                        </h2>
+                        {!editMode && (
+                            <p className="text-sm text-gray-500 mt-1">
+                                Last updated: {formatDateTime(project.updated_at)}
+                            </p>
+                        )}
+                    </div>
+                    
                     <div className="flex space-x-2">
                         {!editMode && (
                             <>
-                            <button 
-                                onClick={() => setEditMode(true)}
-                                className="bg-yellow-500 text-white py-1 px-3 rounded hover:bg-yellow-600 text-sm"
-                            >
-                                Edit
-                            </button>
-
-                            <button 
-                            onClick={() => setShowDeleteConfirm(true)}
-                            className="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 text-sm"
-                            >
-                            Delete
-                            </button>
+                                <button 
+                                    onClick={() => setEditMode(true)}
+                                    className="flex items-center space-x-1 bg-amber-100 text-amber-800 py-1.5 px-3 rounded-lg hover:bg-amber-200 text-sm transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span>Edit</span>
+                                </button>
+    
+                                <button 
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="flex items-center space-x-1 bg-red-100 text-red-800 py-1.5 px-3 rounded-lg hover:bg-red-200 text-sm transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span>Delete</span>
+                                </button>
                             </>
                         )}
-                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <button 
+                            onClick={onClose} 
+                            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                            aria-label="Close"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
                 </div>
-
-
-                  {/* Delete Confirmation Modal */}
-                  {showDeleteConfirm && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-lg shadow-lg">
-                            <h3 className="text-lg font-bold mb-4">Confirm Deletion</h3>
-                            <p className="mb-4">Are you sure you want to delete this project? This action cannot be undone.</p>
-                            <div className="flex justify-end space-x-4">
-                                <button
-                                    onClick={() => setShowDeleteConfirm(false)}
-                                    className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
-                                >
-                                    Delete Project
-                                </button>
+    
+                {/* Delete Confirmation Modal */}
+                {showDeleteConfirm && (
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 max-w-md w-full">
+                            <div className="flex items-start">
+                                <div className="bg-red-100 p-2 rounded-full mr-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800 mb-2">Confirm Deletion</h3>
+                                    <p className="text-gray-600 mb-4">Are you sure you want to delete "{project.name}"? This action cannot be undone.</p>
+                                    <div className="flex justify-end space-x-3">
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(false)}
+                                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleDelete}
+                                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center space-x-1"
+                                        >
+                                            <span>Delete Project</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
-
-
+    
+                {/* Content Section */}
                 {editMode ? (
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold text-lg mb-2">Basic Information</h3>
-                                <div className="space-y-4">
+                            {/* Basic Information */}
+                            <div className="space-y-4">
+                                <div className="border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold text-gray-700">Basic Information</h3>
+                                </div>
+                                <div className="space-y-3">
                                     <div>
-                                        <label className="block font-medium mb-1">Project Name</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
                                         <input
                                             type="text"
                                             name="name"
                                             value={editedProject.name}
                                             onChange={handleChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block font-medium mb-1">Status</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                         <select
                                             name="status"
                                             value={editedProject.status}
                                             onChange={handleChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         >
                                             <option value="active">Active</option>
                                             <option value="completed">Completed</option>
@@ -723,166 +775,311 @@ const ProjectDetailsModal = ({ project, onClose }) => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block font-medium mb-1">Budget</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Budget ($)</label>
                                         <input
                                             type="number"
                                             name="budget"
                                             value={editedProject.budget}
                                             onChange={handleChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block font-medium mb-1">Location</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                                         <input
                                             type="text"
                                             name="location"
                                             value={editedProject.location}
                                             onChange={handleChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
                                 </div>
                             </div>
-
-                            <div>
-                                <h3 className="font-semibold text-lg mb-2">Dates</h3>
-                                <div className="space-y-4">
+    
+                            {/* Dates */}
+                            <div className="space-y-4">
+                                <div className="border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold text-gray-700">Project Timeline</h3>
+                                </div>
+                                <div className="space-y-3">
                                     <div>
-                                        <label className="block font-medium mb-1">Start Date</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                                         <input
                                             type="date"
                                             name="start_date"
                                             value={editedProject.start_date}
                                             onChange={handleChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block font-medium mb-1">End Date</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                                         <input
                                             type="date"
                                             name="end_date"
                                             value={editedProject.end_date}
                                             onChange={handleChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="mt-6">
-                            <h3 className="font-semibold text-lg mb-2">Assigned Workers</h3>
+    
+                        {/* Assigned Workers */}
+                        <div>
+                            <div className="border-b border-gray-100 pb-2 mb-3">
+                                <h3 className="font-semibold text-gray-700">Change Assigned Workers</h3>
+                            </div>
                             {loadingWorkers ? (
-                                <p>Loading workers...</p>
+                                <div className="flex justify-center py-4">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                </div>
                             ) : (
-                                <div className="border rounded p-2 max-h-40 overflow-y-auto">
-                                    {workers.map((worker) => (
-                                        <div key={worker.user.username} className="flex items-center p-2 hover:bg-gray-100">
-                                            <input
-                                                type="checkbox"
-                                                name="workers"
-                                                value={worker.user.username}
-                                                checked={editedProject.workers?.includes(worker.user.username)}
-                                                onChange={handleChange}
-                                                className="mr-2"
-                                            />
-                                            <label>
-                                                {worker.user.username} ({worker.user.first_name} {worker.user.last_name})
-                                            </label>
-                                        </div>
-                                    ))}
+                                <div className="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {workers.map((worker) => (
+                                            <div key={worker.user.username} className="flex items-center p-2 hover:bg-gray-50 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    name="workers"
+                                                    value={worker.user.username}
+                                                    checked={editedProject.workers?.includes(worker.user.username)}
+                                                    onChange={handleChange}
+                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                />
+                                                <label className="ml-2 text-sm text-gray-700">
+                                                    {worker.user.first_name} {worker.user.last_name}
+                                                    <span className="block text-xs text-gray-500">@{worker.user.username}</span>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
-
-                        <div className="mt-6">
-                            <h3 className="font-semibold text-lg mb-2">Project Description</h3>
+    
+                        {/* Project Description */}
+                        <div>
+                            <div className="border-b border-gray-100 pb-2 mb-3">
+                                <h3 className="font-semibold text-gray-700">Project Description</h3>
+                            </div>
                             <textarea
                                 name="description"
                                 value={editedProject.description}
                                 onChange={handleChange}
                                 rows="4"
-                                className="w-full p-2 border rounded"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Describe the project details..."
                             />
                         </div>
-
-                        <div className="mt-6 flex justify-end space-x-4">
+    
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                             <button
                                 type="button"
                                 onClick={() => setEditMode(false)}
-                                className="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                             >
-                                Cancel
+                                Discard Changes
                             </button>
                             <button
                                 type="submit"
-                                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center space-x-1"
                             >
-                                Save Changes
+                                <span>Save Changes</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
                             </button>
                         </div>
                     </form>
                 ) : (
-                    <>
+                    <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold text-lg mb-2">Basic Information</h3>
-                                <div className="space-y-2">
-                                    <p><span className="font-medium">Status:</span> 
-                                        <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            project.status === 'active' ? 'bg-green-100 text-green-800' :
-                                            project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                            {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                                        </span>
-                                    </p>
-                                    <p><span className="font-medium">Budget:</span> ${project.budget}</p>
-                                    <p><span className="font-medium">Location:</span> {project.location}</p>
-                                    <p><span className="font-medium">Start Date:</span> {(project.start_date)}</p>
-                                    <p><span className="font-medium">End Date:</span> {(project.end_date)}</p>
-                                    <p><span className="font-medium">Created At:</span> {formatDateTime(project.created_at)}</p>
-                                    <p><span className="font-medium">Updated At:</span> {formatDateTime(project.updated_at)}</p>
-                                    <p><span className="font-medium">Documents:</span> {project.documents ? <a href={project.documents} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View Document</a> : 'No documents uploaded'}</p>
+                            {/* Basic Information */}
+                            <div className="space-y-4">
+                                <div className="border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold text-gray-700">Overview</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-500">Status</span>
+                                        <div className="mt-1">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                'bg-amber-100 text-amber-800'
+                                            }`}>
+                                                {project.status.replace('_', ' ').split(' ').map(word => 
+                                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                                ).join(' ')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-500">Budget</span>
+                                        <p className="mt-1 text-gray-800">${project.budget.toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-500">Location</span>
+                                        <p className="mt-1 text-gray-800">{project.location || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-500">Documents</span>
+                                        <div className="mt-1">
+                                            {project.documents ? (
+                                                <a href={project.documents} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center space-x-1">
+                                                    <span>View Document</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-400">None</span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+    
+                            {/* Timeline */}
+                            <div className="space-y-4">
+                                <div className="border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold text-gray-700">Project Timeline</h3>
+                                </div>
+                                <ol className="relative border-s border-gray-200">
+                                    <li className="mb-6 ms-4">
+                                        <div className="absolute w-3 h-3 bg-blue-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                        <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                            {formatDateTimeForTimeline(project.created_at)}
+                                        </time>
+                                        <h3 className="text-base font-semibold text-gray-900">Project Created</h3>
+                                        <p className="text-sm font-normal text-gray-500">
+                                            Project was initialized
+                                        </p>
+                                    </li>
 
-                            <div>
-                                <h3 className="font-semibold text-lg mb-2">Assigned Workers</h3>
-                                {project.workers && project.workers.length > 0 ? (
-                                    <ul className="space-y-2">
-                                        {project.workers.map((worker, index) => (
-                                            <li key={index} className="bg-gray-100 px-3 py-2 rounded">
-                                                {worker}
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    {project.start_date && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-green-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(project.start_date)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Project Started</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Work began on the project
+                                            </p>
+                                        </li>
+                                    )}
+
+                                    {project.status_changed_at && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-purple-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(project.status_changed_at)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Status Changed</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Status was updated to {project.status.replace('_', ' ').toUpperCase()}
+                                            </p>
+                                        </li>
+                                    )}
+
+                                    {project.updated_at && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-amber-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(project.updated_at)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Status Changed</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Project status was changed to{' '}
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                    project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-amber-100 text-amber-800'
+                                                }`}>
+                                                     {project.status.replace('_', ' ').split(' ').map(word => 
+                                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                                ).join(' ')}
+                                                    
+                                                </span>
+                                            </p>
+                                        </li>
+                                    )}
+
+
+
+                                    {project.updated_at && 
+                                        (!project.created_at || new Date(project.updated_at).getTime() !== new Date(project.created_at).getTime()) &&
+                                        (!project.status_changed_at || new Date(project.updated_at).getTime() !== new Date(project.status_changed_at).getTime()) && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-gray-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(project.updated_at)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Project Updated</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Project details were modified
+                                            </p>
+                                        </li>
+                                    )}
+                                </ol>
+                            </div>
+                        </div>
+    
+                        {/* Team Members */}
+                        <div>
+                            <div className="border-b border-gray-100 pb-2">
+                                <h3 className="font-semibold text-gray-700">Assigned Workers</h3>
+                            </div>
+                            {project.workers && project.workers.length > 0 ? (
+                                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {project.workers.map((worker, index) => (
+                                        <div key={index} className="bg-gray-50 px-3 py-2 rounded-lg flex items-center">
+                                            <div className="bg-blue-100 text-blue-800 h-8 w-8 rounded-full flex items-center justify-center mr-3 text-sm font-medium">
+                                                {worker.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span className="text-gray-800">{worker}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="mt-3 text-center py-4 bg-gray-50 rounded-lg">
+                                    <p className="text-gray-500">No Workers assigned</p>
+                                </div>
+                            )}
+                        </div>
+    
+                        {/* Project Description */}
+                        <div>
+                            <div className="border-b border-gray-100 pb-2">
+                                <h3 className="font-semibold text-gray-700">Description</h3>
+                            </div>
+                            <div className="mt-3 bg-gray-50 rounded-lg p-4">
+                                {project.description ? (
+                                    <p className="text-gray-700 whitespace-pre-line">{project.description}</p>
                                 ) : (
-                                    <p className="text-gray-500">No workers assigned</p>
+                                    <p className="text-gray-400 italic">No description provided</p>
                                 )}
                             </div>
                         </div>
-
-                        <div className="mt-6">
-                            <h3 className="font-semibold text-lg mb-2">Project Description</h3>
-                            <p className="text-gray-700">{project.description || 'No description available'}</p>
-                        </div>
-
-                        <div className="mt-6 flex justify-end">
+    
+                        {/* View Mode Actions */}
+                        <div className="flex justify-end pt-4 border-t border-gray-100">
                             <button
                                 onClick={onClose}
-                                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                             >
                                 Close
                             </button>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
         </div>
     );
 };
-
 export default CreateProjectPage;

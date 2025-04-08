@@ -183,64 +183,169 @@ const WorkerProjectsPage = () => {
 const ProjectDetailsModal = ({ project, tasks, onClose }) => {
     const formatDateTime = (isoString) => {
         if (!isoString) return 'N/A';
-        const date = new Date(isoString);
-        return date.toLocaleString();
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(isoString).toLocaleDateString('en-US', options);
+    };
+
+    const formatDateTimeForTimeline = (dateString) => {
+        if (!dateString) return '';
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(dateString).toLocaleDateString('en-US', options);
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">{project.name} Details</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+            <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-100">
+                {/* Header Section */}
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800">{project.name}</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Last updated: {formatDateTime(project.updated_at)}
+                        </p>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                        aria-label="Close"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
-                <div className="space-y-4">
-                    <div>
-                        <h3 className="font-semibold text-lg mb-2">Project Information</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <p><span className="font-medium">Status:</span> 
-                                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                        project.status === 'active' ? 'bg-green-100 text-green-800' :
-                                        project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                        {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                                    </span>
-                                </p>
-                                <p><span className="font-medium">Location:</span> {project.location}</p>
-                                <p><span className="font-medium">Start Date:</span> {formatDateTime(project.start_date)}</p>
-                                <p><span className="font-medium">End Date:</span> {formatDateTime(project.end_date)}</p>
+                <div className="space-y-6">
+                    {/* Project Overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div className="border-b border-gray-100 pb-2">
+                                <h3 className="font-semibold text-gray-700">Overview</h3>
                             </div>
-                            <div>
-                                <p><span className="font-medium">Created At:</span> {formatDateTime(project.created_at)}</p>
-                                <p><span className="font-medium">Last Updated:</span> {formatDateTime(project.updated_at)}</p>
+                            <div className="space-y-3">
+                                <div>
+                                    <span className="text-sm font-medium text-gray-500">Status</span>
+                                    <div className="mt-1">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                            project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                            project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-amber-100 text-amber-800'
+                                        }`}>
+                                            {project.status.replace('_', ' ').split(' ').map(word => 
+                                                word.charAt(0).toUpperCase() + word.slice(1)
+                                            ).join(' ')}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-sm font-medium text-gray-500">Location</span>
+                                    <p className="mt-1 text-gray-800">{project.location || '-'}</p>
+                                </div>
+                                <div>
+                                    <span className="text-sm font-medium text-gray-500">Created</span>
+                                    <p className="mt-1 text-gray-800">{formatDateTime(project.created_at)}</p>
+                                </div>
                             </div>
+                        </div>
+
+                        {/* Timeline */}
+                        <div className="space-y-4">
+                            <div className="border-b border-gray-100 pb-2">
+                                <h3 className="font-semibold text-gray-700">Project Timeline</h3>
+                            </div>
+                            <ol className="relative border-s border-gray-200">
+                                <li className="mb-6 ms-4">
+                                    <div className="absolute w-3 h-3 bg-blue-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                    <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                        {formatDateTimeForTimeline(project.created_at)}
+                                    </time>
+                                    <h3 className="text-base font-semibold text-gray-900">Project Created</h3>
+                                    <p className="text-sm font-normal text-gray-500">
+                                        Project was initialized
+                                    </p>
+                                </li>
+
+                                {project.start_date && (
+                                    <li className="mb-6 ms-4">
+                                        <div className="absolute w-3 h-3 bg-green-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                        <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                            {formatDateTimeForTimeline(project.start_date)}
+                                        </time>
+                                        <h3 className="text-base font-semibold text-gray-900">Project Started</h3>
+                                        <p className="text-sm font-normal text-gray-500">
+                                            Work began on the project
+                                        </p>
+                                    </li>
+                                )}
+
+{project.updated_at && (
+                                        <li className="mb-6 ms-4">
+                                            <div className="absolute w-3 h-3 bg-amber-500 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                            <time className="mb-1 text-sm font-normal leading-none text-gray-500">
+                                                {formatDateTimeForTimeline(project.updated_at)}
+                                            </time>
+                                            <h3 className="text-base font-semibold text-gray-900">Status Changed</h3>
+                                            <p className="text-sm font-normal text-gray-500">
+                                                Project status was changed to{' '}
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    project.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                    project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-amber-100 text-amber-800'
+                                                }`}>
+                                                     {project.status.replace('_', ' ').split(' ').map(word => 
+                                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                                ).join(' ')}
+                                                    
+                                                </span>
+                                            </p>
+                                        </li>
+                                    )}
+
+                            </ol>
                         </div>
                     </div>
 
+                    {/* Project Description */}
                     <div>
-                        <h3 className="font-semibold text-lg mb-2">Project Description</h3>
-                        <div className="bg-gray-50 p-4 rounded">
-                            <p className="text-gray-700">{project.description || 'No description available'}</p>
+                        <div className="border-b border-gray-100 pb-2">
+                            <h3 className="font-semibold text-gray-700">Description</h3>
+                        </div>
+                        <div className="mt-3 bg-gray-50 rounded-lg p-4">
+                            {project.description ? (
+                                <p className="text-gray-700 whitespace-pre-line">{project.description}</p>
+                            ) : (
+                                <p className="text-gray-400 italic">No description provided</p>
+                            )}
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t">
-                        <h3 className="font-semibold text-lg mb-2">Your Tasks</h3>
+                    {/* Tasks Section */}
+                    <div>
+                        <div className="border-b border-gray-100 pb-2">
+                            <h3 className="font-semibold text-gray-700">Your Tasks</h3>
+                        </div>
                         {tasks.length > 0 ? (
-                            <ul className="space-y-3">
+                            <div className="mt-3 space-y-3">
                                 {tasks.map((task) => (
-                                    <li key={task.id} className="border rounded p-3">
+                                    <div key={task.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <h4 className="font-medium">{task.task_title}</h4>
-                                                <p className="text-sm text-gray-600">{task.description}</p>
+                                                <h4 className="font-medium text-gray-800">{task.task_title}</h4>
+                                                {task.description && (
+                                                    <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                                                )}
                                             </div>
                                             <span className={`text-xs px-2 py-1 rounded ${
                                                 task.status === 'pending' ? 'bg-red-100 text-red-800' :
@@ -250,25 +355,33 @@ const ProjectDetailsModal = ({ project, tasks, onClose }) => {
                                                 {task.status.replace('_', ' ').toUpperCase()}
                                             </span>
                                         </div>
-                                        <div className="mt-2 text-sm">
-                                            <p><span className="text-gray-500">Due:</span> {formatDateTime(task.estimated_completion_datetime)}</p>
+                                        <div className="mt-3 flex items-center justify-between text-sm">
+                                            <div>
+                                                <span className="text-gray-500">Due:</span> {formatDateTime(task.estimated_completion_datetime)}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">Shift:</span> {task.assigned_shift || 'N/A'}
+                                            </div>
                                         </div>
-                                    </li>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         ) : (
-                            <p className="text-gray-500">No tasks assigned to you in this project</p>
+                            <div className="mt-3 text-center py-4 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">No tasks assigned to you in this project</p>
+                            </div>
                         )}
                     </div>
-                </div>
 
-                <div className="mt-6 flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-                    >
-                        Close
-                    </button>
+                    {/* Footer Actions */}
+                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -734,7 +734,7 @@ from .models import Task
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsManager])
+@permission_classes([IsAuthenticated])
 def view_user_tasks(request):
     """View for regular users to see their assigned tasks"""
     tasks = Task.objects.filter(assigned_to=request.user)
