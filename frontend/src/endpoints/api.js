@@ -34,6 +34,7 @@ const UPDATE_TASKS_URL = `${BASE_URL}tasks/<int:task_id>/`;
 const DELETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/delete/`;
 const COMPLETE_TASK_URL = `${BASE_URL}tasks/`;  // Just the base path
 const AWARD_POINTS_URL = `${BASE_URL}points/award/`;
+const USER_POINTS_URL = `${BASE_URL}points/`;
 
 export const login = async (username, password) => {
     try {
@@ -590,6 +591,16 @@ export const awardPoints = async (data) => {
         return response.data;
     } catch (error) {
         console.error("Error awarding points:", error);
+        throw error;
+    }
+};
+
+export const getUserPoints = async () => {
+    try {
+        const response = await axios.get(USER_POINTS_URL, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching user points:", error);
         throw error;
     }
 };

@@ -1,62 +1,67 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { logout, clockIn, clockOut, getClockHistory, getUserTasks } from '../endpoints/api';  // Assuming getClockHistory is available to fetch clock history
 import { useNavigate } from "react-router-dom";
+import { FaCoins, FaGift } from 'react-icons/fa';
 import { useAuth } from "../context/useAuth";
 import Notification from './Components/Notification';
-
-import logo from '../assets/images/LaborSynclogo.png'; // Import logo
+import {
+  logout,
+  clockIn,
+  clockOut,
+  getClockHistory,
+  getUserTasks,
+  getUserPoints
+} from '../endpoints/api';
+import logo from '../assets/images/LaborSynclogo.png';
+import Welcome from '../assets/images/Welcome .jpg';
 
 const UserDashboard = () => {
+  // State declarations
   const [notes, setNotes] = useState([]);
   const [note, setNote] = useState("");
   const [shift, setShift] = useState("");
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
-  const [isClockedIn, setIsClockedIn] = useState(false);  
-  const [clockInDetails, setClockInDetails] = useState(null); 
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [clockInDetails, setClockInDetails] = useState(null);
   const [clockHistory, setClockHistory] = useState([]);
-  const [loading, setLoading] = useState(true); // Add loading state
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState("");
   const [notification, setNotification] = useState({
     message: "",
-    show: false, });
+    show: false,
+  });
+  const [pointsData, setPointsData] = useState({
+    total_points: 0,
+    available_points: 0,
+    redeemed_points: 0
+  });
 
-// ... rest of your component ...
+  const navigate = useNavigate();
   const { userProfile, fetchUserProfile, isAuthenticated } = useAuth();
   const logoutTimer = useRef(null);
-  
 
+  // Effect hooks
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchInitialData = async () => {
       try {
-        await fetchUserProfile(); // Fetch user profile when component mounts
+        await Promise.all([
+          fetchUserProfile(),
+          getUserTasks().then(setTasks),
+          getClockHistory().then(setClockHistory),
+          getUserPoints().then(setPointsData)
+        ]);
       } catch (error) {
-        console.error("Error fetching user profile:", error);
+        console.error("Error fetching data:", error);
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchInitialData();
   }, [fetchUserProfile]);
 
   useEffect(() => {
-        const fetchUserTasks = async () => {
-            try {
-                const fetchedTasks = await getUserTasks();
-                setTasks(fetchedTasks);
-            } catch (error) {
-                console.error("Error fetching user tasks:", error);
-            }
-        };
-
-        fetchUserTasks();
-    }, []);
-
-
-  useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       if (!isAuthenticated && !loading) {
         navigate('/menu');
       }
@@ -64,226 +69,162 @@ const UserDashboard = () => {
     checkAuth();
   }, [isAuthenticated, navigate, loading]);
 
-
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const fetchedNotes = await get_dashboard();
-        setNotes(fetchedNotes);
-      } catch (error) {
-        console.error("Error fetching notes:", error);
-      }
-    };
-
-    fetchNotes();
-  }, []);
-
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentDateTime(new Date());
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    const fetchClockHistory = async () => {
-      try {
-        const history = await getClockHistory();  // Fetch previous clock-in/out history
-        setClockHistory(history);  // Set previous history to state
-      } catch (error) {
-        console.error("Error fetching clock history:", error);
-      }
-    };
-
-    fetchClockHistory();  // Fetch clock history when the component mounts
-  }, []);
-
-  useEffect(() => {
     if (isAuthenticated) {
-        startLogoutTimer();
+      startLogoutTimer();
     }
+    return () => clearTimeout(logoutTimer.current);
+  }, [isAuthenticated]);
 
-    return () => {
-        clearTimeout(logoutTimer.current);
-    };
-}, [isAuthenticated]);
-
-const startLogoutTimer = () => {
-    clearTimeout(logoutTimer.current); // Clear any existing timer
+  // Timer functions
+  const startLogoutTimer = () => {
+    clearTimeout(logoutTimer.current);
     logoutTimer.current = setTimeout(async () => {
-        try {
-            await logout();
-            navigate('/login');
-        } catch (error) {
-            console.error("Error during auto-logout:", error);
-        }
-    }, 5 * 60 * 1000); // 5 minutes in milliseconds
-};
+      try {
+        await logout();
+        navigate('/login');
+      } catch (error) {
+        console.error("Error during auto-logout:", error);
+      }
+    }, 5 * 60 * 1000);
+  };
 
-const resetLogoutTimer = () => {
+  const resetLogoutTimer = () => {
     if (isAuthenticated) {
-        startLogoutTimer(); // Reset the timer on any user interaction
+      startLogoutTimer();
     }
-};
+  };
 
-
-
+  // Handler functions
   const handleLogout = async () => {
     try {
-      const success = await logout();
-      if (success) {
-        navigate('/login');
-      } else {
-        console.error("Logout failed");
-      }
+      await logout();
+      navigate('/login');
     } catch (error) {
       console.error("Error during logout:", error);
     }
   };
 
-  const handleNoteChange = (e) => {
-    setNote(e.target.value);
-  };
-
-  const handleShiftChange = (e) => {
-    setShift(e.target.value);
-  };
-
   const handleClockIn = async () => {
     if (!selectedTask) {
-        setNotification({
-            message: "Please select a task before clocking in.",
-            show: true,
-            type: "error",
-        });
-        setTimeout(() => {
-          setNotification({ ...notification, show: false }); 
-      }, 5000); 
-        return;
+      setNotification({
+        message: "Please select a task before clocking in.",
+        show: true,
+        type: "error",
+      });
+      setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 5000);
+      return;
     }
+
     try {
-        const response = await clockIn(selectedTask);
-        const clockInTime = new Date(response.data.clock_in).toISOString();
-        const taskId = response.data.task;
-        console.log("Selected Task:", selectedTask);
-        const newClockInDetails = {
-            shift,
-            note,
-            clock_in: clockInTime,
-            username: userProfile?.user.username,
-            task: taskId,
-        };
-        setClockInDetails(newClockInDetails);
-        setIsClockedIn(true);
-        setClockHistory((prevHistory) => [...prevHistory, newClockInDetails]);
-        resetLogoutTimer();
-    } catch (error) {
-        console.error("Error during clock-in:", error);
-    }
-};
-
-const closeNotification = () => {
-    setNotification({ ...notification, show: false });
-};
-
-const handleClockOut = async () => {
-  try {
-      const response = await clockOut(selectedTask);
-      console.log("Clock out response:", response); // Log the response for debugging
+      const response = await clockIn(selectedTask);
+      const newClockInDetails = {
+        shift,
+        note,
+        clock_in: new Date(response.data.clock_in).toISOString(),
+        username: userProfile?.user.username,
+        task: response.data.task,
+      };
       
-      // Update the clock-in details immediately
+      setClockInDetails(newClockInDetails);
+      setIsClockedIn(true);
+      setClockHistory(prev => [...prev, newClockInDetails]);
+      resetLogoutTimer();
+    } catch (error) {
+      console.error("Error during clock-in:", error);
+    }
+  };
+
+  const handleClockOut = async () => {
+    try {
+      await clockOut(selectedTask);
       setIsClockedIn(false);
       setClockInDetails(null);
-
-      // Re-fetch clock history from the server to ensure consistency
       const fetchedHistory = await getClockHistory();
       setClockHistory(fetchedHistory);
-      
       resetLogoutTimer();
-
-      // Show success notification
+      
       setNotification({
-          message: "Clocked out successfully",
-          show: true,
-          type: "success"
+        message: "Clocked out successfully",
+        show: true,
+        type: "success"
       });
-      setTimeout(() => {
-          setNotification({ ...notification, show: false }); 
-      }, 5000);
-
-  } catch (error) {
+      setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 5000);
+    } catch (error) {
       console.error("Error during clock-out:", error);
       setNotification({
-          message: "Error during clock-out",
-          show: true,
-          type: "error"
+        message: "Error during clock-out",
+        show: true,
+        type: "error"
       });
-      setTimeout(() => {
-          setNotification({ ...notification, show: false }); 
-      }, 5000);
-  }
-};
-  
-  
-  
+      setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 5000);
+    }
+  };
+
   const handleTakeBreak = () => {
     console.log("Taking a break");
     resetLogoutTimer();
   };
 
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, show: false }));
+  };
+
+  // Utility functions
   const formatDateTime = (isoString) => {
-    if (!isoString) {
-      return 'Invalid Date';
-    }
+    if (!isoString) return 'Invalid Date';
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) { // Check if the date is valid
-      return 'Invalid Date';
-    }
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true };
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    
+    const options = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: 'numeric', 
+      hour12: true 
+    };
     return date.toLocaleString('en-US', options);
   };
-  
 
   if (loading) {
-    return <div>Loading...</div>; // Display loading state
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
-
-  
 
   return (
     <div className="flex h-screen bg-gray-50" onClick={resetLogoutTimer}>
       {/* Side Panel */}
       <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
         <div className="flex items-center justify-center py-4 border-b">
-          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" /> {/* Logo */}
+          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
         </div>
         <nav className="flex-grow">
           <ul className="flex flex-col py-4">
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
-              Dashboard
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/schedule')}>
-              Schedule
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
-              Timesheets
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-project')}>
-              View Project
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
-              View Tasks
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-              Reports
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
-              Rewards
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
-              Worker Details
-            </li>
+            {[
+              { path: '/menu', label: 'Dashboard' },
+              { path: '/schedule', label: 'Schedule' },
+              { path: '/timesheets', label: 'Timesheets' },
+              { path: '/view-project', label: 'View Project' },
+              { path: '/view-task', label: 'View Tasks' },
+              { path: '/reports', label: 'Reports' },
+              { path: '/rewards', label: 'Rewards' },
+              { path: '/user-profile', label: 'Worker Details' }
+            ].map((item) => (
+              <li
+                key={item.path}
+                className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer"
+                onClick={() => navigate(item.path)}
+              >
+                {item.label}
+              </li>
+            ))}
           </ul>
         </nav>
         <button
@@ -296,13 +237,52 @@ const handleClockOut = async () => {
 
       {/* Main Content Area */}
       <div className="flex-grow p-8 flex flex-col">
-        <div className="bg-[#F4F4F9] p-6 rounded shadow-md mb-6"> 
-          <h1 className="text-2xl font-bold mb-2 text-gray-800">
-            Hello {userProfile?.user.first_name || "Guest"},👋 Welcome,</h1>
-
-          <p className="text-lg text-gray-600">You can Clock In/Out from here</p>
+        {/* Full-width Header Section */}
+        <div className="bg-[#f3f8f9] p-6 rounded shadow-md mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold mb-2 text-gray-800">
+              Hello {userProfile?.user.first_name || "Guest"},👋 Welcome,
+             
+            </h1>
+            
+            <p className="text-lg text-gray-600">You can Clock In/Out from here</p>
+            
+          </div>
+          
+          {/* Points Display - now positioned to the right within the header */}
+          <div className="bg-[#f3f8f9] p-4 rounded-lg shadow-md flex flex-col items-center cursor-pointer hover:shadow-lg transition-shadow duration-300 border">
+            <div className="flex items-center mb-2">
+              <FaCoins className="text-yellow-500 text-2xl mr-2" />
+              <span className="font-bold text-gray-700">Your Points</span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-gray-500">Total</span>
+                <span className="font-bold text-lg">{pointsData.total_points}</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-gray-500">Available</span>
+                <span className="font-bold text-lg text-green-500">{pointsData.available_points}</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-gray-500">Redeemed</span>
+                <span className="font-bold text-lg text-blue-500">{pointsData.redeemed_points}</span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => navigate('/rewards')}
+              className="mt-3 flex items-center justify-center bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm hover:bg-blue-200 transition"
+            >
+              <FaGift className="mr-1" /> Redeem Points
+            </button>
+          </div>
         </div>
+
+        {/* Content Area */}
         <div className="flex flex-grow">
+          {/* Notes Section */}
           <div className="w-2/3 bg-white p-6 rounded shadow-md mb-6 mr-4">
             {notes.length > 0 ? (
               notes.map((note, index) => (
@@ -314,19 +294,22 @@ const handleClockOut = async () => {
               <p className="text-gray-500">No notes available</p>
             )}
           </div>
-          
 
-          {/* Clock In/Out Box */}
+          {/* Clock In/Out Section */}
           <div className="w-1/3 bg-white p-6 rounded shadow-md flex flex-col">
             <h2 className="text-xl font-bold mb-4">{formatDateTime(currentDateTime)}</h2>
             {notification.show && (
-                <Notification message={notification.message} onClose={closeNotification} type={notification.type} />
+              <Notification 
+                message={notification.message} 
+                onClose={closeNotification} 
+                type={notification.type} 
+              />
             )}
 
             {isClockedIn ? (
               <div>
-                <p className="font-bold mb-2 text-gray-700">Shift: {clockInDetails.shift}</p>
-                <p className="font-bold mb-2 text-gray-700">Note: {clockInDetails.note}</p>
+                <p className="font-bold mb-2 text-gray-700">Shift: {clockInDetails?.shift}</p>
+                <p className="font-bold mb-2 text-gray-700">Note: {clockInDetails?.note}</p>
                 <button
                   onClick={handleClockOut}
                   className="bg-yellow-200 text-gray-700 w-full px-6 py-2 mb-4 rounded hover:bg-yellow-300 transition duration-200"
@@ -338,7 +321,7 @@ const handleClockOut = async () => {
               <div>
                 <select
                   value={shift}
-                  onChange={handleShiftChange}
+                  onChange={(e) => setShift(e.target.value)}
                   className="w-full p-2 mb-4 border border-gray-300 rounded"
                 >
                   <option value="" disabled>Select Shift</option>
@@ -347,23 +330,25 @@ const handleClockOut = async () => {
                   <option value="night">Night Shift</option>
                 </select>
 
-                  <select
+                <select
                   value={selectedTask}
                   onChange={(e) => setSelectedTask(e.target.value)}
-                  className="w-full p-2 mb-4 border border-gray-300 rounded">
+                  className="w-full p-2 mb-4 border border-gray-300 rounded"
+                >
                   <option value="" disabled>Select Task</option>
                   {tasks.map((task) => (
-                      <option key={task.id} value={task.id}>
-                          {task.task_title}
-                      </option>
+                    <option key={task.id} value={task.id}>
+                      {task.task_title}
+                    </option>
                   ))}
-                  </select>
+                </select>
 
                 <textarea
                   value={note}
-                  onChange={handleNoteChange}
+                  onChange={(e) => setNote(e.target.value)}
                   className="w-full p-2 border border-gray-300 rounded mb-4"
                   placeholder="Enter a note"
+                  rows={3}
                 />
 
                 <button
@@ -383,31 +368,33 @@ const handleClockOut = async () => {
           </div>
         </div>
 
-        {/* Clock-in/Clock-out History Table */}
+        {/* History Table */}
         <div className="bg-white p-6 rounded shadow-md">
           <h2 className="text-xl font-bold mb-4">Clock-in and Clock-out History</h2>
-          <table className="w-full table-auto border-collapse">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 border border-gray-300">Username</th>
-                <th className="px-4 py-2 border border-gray-300">Clock-in Time</th>
-                <th className="px-4 py-2 border border-gray-300">Clock-out Time</th>
-                <th className="px-4 py-2 border border-gray-300">Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clockHistory.map((record) => (
-                <tr key={record.clock_in}>
-                  <td className="px-4 py-2 border border-gray-300">{record.username}</td>
-                  <td className="px-4 py-2 border border-gray-300">{formatDateTime(record.clock_in)}</td>
-                  <td className="px-4 py-2 border border-gray-300">
-                    {record.clock_out ? formatDateTime(record.clock_out) : 'Pending'}
-                  </td>
-                  <td className="px-4 py-2 border border-gray-300">{record.note}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full table-auto border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-2 border border-gray-300">Username</th>
+                  <th className="px-4 py-2 border border-gray-300">Clock-in Time</th>
+                  <th className="px-4 py-2 border border-gray-300">Clock-out Time</th>
+                  <th className="px-4 py-2 border border-gray-300">Note</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {clockHistory.map((record, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-2 border border-gray-300">{record.username}</td>
+                    <td className="px-4 py-2 border border-gray-300">{formatDateTime(record.clock_in)}</td>
+                    <td className="px-4 py-2 border border-gray-300">
+                      {record.clock_out ? formatDateTime(record.clock_out) : 'Pending'}
+                    </td>
+                    <td className="px-4 py-2 border border-gray-300">{record.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
