@@ -22,11 +22,11 @@ from django.conf import settings
 from .permission import IsManager
 
 
-from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward
+from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward,RewardRedemption
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer, UserPointsSerializer
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer, UserPointsSerializer, RewardSerializer, RewardCreateSerializer
 from rest_framework.decorators import api_view, permission_classes 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -562,24 +562,7 @@ def update_project(request, project_id):
     return Response(serializer.errors, status=400)
 
 
-# @api_view(['PUT'])
-# @permission_classes([IsAuthenticated])
-# def update_project(request, project_id):
-#     try:
-#         project = Project.objects.get(pk=project_id)
-#     except Project.DoesNotExist:
-#         return Response({'error': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-#     # Check if the user is a manager
-#     if not request.user.groups.filter(name='Managers').exists():
-#         return Response({'error': 'Only managers can update projects.'}, 
-#                        status=status.HTTP_403_FORBIDDEN)
-
-#     serializer = ProjectSerializer(project, data=request.data, partial=True)
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
@@ -843,102 +826,404 @@ def reset_password_confirm(request, uidb64, token):
 
 
 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsManager])
 def award_points(request):
+    """
+    Award points to a user for completing tasks or other achievements
+    """
+    required_fields = ['points', 'description', 'username']
+    if not all(field in request.data for field in required_fields):
+        return Response(
+            {'error': 'Points, description, and username are required.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
-        points = request.data.get('points')
-        description = request.data.get('description')
-        username = request.data.get('username') # Get username from the request.
-        task_id = request.data.get('task')
-        feedback_id = request.data.get('feedback')
-
-        if not points or not description or not username:
-            return Response({'error': 'Points, description, and username are required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.get(username=username) # Get user object by username
-        except User.DoesNotExist:
-            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        with transaction.atomic():
-            user_points, created = UserPoints.objects.get_or_create(user=user)
-            user_points.total_points += int(points)
-            user_points.available_points += int(points)
-            user_points.save()
-
-            PointsTransaction.objects.create(
-                user=user,
-                transaction_type='earn',
-                points=int(points),
-                description=description,
-                related_task=task_id,
-                related_feedback=feedback_id
+        points = int(request.data['points'])
+        if points <= 0:
+            return Response(
+                {'error': 'Points must be a positive integer.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
+        user = get_object_or_404(User, username=request.data['username'])
+        task_id = request.data.get('task_id')
+        feedback_id = request.data.get('feedback_id')
+
+        with transaction.atomic():
+            # Update user points
+            user_points, created = UserPoints.objects.get_or_create(user=user)
+            user_points.total_points += points
+            user_points.available_points += points
+            user_points.save()
+
+            # Create transaction record
+            transaction_data = {
+                'user': user,
+                'transaction_type': 'earn',
+                'points': points,
+                'description': request.data['description'],
+            }
+            
+            if task_id:
+                task = get_object_or_404(Task, id=task_id)
+                transaction_data['related_task'] = task
+            
+            if feedback_id:
+                transaction_data['related_feedback'] = feedback_id
+
+            PointsTransaction.objects.create(**transaction_data)
+
+            # Check for new badges
             check_badges(user)
 
-        return Response({'message': 'Points awarded successfully.'}, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    'message': 'Points awarded successfully.',
+                    'total_points': user_points.total_points,
+                    'available_points': user_points.available_points
+                },
+                status=status.HTTP_201_CREATED
+            )
 
+    except ValueError:
+        return Response(
+            {'error': 'Points must be a valid integer.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 def check_badges(user):
-    badges = Badge.objects.filter(points_required__lte=user.points.total_points)
-    for badge in badges:
-        UserBadge.objects.get_or_create(user=user, badge=badge)
+    """
+    Check and award badges based on total points
+    """
+    user_points = user.points.total_points
+    eligible_badges = Badge.objects.filter(
+        points_required__lte=user_points
+    ).exclude(
+        id__in=user.badges.values_list('badge_id', flat=True)
+    )
+
+    for badge in eligible_badges:
+        UserBadge.objects.create(user=user, badge=badge)
 
 
-# Add new views for points system
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_points(request):
-    points, created = UserPoints.objects.get_or_create(user=request.user)
+    """
+    Get current user's points information
+    """
+    points, _ = UserPoints.objects.get_or_create(user=request.user)
     serializer = UserPointsSerializer(points)
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_available_rewards(request):
+    """
+    Get list of available rewards for the current user
+    - Shows rewards with no eligible_users (public rewards)
+    - Shows rewards where current user is in eligible_users
+    - Filters out inactive rewards
+    """
+    # Get all active rewards that are either:
+    # 1. Public (no eligible_users specified), OR
+    # 2. Include the current user in eligible_users
+    rewards = Reward.objects.filter(
+        is_active=True
+    ).filter(
+          # Public rewards
+        Q(eligible_users=request.user)    # User-specific rewards
+    ).distinct()  # Remove duplicates if any
+
+    serializer = RewardSerializer(rewards, many=True, context={'request': request})
+    return Response({
+        'count': len(serializer.data),
+        'rewards': serializer.data
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def redeem_points(request):
-    reward_name = request.data.get('reward_name')
+def redeem_reward(request):
+    """
+    Redeem a reward using available points (by reward name)
+    Only eligible users can redeem (if eligible_users is specified)
+    """
+    required_fields = ['reward_name']
+    if not all(field in request.data for field in required_fields):
+        return Response(
+            {'error': 'Reward name is required.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
-        reward = Reward.objects.get(name=reward_name, is_active=True) # Get reward by name
+        # Get the reward by name (case-insensitive)
+        reward = Reward.objects.filter(
+            name__iexact=request.data['reward_name'],
+            is_active=True
+        ).first()
+
+        if not reward:
+            return Response(
+                {'error': 'No active reward found with this name.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check eligibility
+        if reward.eligible_users.exists():  # If specific users are designated
+            if not reward.eligible_users.filter(id=request.user.id).exists():
+                return Response(
+                    {'error': 'You are not eligible to redeem this reward.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         user_points = UserPoints.objects.get(user=request.user)
 
         if user_points.available_points < reward.point_cost:
-            return Response({"message": "Not enough points"}, status=400)
+            return Response(
+                {
+                    'error': f'Not enough points. You need {reward.point_cost} points but only have {user_points.available_points}.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         with transaction.atomic():
+            # Deduct points
             user_points.available_points -= reward.point_cost
             user_points.redeemed_points += reward.point_cost
             user_points.save()
 
+            # Create transaction record
             PointsTransaction.objects.create(
                 user=request.user,
                 transaction_type='redeem',
                 points=-reward.point_cost,
-                description=f"Redeemed for {reward.name}"
+                description=f"Redeemed: {reward.name}",
+                related_reward=reward
             )
 
-            # Handle the reward (this would need to be expanded based on reward type)
-            if reward.reward_type == 'bonus':
-                # Process bonus payment
-                pass
-            elif reward.reward_type == 'timeoff':
-                # Add PTO to user's account
-                pass
+            # Process reward based on type
+            reward_message = process_reward(request.user, reward)
 
-            return Response({
-                "message": f"Successfully redeemed {reward.point_cost} points for {reward.name}",
-                "remaining_points": user_points.available_points
-            })
-
-    except Reward.DoesNotExist:
-        return Response({"message": "Invalid reward name"}, status=404) #Change error message
-
-    except Reward.MultipleObjectsReturned:
-        return Response({"message": "Multiple rewards found with this name. Please use reward ID."}, status=400)
+            return Response(
+                {
+                    'message': f'Successfully redeemed {reward.name}',
+                    'remaining_points': user_points.available_points,
+                    'reward_details': reward_message
+                },
+                status=status.HTTP_200_OK
+            )
 
     except Exception as e:
-        return Response({"message": f"An error occurred: {str(e)}"}, status=500)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+def process_reward(user, reward):
+    """
+    Handle different reward types and return appropriate message
+    """
+    if reward.reward_type == 'bonus':
+        # In a real implementation, you would integrate with payroll here
+        return {
+            'type': 'cash_bonus',
+            'amount': float(reward.cash_value),
+            'status': 'pending_processing',
+            'message': f'Cash bonus of ${reward.cash_value} will be processed in the next payroll cycle.'
+        }
+    
+    elif reward.reward_type == 'timeoff':
+        # Add to user's time off balance
+        return {
+            'type': 'time_off',
+            'days': reward.days_off,
+            'status': 'credited',
+            'message': f'{reward.days_off} day(s) of paid time off has been added to your account.'
+        }
+    
+    elif reward.reward_type == 'other':
+        return {
+            'type': 'other',
+            'status': 'pending_fulfillment',
+            'message': 'Your reward will be processed and delivered soon.'
+        }
+    
+    return {
+        'type': 'unknown',
+        'status': 'pending',
+        'message': 'Reward is being processed.'
+    }
+    
+    
+    
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsManager])
+def create_reward(request):
+    """
+    Create a new reward
+    POST /api/rewards/create/
+    {
+        "name": "Team Bonus",
+        "description": "Annual team performance bonus",
+        "point_cost": 500,
+        "reward_type": "bonus",
+        "cash_value": 100.00,
+        "is_active": true,
+        "eligible_users": [1, 2, 3]  # Optional user IDs
+    }
+    """
+    serializer = RewardCreateSerializer(data=request.data, context={'request': request})
+    
+    if serializer.is_valid():
+        # Get eligible_users data before saving
+        eligible_users = serializer.validated_data.pop('eligible_users', [])
+        
+        # Create the reward and automatically set the creator
+        reward = serializer.save(created_by=request.user)
+        
+        # Add eligible users if any were provided
+        if eligible_users:
+            reward.eligible_users.set(eligible_users)
+        
+        return Response(
+            {
+                'message': 'Reward created successfully',
+                'reward': RewardCreateSerializer(reward).data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    return Response(
+        {
+            'error': 'Invalid data',
+            'details': serializer.errors
+        },
+        status=status.HTTP_400_BAD_REQUEST
+    )
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Removed IsManager to allow all users to view their history
+def get_reward_history(request):
+    """
+    Get user's reward redemption history with enhanced filtering
+    """
+    try:
+        # Include both successful redemptions and failed attempts if you track them
+        transactions = PointsTransaction.objects.filter(
+            user=request.user,
+            transaction_type__in=['redeem', 'redeem_failed']  # Include failed attempts if tracked
+        ).select_related(
+            'related_reward'
+        ).prefetch_related(
+            'related_reward__eligible_users'  # If you want to show eligibility info
+        ).order_by('-timestamp')
+
+        if not transactions.exists():
+            return Response(
+                {'message': 'No redemption history found'},
+                status=status.HTTP_200_OK
+            )
+
+        history = []
+        for transaction in transactions:
+            reward = transaction.related_reward
+            history.append({
+                'id': transaction.id,
+                'reward': {
+                    'id': reward.id if reward else None,
+                    'name': reward.name if reward else 'Unknown Reward',
+                    'type': reward.reward_type if reward else None,
+                },
+                'points': abs(transaction.points),  # Absolute value
+                'date': transaction.timestamp,
+                'status': 'success' if transaction.points < 0 else 'failed',
+                'description': transaction.description
+            })
+
+        return Response({
+            'count': len(history),
+            'history': history
+        })
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsManager])
+def get_manager_rewards(request):
+    """
+    Get all rewards created by the current manager
+    GET /api/rewards/manager/
+    """
+    try:
+        # Get rewards created by the current manager
+        rewards = Reward.objects.filter(
+            created_by=request.user
+        ).prefetch_related(
+            'eligible_users'
+        ).order_by('-created_at')
+
+        if not rewards.exists():
+            return Response(
+                {'message': 'No rewards created yet'},
+                status=status.HTTP_200_OK
+            )
+
+        # Serialize the data with eligible users details
+        reward_data = []
+        for reward in rewards:
+            eligible_users = reward.eligible_users.all()
+            reward_data.append({
+                'id': reward.id,
+                'name': reward.name,
+                'description': reward.description,
+                'point_cost': reward.point_cost,
+                'reward_type': reward.reward_type,
+                'cash_value': str(reward.cash_value) if reward.cash_value else None,
+                'days_off': reward.days_off,
+                'is_active': reward.is_active,
+                'created_at': reward.created_at,
+                'created_by': reward.created_by.username,
+                'eligible_users': [
+                    {
+                        'id': user.id,
+                        'username': user.username,
+                        'full_name': f"{user.first_name} {user.last_name}"
+                    } for user in eligible_users
+                ],
+                'total_redemptions': PointsTransaction.objects.filter(
+                    related_reward=reward,
+                    transaction_type='redeem'
+                ).count()
+            })
+
+        return Response({
+            'count': len(reward_data),
+            'rewards': reward_data
+        })
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

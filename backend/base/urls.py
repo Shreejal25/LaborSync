@@ -35,8 +35,13 @@ from .views import (
     check_task_completion,
     complete_task, 
     get_user_points,
-    redeem_points,
-    award_points
+   redeem_reward,
+    award_points,
+    get_available_rewards,
+    get_reward_history,
+    create_reward,
+    get_manager_rewards
+   
    
     
    
@@ -82,8 +87,13 @@ urlpatterns = [
     path('tasks/<int:task_id>/check-completion/', check_task_completion, name='check-task-completion'),
     path('tasks/<int:task_id>/complete/', complete_task, name='complete-task'),
     path('points/', get_user_points, name='user-points'),
-    path('points/redeem/', redeem_points, name='redeem-points'),
+    path('points/redeem/', redeem_reward, name='redeem-points'),
     path('points/award/', award_points, name='award_points'),
+    path('rewards/', get_available_rewards, name='get_available_rewards'),
+    path('rewards/history/', get_reward_history, name='get_reward_history'),
+    path('rewards/create/', create_reward, name='create_reward'),
+    path('manager/rewards/', get_manager_rewards, name='get_manager_rewards'),
+    
   
     
 ]

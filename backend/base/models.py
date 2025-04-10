@@ -176,6 +176,7 @@ class UserPoints(models.Model):
     total_points = models.PositiveIntegerField(default=0)
     available_points = models.PositiveIntegerField(default=0)
     redeemed_points = models.PositiveIntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.username}'s Points"
@@ -206,16 +207,83 @@ class Reward(models.Model):
         ('timeoff', 'Paid Time Off'),
         ('other', 'Other')
     )
+    
+    # Basic reward info
     name = models.CharField(max_length=100)
     description = models.TextField()
     point_cost = models.PositiveIntegerField()
     reward_type = models.CharField(max_length=20, choices=REWARD_TYPES)
+    
+    # Reward values
     cash_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     days_off = models.PositiveIntegerField(null=True, blank=True)
+    
+    # Status flags
     is_active = models.BooleanField(default=True)
+    is_redeemable = models.BooleanField(default=True)
+    redemption_instructions = models.TextField(blank=True)
+    
+    # Relationships
+    task = models.ForeignKey(
+        'Task', 
+        on_delete=models.CASCADE, 
+        related_name='rewards',
+        null=True,
+        blank=True
+    )
+    
+    eligible_users = models.ManyToManyField(
+        User,
+        related_name='eligible_rewards',
+        blank=True
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_rewards'
+    )
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def can_be_redeemed_by(self, user):
+        """Check if user can redeem this reward"""
+        user_points = user.points
+        has_access = not self.eligible_users.exists() or user in self.eligible_users.all()
+        return (
+            self.is_active 
+            and self.is_redeemable
+            and has_access
+            and user_points.available_points >= self.point_cost
+        )
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.point_cost} points)"
+    
+class RewardRedemption(models.Model):
+    REDEMPTION_STATUS = (
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('fulfilled', 'Fulfilled')
+    )
+    
+    reward = models.ForeignKey(Reward, on_delete=models.CASCADE, related_name='redemptions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reward_redemptions')
+    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+    points_used = models.PositiveIntegerField()
+    status = models.CharField(max_length=20, choices=REDEMPTION_STATUS, default='pending')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    admin_notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+        
+    def __str__(self):
+        return f"{self.user.username}'s redemption of {self.reward.name}"
 
 class PointsTransaction(models.Model):
     TRANSACTION_TYPES = (
@@ -227,9 +295,20 @@ class PointsTransaction(models.Model):
     transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
     points = models.IntegerField()
     description = models.CharField(max_length=255)
-    related_task = models.ForeignKey('Task', on_delete=models.SET_NULL, null=True, blank=True)
-    related_feedback = models.IntegerField(null=True, blank=True) 
-   
+    related_task = models.ForeignKey(
+        'Task', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='points_transactions'
+    )
+    related_reward = models.ForeignKey(
+        'Reward',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transactions'
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

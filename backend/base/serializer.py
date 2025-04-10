@@ -399,33 +399,182 @@ class TaskViewSerializer(serializers.ModelSerializer):
     
 
 
+from rest_framework import serializers
+from .models import PointsTransaction, Badge, UserBadge, Reward, UserPoints, Task
+
+class TaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ['id', 'task_title', 'status', 'project', 'assigned_shift']
+
 class PointsTransactionSerializer(serializers.ModelSerializer):
+    related_task = TaskSerializer(read_only=True)
+    reward_details = serializers.SerializerMethodField()
+    
     class Meta:
         model = PointsTransaction
-        fields = ['id', 'transaction_type', 'points', 'description', 'timestamp']
+        fields = [
+            'id', 
+            'transaction_type', 
+            'points', 
+            'description', 
+            'timestamp',
+            'related_task',
+            'reward_details'
+        ]
+        read_only_fields = ['timestamp']
+    
+    def get_reward_details(self, obj):
+        if obj.related_reward:
+            return {
+                'id': obj.related_reward.id,
+                'name': obj.related_reward.name,
+                'type': obj.related_reward.reward_type
+            }
+        return None
 
 class BadgeSerializer(serializers.ModelSerializer):
+    is_earned = serializers.SerializerMethodField()
+    
     class Meta:
         model = Badge
-        fields = ['id', 'name', 'description', 'points_required', 'icon']
+        fields = [
+            'id', 
+            'name', 
+            'description', 
+            'points_required', 
+            'icon',
+            'is_earned'
+        ]
+    
+    def get_is_earned(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return UserBadge.objects.filter(
+                user=request.user, 
+                badge=obj
+            ).exists()
+        return False
 
 class UserBadgeSerializer(serializers.ModelSerializer):
     badge = BadgeSerializer()
+    task_details = serializers.SerializerMethodField()
     
     class Meta:
         model = UserBadge
-        fields = ['id', 'badge', 'date_earned']
+        fields = [
+            'id', 
+            'badge', 
+            'date_earned',
+            'task_details'
+        ]
+    
+    def get_task_details(self, obj):
+        if obj.awarded_for_task:
+            return {
+                'id': obj.awarded_for_task.id,
+                'title': obj.awarded_for_task.task_title
+            }
+        return None
 
 class RewardSerializer(serializers.ModelSerializer):
+    is_affordable = serializers.SerializerMethodField()
+    task_details = serializers.SerializerMethodField()
+    
     class Meta:
         model = Reward
-        fields = ['id', 'name', 'description', 'point_cost', 'reward_type', 'cash_value', 'days_off']
+        fields = [
+            'id',
+            'name',
+            'description',
+            'point_cost',
+            'reward_type',
+            'cash_value',
+            'days_off',
+            'is_active',
+            'is_affordable',
+            'task_details'
+        ]
+    
+    def get_is_affordable(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            user_points = UserPoints.objects.get_or_create(user=request.user)[0]
+            return user_points.available_points >= obj.point_cost
+        return False
+    
+    def get_task_details(self, obj):
+        if obj.task:
+            return {
+                'id': obj.task.id,
+                'title': obj.task.task_title
+            }
+        return None
 
 class UserPointsSerializer(serializers.ModelSerializer):
     transactions = PointsTransactionSerializer(many=True, read_only=True)
     badges = UserBadgeSerializer(many=True, read_only=True)
+    next_badge = serializers.SerializerMethodField()
     
     class Meta:
         model = UserPoints
-        fields = ['total_points', 'available_points', 'redeemed_points', 'transactions', 'badges']
+        fields = [
+            'total_points',
+            'available_points',
+            'redeemed_points',
+            'last_updated',
+            'transactions',
+            'badges',
+            'next_badge'
+        ]
     
+    def get_next_badge(self, obj):
+        # Get the next badge the user hasn't earned yet
+        earned_badges = UserBadge.objects.filter(
+            user=obj.user
+        ).values_list('badge_id', flat=True)
+        
+        next_badge = Badge.objects.exclude(
+            id__in=earned_badges
+        ).order_by('points_required').first()
+        
+        if next_badge:
+            return {
+                'id': next_badge.id,
+                'name': next_badge.name,
+                'points_required': next_badge.points_required,
+                'points_needed': max(0, next_badge.points_required - obj.total_points)
+            }
+        return None
+    
+    
+    # serializers.py
+from rest_framework import serializers
+from .models import Reward
+
+class RewardCreateSerializer(serializers.ModelSerializer):
+    
+    
+    eligible_users = serializers.SlugRelatedField(
+        many=True,
+        slug_field='username',  # Match based on username
+        queryset=User.objects.all(),
+        required=False
+    )
+    class Meta:
+        model = Reward
+        fields = [
+            'name',
+            'description',
+            'point_cost',
+            'reward_type',
+            'cash_value',
+            'days_off',
+            'is_active',
+            'is_redeemable',
+            'redemption_instructions',
+            'eligible_users'  # If using the many-to-many relationship
+        ]
+        extra_kwargs = {
+            'eligible_users': {'required': False}  # Not required for creation
+        }

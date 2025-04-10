@@ -23,6 +23,10 @@ import WorkerProductivityCharts from './routes/ReportsDashboard';
 import ProjectStatus from './routes/Manager Routes/ProjectStatus';
 import ReportDashboard from './routes/ReportsDashboard';
 import AwardPoints from './routes/Manager Routes/AwardPoints';
+import CreateReward from './routes/Manager Routes/Rewards';
+import ManagerRewardsView from './routes/Manager Routes/ManagerRewardsView';
+
+
 
 
 import Home from './routes/Homepage/Home';
@@ -31,6 +35,9 @@ import { AuthProvider } from './context/useAuth';
 
 function App() {
   return (
+   <div>
+    <title>LaborSync</title>
+    <helmet></helmet>
     <Router>
       <AuthProvider>
         <Routes>
@@ -151,6 +158,24 @@ function App() {
           }
         />
 
+      <Route 
+          path="/create-reward" 
+          element={
+            <RoleProtectedRoute role="manager">
+              < CreateReward />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/manager-rewards"
+          element={
+            <RoleProtectedRoute role="manager">
+              <ManagerRewardsView />
+            </RoleProtectedRoute>
+          }
+        />
+
           {/* Add more routes as needed */}
         
         </Routes>
@@ -161,6 +186,7 @@ function App() {
         
       </AuthProvider>
     </Router>
+    </div>
   );
 }
 

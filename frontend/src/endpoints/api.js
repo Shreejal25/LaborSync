@@ -3,7 +3,6 @@ import axios from "axios";
 const BASE_URL = 'http://127.0.0.1:8000/api/';
 const LOGIN_URL = `${BASE_URL}token/`;
 const REFRESH_URL = `${BASE_URL}token/refresh/`;
-// const DASHBOARD_URL = `${BASE_URL}dashboard/`;
 const LOGOUT_URL = `${BASE_URL}logout/`;
 const AUTH_URL = `${BASE_URL}authenticated/`;
 const REGISTER_URL = `${BASE_URL}register/`;
@@ -35,6 +34,10 @@ const DELETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/delete/`;
 const COMPLETE_TASK_URL = `${BASE_URL}tasks/`;  // Just the base path
 const AWARD_POINTS_URL = `${BASE_URL}points/award/`;
 const USER_POINTS_URL = `${BASE_URL}points/`;
+const CREATE_REWARDS_URL = `${BASE_URL}rewards/create/`;
+const GET_REWARDS_DETAILS = `${BASE_URL}rewards/`;
+const REDEEM_REWARD_URL = `${BASE_URL}rewards/redeem/`;
+const MANGER_REWARD_VIEW_URL = `${BASE_URL}manager/rewards/`;
 
 export const login = async (username, password) => {
     try {
@@ -68,14 +71,6 @@ const callRefresh = async (error, func) => {
     throw error;
 };
 
-// export const getDashboard = async () => {
-//     try {
-//         const response = await axios.get(DASHBOARD_URL, { withCredentials: true });
-//         return response.data;
-//     } catch (error) {
-//         return callRefresh(error, () => axios.get(DASHBOARD_URL, { withCredentials: true }));
-//     }
-// };
 
 
 
@@ -127,54 +122,6 @@ export const deleteProject = async (projectId) => {
         throw error;
     }
 };
-// export const updateTask = async (taskId, taskData) => {
-//     try {   
-//         const response = await axios.put(
-//             `${UPDATE_TASKS_URL}${taskId}/update/`,
-//             taskData,
-//             { withCredentials: true }
-//         );
-//         return response.data;
-//     } catch (error) {
-//         console.error("Error updating task:", error);
-//         if (error.response) {
-//             // The request was made and the server responded with a status code
-//             console.error("Server response:", error.response.data);
-//             console.error("Server status:", error.response.status);
-//         } else if (error.request) {
-//             // The request was made but no response was received
-//             console.error("No response received:", error.request);
-//         } else {
-//             // Something happened in setting up the request
-//             console.error("Error message:", error.message);
-//         }
-//         throw error;
-//     }
-// };
-
-// export const deleteTask = async (taskId) => {
-//     try {
-//         const response = await axios.delete(
-//             `${DELETE_TASK_URL}${taskId}/delete/`,
-//             { withCredentials: true }
-//         );
-//         return response.data;
-//     } catch (error) {
-//         console.error("Error deleting task:", error);
-//         if (error.response) {
-//             // The request was made and the server responded with a status code
-//             console.error("Server response:", error.response.data);
-//             console.error("Server status:", error.response.status);
-//         } else if (error.request) {
-//             // The request was made but no response was received
-//             console.error("No response received:", error.request);
-//         } else {
-//             // Something happened in setting up the request
-//             console.error("Error message:", error.message);
-//         }
-//         throw error;
-//     }
-// };
 
 
 export const updateTask = async (taskId, taskData) => {
@@ -602,5 +549,62 @@ export const getUserPoints = async () => {
     } catch (error) {
         console.error("Error fetching user points:", error);
         throw error;
+    }
+};
+
+export const createRewards = async (rewardData) => {
+    try {
+        const response = await axios.post(CREATE_REWARDS_URL, rewardData, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error creating rewards:", error);
+        throw error;
+    }
+};
+
+export const getRewardsDetails = async () => {
+    try {
+        const response = await axios.get(GET_REWARDS_DETAILS, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching rewards details:", error);
+        throw error;
+    }
+};
+
+export const redeemReward = async (rewardId) => {
+    try {
+        const response = await axios.post(REDEEM_REWARD_URL, { reward_id: rewardId }, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error redeeming reward:", error);
+        throw error;
+    }
+};
+
+export const getManagerRewards = async () => {
+    try {
+        const response = await axios.get(MANGER_REWARD_VIEW_URL, { 
+            withCredentials: true,
+          
+        });
+        
+        // Ensure consistent response structure
+        return {
+            data: {
+                count: response.data?.count || 0,
+                rewards: response.data?.rewards || []
+            }
+        };
+    } catch (error) {
+        console.error("Error fetching manager reward view:", error);
+        // Return consistent structure even on error
+        return {
+            data: {
+                count: 0,
+                rewards: [],
+                error: error.response?.data?.error || 'Failed to fetch rewards'
+            }
+        };
     }
 };

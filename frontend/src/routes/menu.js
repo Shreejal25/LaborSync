@@ -207,24 +207,26 @@ const UserDashboard = () => {
         </div>
         <nav className="flex-grow">
           <ul className="flex flex-col py-4">
-            {[
-              { path: '/menu', label: 'Dashboard' },
-              { path: '/schedule', label: 'Schedule' },
-              { path: '/timesheets', label: 'Timesheets' },
-              { path: '/view-project', label: 'View Project' },
-              { path: '/view-task', label: 'View Tasks' },
-              { path: '/reports', label: 'Reports' },
-              { path: '/rewards', label: 'Rewards' },
-              { path: '/user-profile', label: 'Worker Details' }
-            ].map((item) => (
-              <li
-                key={item.path}
-                className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer"
-                onClick={() => navigate(item.path)}
-              >
-                {item.label}
-              </li>
-            ))}
+          <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
+                            Dashboard
+                        </li>
+                       
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
+                            Timesheets
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-project')}>
+                            View Project
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
+                            View Tasks
+                        </li>
+                        
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/rewards')}>
+                            Rewards
+                        </li>
+                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
+                            Worker Details
+                        </li>
           </ul>
         </nav>
         <button

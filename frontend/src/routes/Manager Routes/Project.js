@@ -81,24 +81,24 @@ const CreateProjectPage = () => {
                 </div>
                 <nav className="flex-grow">
                     <ul className="flex flex-col py-4">
-                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-              Dashboard
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
-              Manage Schedule
-            </li>
-            <li className="flex items-center px-6 py-2 bg-gray-200 cursor-pointer font-medium" onClick={() => navigate('/create-project')}>
-             Projects
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
-              Assign Tasks
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-              Reports
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-              Worker Details
-            </li>
+                            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
+                    Dashboard
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
+                    Manage Schedule
+                    </li>
+                    <li className="flex items-center px-6 py-2 bg-gray-200 cursor-pointer font-medium" onClick={() => navigate('/create-project')}>
+                    Projects
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
+                    Assign Tasks
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
+                    Reports
+                    </li>
+                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
+                    Worker Details
+                    </li>
                     </ul>
                 </nav>
                 <button
