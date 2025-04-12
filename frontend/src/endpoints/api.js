@@ -36,8 +36,10 @@ const AWARD_POINTS_URL = `${BASE_URL}points/award/`;
 const USER_POINTS_URL = `${BASE_URL}points/`;
 const CREATE_REWARDS_URL = `${BASE_URL}rewards/create/`;
 const GET_REWARDS_DETAILS = `${BASE_URL}rewards/`;
-const REDEEM_REWARD_URL = `${BASE_URL}rewards/redeem/`;
+const REDEEM_REWARD_URL = `${BASE_URL}points/redeem/`;
 const MANGER_REWARD_VIEW_URL = `${BASE_URL}manager/rewards/`;
+// In your api.js or constants file
+const DELETE_REWARD_URL = `${BASE_URL}rewards/delete/`;
 
 export const login = async (username, password) => {
     try {
@@ -572,9 +574,13 @@ export const getRewardsDetails = async () => {
     }
 };
 
-export const redeemReward = async (rewardId) => {
+export const redeemReward = async (rewardName) => {
     try {
-        const response = await axios.post(REDEEM_REWARD_URL, { reward_id: rewardId }, { withCredentials: true });
+        const response = await axios.post(
+            REDEEM_REWARD_URL, 
+            { reward_name: rewardName },  // Changed to match API expectation
+            { withCredentials: true }
+        );
         return response.data;
     } catch (error) {
         console.error("Error redeeming reward:", error);
@@ -606,5 +612,18 @@ export const getManagerRewards = async () => {
                 error: error.response?.data?.error || 'Failed to fetch rewards'
             }
         };
+    }
+};
+
+
+export const deleteReward = async (rewardId) => {
+    try {
+        const response = await axios.delete(`${DELETE_REWARD_URL}${rewardId}/`, { 
+            withCredentials: true 
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting reward:", error);
+        throw error;
     }
 };

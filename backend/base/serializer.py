@@ -479,6 +479,7 @@ class UserBadgeSerializer(serializers.ModelSerializer):
 
 class RewardSerializer(serializers.ModelSerializer):
     is_affordable = serializers.SerializerMethodField()
+    task = serializers.PrimaryKeyRelatedField(read_only=True)
     task_details = serializers.SerializerMethodField()
     
     class Meta:
@@ -493,6 +494,7 @@ class RewardSerializer(serializers.ModelSerializer):
             'days_off',
             'is_active',
             'is_affordable',
+            'task',
             'task_details'
         ]
     
@@ -507,7 +509,8 @@ class RewardSerializer(serializers.ModelSerializer):
         if obj.task:
             return {
                 'id': obj.task.id,
-                'title': obj.task.task_title
+                
+                'description': obj.task.description
             }
         return None
 
@@ -561,6 +564,13 @@ class RewardCreateSerializer(serializers.ModelSerializer):
         queryset=User.objects.all(),
         required=False
     )
+    
+    task = serializers.PrimaryKeyRelatedField(
+        queryset=Task.objects.all(),
+        required=False,
+        allow_null=True
+    )
+        
     class Meta:
         model = Reward
         fields = [
@@ -573,8 +583,10 @@ class RewardCreateSerializer(serializers.ModelSerializer):
             'is_active',
             'is_redeemable',
             'redemption_instructions',
+            'task',  # If using the foreign key relationship
             'eligible_users'  # If using the many-to-many relationship
         ]
         extra_kwargs = {
-            'eligible_users': {'required': False}  # Not required for creation
+            'eligible_users': {'required': False}, # Not required for creation
+            'task': {'required': False}
         }

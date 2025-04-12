@@ -1072,12 +1072,11 @@ def process_reward(user, reward):
     
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsManager])
 def create_reward(request):
     """
-    Create a new reward
+    Create a new reward with optional task association
     POST /api/rewards/create/
     {
         "name": "Team Bonus",
@@ -1086,17 +1085,24 @@ def create_reward(request):
         "reward_type": "bonus",
         "cash_value": 100.00,
         "is_active": true,
-        "eligible_users": [1, 2, 3]  # Optional user IDs
+        "eligible_users": ["user1", "user2"],
+        "task": 123  # Optional task ID
     }
     """
     serializer = RewardCreateSerializer(data=request.data, context={'request': request})
     
     if serializer.is_valid():
-        # Get eligible_users data before saving
+        # Extract optional fields
         eligible_users = serializer.validated_data.pop('eligible_users', [])
+        task = serializer.validated_data.pop('task', None)
         
-        # Create the reward and automatically set the creator
+        # Create the reward
         reward = serializer.save(created_by=request.user)
+        
+        # Associate task if provided
+        if task:
+            reward.task = task
+            reward.save()
         
         # Add eligible users if any were provided
         if eligible_users:
@@ -1117,6 +1123,42 @@ def create_reward(request):
         },
         status=status.HTTP_400_BAD_REQUEST
     )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsManager])
+def delete_reward(request, reward_id):
+    """
+    Delete a reward (force delete)
+    DELETE /api/rewards/delete/<int:reward_id>/
+    """
+    try:
+        # Get the reward and verify the current manager created it
+        reward = Reward.objects.get(
+            id=reward_id,
+            created_by=request.user  # Only the creator can delete
+        )
+        
+        # Force delete the reward regardless of any redemptions
+        reward.delete()
+        
+        return Response(
+            {'message': 'Reward deleted successfully'},
+            status=status.HTTP_200_OK
+        )
+        
+    except Reward.DoesNotExist:
+        return Response(
+            {'error': 'Reward not found or you are not authorized to delete it'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])  # Removed IsManager to allow all users to view their history
 def get_reward_history(request):
@@ -1222,6 +1264,72 @@ def get_manager_rewards(request):
             'rewards': reward_data
         })
 
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_worker_rewards(request):
+    """
+    Get all reward information for the current worker
+    Includes:
+    - Available rewards (filtered by eligibility)
+    - Points balance
+    - Redemption history
+    """
+    try:
+        # Get user's points balance
+        points, _ = UserPoints.objects.get_or_create(user=request.user)
+        points_serializer = UserPointsSerializer(points)
+        
+        # Get available rewards
+        available_rewards = Reward.objects.filter(
+            is_active=True
+        ).filter(
+            Q(eligible_users__isnull=True) |  # Public rewards
+            Q(eligible_users=request.user)    # User-specific rewards
+        ).distinct()
+        
+        rewards_serializer = RewardSerializer(available_rewards, many=True, context={'request': request})
+        
+        # Get redemption history
+        transactions = PointsTransaction.objects.filter(
+            user=request.user,
+            transaction_type__in=['redeem', 'redeem_failed']
+        ).select_related('related_reward').order_by('-timestamp')[:10]  # Last 10 transactions
+        
+        history = []
+        for transaction in transactions:
+            reward = transaction.related_reward
+            history.append({
+                'id': transaction.id,
+                'reward': {
+                    'id': reward.id if reward else None,
+                    'name': reward.name if reward else 'Unknown Reward',
+                    'type': reward.reward_type if reward else None,
+                },
+                'points': abs(transaction.points),
+                'date': transaction.timestamp,
+                'status': 'success' if transaction.points < 0 else 'failed',
+                'description': transaction.description
+            })
+        
+        return Response({
+            'points': points_serializer.data,
+            'available_rewards': {
+                'count': len(rewards_serializer.data),
+                'rewards': rewards_serializer.data
+            },
+            'redemption_history': {
+                'count': len(history),
+                'transactions': history
+            }
+        })
+        
     except Exception as e:
         return Response(
             {'error': str(e)},

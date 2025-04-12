@@ -40,7 +40,9 @@ from .views import (
     get_available_rewards,
     get_reward_history,
     create_reward,
-    get_manager_rewards
+    get_manager_rewards,
+    get_worker_rewards,
+    delete_reward,
    
    
     
@@ -93,6 +95,8 @@ urlpatterns = [
     path('rewards/history/', get_reward_history, name='get_reward_history'),
     path('rewards/create/', create_reward, name='create_reward'),
     path('manager/rewards/', get_manager_rewards, name='get_manager_rewards'),
+    path('worker/rewards/', get_worker_rewards, name='get_worker_rewards'),
+    path('rewards/delete/<int:reward_id>/', delete_reward, name='delete-reward'),
     
   
     

@@ -25,6 +25,7 @@ import ReportDashboard from './routes/ReportsDashboard';
 import AwardPoints from './routes/Manager Routes/AwardPoints';
 import CreateReward from './routes/Manager Routes/Rewards';
 import ManagerRewardsView from './routes/Manager Routes/ManagerRewardsView';
+import WorkerRewards from './routes/WorkerRewards';
 
 
 
@@ -175,6 +176,15 @@ function App() {
             </RoleProtectedRoute>
           }
         />
+
+        <Route
+          path="/worker-rewards"
+          element={
+            <RoleProtectedRoute role="user">
+              <WorkerRewards />
+            </RoleProtectedRoute>
+          }
+        />  
 
           {/* Add more routes as needed */}
         
