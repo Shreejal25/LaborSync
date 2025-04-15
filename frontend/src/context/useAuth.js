@@ -208,6 +208,8 @@ const updateProfile = async (profileData) => {
         first_name: profileData.first_name,
         last_name: profileData.last_name,
       },
+   
+      profile_image: profileData.profile_image,
       phone_number: profileData.phone_number,
       gender: profileData.gender,
       current_address: profileData.current_address,

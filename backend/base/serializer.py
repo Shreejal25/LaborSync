@@ -120,46 +120,31 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'first_name', 'last_name']  # Include user fields
 
 class ManagerProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer()  # Nested serializer for user details
+    user = UserSerializer(required=False)
 
     class Meta:
         model = ManagerProfile
-        fields = ['user', 'company_name', 'work_location']  # Role is removed as it's not in the model
-
-    def create(self, validated_data):
-        user_data = validated_data.pop('user')  # Extract user data
-        user = User.objects.create(**user_data)  # Create user instance
-        manager_profile = ManagerProfile.objects.create(user=user, **validated_data)  # Create profile
-        return manager_profile
-
-    def get_user(self, obj):
-        return {
-            'username': obj.user.username,
-            'email': obj.user.email,
-            'first_name': obj.user.first_name,
-            'last_name': obj.user.last_name,
-        }
+        fields = ['user', 'company_name', 'work_location']
 
     def update(self, instance, validated_data):
-        # Extract user data from the request
-        user_data = validated_data.pop('user', None)
+        user_data = validated_data.pop('user', {})
+        user = instance.user
         
-        # Debugging: print the validated data
-        print("Validated data:", validated_data)
+        # Update user fields if they exist in user_data
+        for field in ['email', 'first_name', 'last_name']:
+            if field in user_data:
+                setattr(user, field, user_data[field])
+        
+        # Only update username if it's different and valid
+        if 'username' in user_data and user_data['username'] != user.username:
+            if not User.objects.filter(username=user_data['username']).exists():
+                user.username = user_data['username']
+        
+        user.save()
 
-        # Update user fields if user data is provided
-        if user_data:
-            user = instance.user
-            print("Updating user:", user)
-            user.username = user_data.get("username", user.username)
-            user.email = user_data.get("email", user.email)
-            user.first_name = user_data.get("first_name", user.first_name)
-            user.last_name = user_data.get("last_name", user.last_name)
-            user.save()
-
-        # Update ManagerProfile fields
-        instance.company_name = validated_data.get("company_name", instance.company_name)
-        instance.work_location = validated_data.get("work_location", instance.work_location)
+        # Update profile fields
+        instance.company_name = validated_data.get('company_name', instance.company_name)
+        instance.work_location = validated_data.get('work_location', instance.work_location)
         instance.save()
 
         return instance
@@ -167,16 +152,18 @@ class ManagerProfileSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
+    profile_image = serializers.ImageField(required=False, allow_null=True)
+    
     class Meta:
         model = UserProfile
         fields = [
             'user',
+            'profile_image',
             'role',
             'phone_number', 'gender', 'current_address', 'permanent_address',
             'city_town', 'state_province', 'education_level', 'certifications',
             'skills', 'languages_spoken', 'work_availability', 'work_schedule_preference'
         ]
-
 
 
 class ManagerSerializer(serializers.ModelSerializer):

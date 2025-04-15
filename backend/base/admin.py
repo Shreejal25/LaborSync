@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project, Badge, PointsTransaction, Reward, UserBadge, UserPoints, RewardRedemption
+from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project, Badge, PointsTransaction, Reward, UserBadge, UserPoints
 from django.utils.timezone import localtime
 
 
@@ -25,7 +25,6 @@ class RewardAdmin(admin.ModelAdmin):
 
 admin.site.register(UserBadge)
 admin.site.register(PointsTransaction)
-admin.site.register(RewardRedemption)
 
 
 

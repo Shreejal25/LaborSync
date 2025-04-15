@@ -1,271 +1,239 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
-import { logout, getManagerDashboard, getWorkers, getClockHistory, getProjects } from '../../endpoints/api'; // Add manager-specific API functions
-
-import logo from '../../assets/images/LaborSynclogo.png'; // Import logo
+import { logout, getManagerDashboard, getWorkers, getClockHistory, getProjects } from '../../endpoints/api';
+import logo from '../../assets/images/LaborSynclogo.png';
 
 const ManagerDashboard = () => {
   const [tasks, setTasks] = useState([]);
-  const [workers, setWorkers] = useState([]);  // Local state for workers
-  const [clockHistory, setClockHistory] = useState([]);  // Local state for clock history
+  const [workers, setWorkers] = useState([]);
+  const [clockHistory, setClockHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState([]); // Add projects state
-
+  const [projects, setProjects] = useState([]);
 
   const navigate = useNavigate();
-  const { userProfile, fetchUserProfile} = useAuth();
+  const { userProfile, fetchUserProfile } = useAuth();
+
   const formatDateTime = (isoString) => {
+    if (!isoString) return 'N/A';
     const date = new Date(isoString);
-    return date.toLocaleString(); // Adjust format as needed
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      await fetchUserProfile(); // Fetch manager profile
-      console.log("User Profile:", userProfile); // Log the user profile
-    } catch (error) {
-      console.error("Error fetching manager profile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchProfile();
-}, [fetchUserProfile]);
-
-
-
-
+    const fetchProfile = async () => {
+      try {
+        await fetchUserProfile();
+      } catch (error) {
+        console.error("Error fetching manager profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     const fetchData = async () => {
-        try {
-          const dashboardData = await getManagerDashboard();
-          console.log("Dashboard Data:", dashboardData); // Log dashboard data
-          setTasks(dashboardData.recent_tasks);
-      
-          const workersData = await getWorkers();
-          console.log("Workers Data:", workersData); // Log workers data
-          setWorkers(workersData);
-      
-          const historyData = await getClockHistory();
-          console.log("Clock History Data:", historyData); // Log clock history data
-          setClockHistory(historyData);
-
-
-          const projectsData = await getProjects(); // Fetch projects
-          setProjects(projectsData); // Set projects state
-        } catch (error) {
-          console.error("Error fetching manager dashboard data:", error);
-        }
-      };
-
+      try {
+        const dashboardData = await getManagerDashboard();
+        setTasks(dashboardData.recent_tasks);
+        const workersData = await getWorkers();
+        setWorkers(workersData);
+        const historyData = await getClockHistory();
+        setClockHistory(historyData);
+        const projectsData = await getProjects();
+        setProjects(projectsData);
+      } catch (error) {
+        console.error("Error fetching manager dashboard data:", error);
+      }
+    };
     fetchData();
-  }, []); // Only run once on component mount
+  }, []);
 
-  
   const handleLogout = async () => {
     try {
       const success = await logout();
-      if (success) {
-        navigate('/login');
-      } else {
-        console.error("Logout failed");
-      }
+      if (success) navigate('/login');
     } catch (error) {
       console.error("Error during logout:", error);
     }
   };
 
-  
-
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen font-['Poppins']">Loading...</div>;
+  }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-50 font-['Poppins']">
       {/* Side Panel */}
-      <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
+      <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
         <div className="flex items-center justify-center py-4 border-b">
-          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" /> {/* Logo */}
+          <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
         </div>
-        <nav className="flex-grow">
+        <nav className="flex-grow overflow-y-auto">
           <ul className="flex flex-col py-4">
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-              Dashboard
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
-              Manage Schedule
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/create-project')}>
-              Project
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
-              Assign Tasks
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-rewards')}>
-              Rewards
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-              Reports
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-              Worker Details
-            </li>
+            {[
+              { path: '/manager-dashboard', label: 'Dashboard' },
+              { path: '/manage-schedule', label: 'Manage Schedule' },
+              { path: '/create-project', label: 'Project' },
+              { path: '/assign-task', label: 'Assign Tasks' },
+              { path: '/manager-rewards', label: 'Rewards' },
+              { path: '/reports', label: 'Reports' },
+              { path: '/manager-profile', label: 'Worker Details' }
+            ].map((item, index) => (
+              <li 
+                key={index}
+                className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
+                onClick={() => navigate(item.path)}
+              >
+                {item.label}
+              </li>
+            ))}
           </ul>
         </nav>
-        <button
-          onClick={handleLogout}
-          className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200"
-        >
-          Logout
-        </button>
+        <div className="p-4 border-t">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-grow p-8 flex flex-col">
-        <div className="bg-[#F4F4F9] p-6 rounded shadow-md mb-6">
-            
-          <h1 className="text-2xl font-bold mb-2 text-gray-800">
+      <div className="flex-grow p-4 md:p-8 overflow-y-auto">
+        {/* Welcome Banner */}
+        <div className="bg-[#F4F4F9] p-4 md:p-6 rounded shadow-md mb-6">
+          <h1 className="text-xl md:text-2xl font-bold mb-2 text-gray-800">
             Hello {userProfile?.user.first_name || "Manager"},👋 Welcome,
           </h1>
-          <p className="text-lg text-gray-600">Manage your team and tasks from here</p>
+          <p className="text-base md:text-lg text-gray-600">Manage your team and tasks from here</p>
         </div>
 
         {/* Recent Tasks */}
-<div className="bg-white p-6 rounded shadow-md mb-6">
-  <h2 className="text-xl font-bold mb-4">Recent Project and Tasks</h2>
-  {tasks.length > 0 ? (
-    <table className="w-full table-auto border-collapse">
-      <thead>
-    <tr>
-        <th className="px-4 py-2 border border-gray-300">Project Name</th>
-        <th className="px-4 py-2 border border-gray-300">Task Title</th>
-        <th className="px-4 py-2 border border-gray-300">Assigned Workers</th>
-        <th className="px-4 py-2 border border-gray-300">Project Created At</th>
-        <th className="px-4 py-2 border border-gray-300">Project Updated At</th>
-        <th className="px-4 py-2 border border-gray-300">Status</th>
-    </tr>
-</thead>
-      <tbody>
-      {tasks.map((task) => (
-    <tr key={task.id}>
-        <td className="px-4 py-2 border border-gray-300">
-            {/* Display project name */}
-            {projects.find((project) => project.id === task.project)?.name ? (
-                projects.find((project) => project.id === task.project).name
-            ) : (
-                'No Project'
-            )}
-        </td>
-        <td className="px-4 py-2 border border-gray-300">{task.task_title}</td>
-        <td className="px-4 py-2 border border-gray-300">
-            {/* Display project workers */}
-            {projects
-                .find((project) => project.id === task.project)?.workers?.length > 0
-                ? projects
-                      .find((project) => project.id === task.project)
-                      .workers.map((worker, index) => (
-                          <span key={index}>
-                              {worker}
-                              {index < projects.find((project) => project.id === task.project).workers.length - 1 && ', '}
-                          </span>
-                      ))
-                : 'Not Assigned'}
-        </td>
-        <td className="px-4 py-2 border border-gray-300">
-            {/* Display created_at */}
-            {projects.find((project) => project.id === task.project)?.created_at ? (
-                formatDateTime(projects.find((project) => project.id === task.project).created_at)
-            ) : (
-                'N/A'
-            )}
-        </td>
-        <td className="px-4 py-2 border border-gray-300">
-            {/* Display updated_at */}
-            {projects.find((project) => project.id === task.project)?.updated_at ? (
-                formatDateTime(projects.find((project) => project.id === task.project).updated_at)
-            ) : (
-                'N/A'
-            )}
-        </td>
-        <td className="px-4 py-2 border border-gray-300 flex items-center gap-2">
-            {/* Display task status */}
-            <span
-                className={`h-3 w-3 rounded-full ${
-                    task.status === 'pending'
-                        ? 'bg-red-500'
-                        : task.status === 'in_progress'
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                }`}
-            ></span>
-            {task.status.replace('_', ' ').toUpperCase()}
-        </td>
-    </tr>
-))}
-      </tbody>
-    </table>
-  ) : (
-    <p className="text-gray-500">No tasks available</p>
-  )}
-</div>
-
-
-        {/* Worker Details */}
-        <div className="bg-white p-6 rounded shadow-md mb-6">
-          <h2 className="text-xl font-bold mb-4">Worker Details</h2>
-          {workers.length > 0 ? (
-            <table className="w-full table-auto border-collapse">
+        <div className="bg-white p-4 md:p-6 rounded shadow-md mb-6">
+          <h2 className="text-lg md:text-xl font-bold mb-4">Recent Project and Tasks</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max">
               <thead>
-                <tr>
-                <th className="px-4 py-2 border border-gray-300">UserName</th>
-                  <th className="px-4 py-2 border border-gray-300">Full Name</th>
-                  <th className="px-4 py-2 border border-gray-300">Email</th>
-                  
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Project Name</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Task Title</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Assigned Workers</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Created</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Updated</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Status</th>
                 </tr>
               </thead>
-              <tbody>
-                {workers.map((worker) => (
-                  <tr key={worker.id}>
-                    <td className="px-4 py-2 border border-gray-300">{worker.user.username}</td>
-                    <td className="px-4 py-2 border border-gray-300">{worker.user.first_name} {worker.user.last_name}</td>
-                    <td className="px-4 py-2 border border-gray-300">{worker.user.email}</td>
-                   
+              <tbody className="divide-y divide-gray-200">
+                {tasks.length > 0 ? (
+                  tasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {projects.find(p => p.id === task.project)?.name || 'No Project'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{task.task_title}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {projects.find(p => p.id === task.project)?.workers?.join(', ') || 'Not Assigned'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {formatDateTime(projects.find(p => p.id === task.project)?.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {formatDateTime(projects.find(p => p.id === task.project)?.updated_at)}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-3 w-3 rounded-full ${
+                            task.status === 'pending' ? 'bg-red-500' :
+                            task.status === 'in_progress' ? 'bg-yellow-500' :
+                            'bg-green-500'
+                          }`}></span>
+                          <span>{task.status.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-3 text-sm text-gray-500 text-center">No tasks available</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
-          ) : (
-            <p className="text-gray-500">No workers available</p>
-          )}
+          </div>
+        </div>
+
+        {/* Worker Details */}
+        <div className="bg-white p-4 md:p-6 rounded shadow-md mb-6">
+          <h2 className="text-lg md:text-xl font-bold mb-4">Worker Details</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Username</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Full Name</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Email</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {workers.length > 0 ? (
+                  workers.map((worker) => (
+                    <tr key={worker.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-700">{worker.user.username}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{worker.user.first_name} {worker.user.last_name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{worker.user.email}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="px-4 py-3 text-sm text-gray-500 text-center">No workers available</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Clock-in/Clock-out History */}
-        <div className="bg-white p-6 rounded shadow-md">
-          <h2 className="text-xl font-bold mb-4">Clock-in and Clock-out History</h2>
-          {clockHistory.length > 0 ? (
-            <table className="w-full table-auto border-collapse">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 border border-gray-300">Worker</th>
-                  <th className="px-4 py-2 border border-gray-300">Clock-in Time</th>
-                  <th className="px-4 py-2 border border-gray-300">Clock-out Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clockHistory.map((record) => (
-                  <tr key={record.id}>
-                    <td className="px-4 py-2 border border-gray-300">{record.username}</td>
-                    <td className="px-4 py-2 border border-gray-300">{formatDateTime(record.clock_in)}</td>
-                    <td className="px-4 py-2 border border-gray-300">{formatDateTime(record.clock_out)}</td>
+        <div className="bg-white p-4 md:p-6 rounded shadow-md">
+          <h2 className="text-lg md:text-xl font-bold mb-4">Clock-in/Clock-out History</h2>
+          <div className="overflow-x-auto">
+            <div className="max-h-96 overflow-y-auto">
+              <table className="w-full min-w-max">
+                <thead>
+                  <tr className="bg-gray-100 sticky top-0">
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Worker</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Clock-in</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Clock-out</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-gray-500">No clock history available</p>
-          )}
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {clockHistory.length > 0 ? (
+                    clockHistory.map((record) => (
+                      <tr key={record.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-700">{record.username}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(record.clock_in)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(record.clock_out) || 'Pending'}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="3" className="px-4 py-3 text-sm text-gray-500 text-center">No clock history available</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

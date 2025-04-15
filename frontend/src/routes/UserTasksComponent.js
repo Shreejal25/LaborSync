@@ -71,41 +71,39 @@ const UserTasksComponent = () => {
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
-            <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
-                <div className="flex items-center justify-center py-4 border-b">
-                    <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-                </div>
-                <nav className="flex-grow">
-                    <ul className="flex flex-col py-4">
-                    <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/menu')}>
-                            Dashboard
-                        </li>
-                       
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/timesheets')}>
-                            Timesheets
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-project')}>
-                            View Project
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/view-task')}>
-                            View Tasks
-                        </li>
-                        
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/worker-rewards')}>
-                            Rewards
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/user-profile')}>
-                            Worker Details
-                        </li>
-                    </ul>
-                </nav>
-                <button
-                    onClick={handleLogout}
-                    className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200"
-                >
-                    Logout
-                </button>
-            </div>
+            <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen">
+                    <div className="flex items-center justify-center py-4 border-b">
+                      <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
+                    </div>
+                    <nav className="flex-grow overflow-y-auto">
+                      <ul className="flex flex-col py-4">
+                        {[
+                          { label: "Dashboard", route: "/menu" },
+                          { label: "Timesheets", route: "/timesheets" },
+                          { label: "View Project", route: "/view-project" },
+                          { label: "View Tasks", route: "/view-task", active: true  },
+                          { label: "Rewards", route: "/worker-rewards" },
+                          { label: "Worker Details", route: "/user-profile"},
+                        ].map(({ label, route, active }) => (
+                          <li
+                            key={label}
+                            className={`flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${active ? "bg-gray-200 font-medium" : ""}`}
+                            onClick={() => navigate(route)}
+                          >
+                            {label}
+                          </li>
+                        ))}
+                      </ul>
+                    </nav>
+                    <div className="p-4 border-t">
+                      <button
+                        onClick={handleLogout}
+                       className="w-full bg-red-500 text-black py-2 rounded hover:bg-gray-300 transition duration-200"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </aside>
 
             {/* Main Content */}
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">

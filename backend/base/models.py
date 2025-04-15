@@ -4,6 +4,7 @@ from django.utils.timezone import now
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     role = models.CharField(max_length=50, choices=[('manager', 'Manager'), ('worker', 'Worker'), ('', '---------')], default='worker', null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     gender = models.CharField(max_length=20, choices=[('male', 'Male'), ('female', 'Female'), ('others', 'Others'), ('', '---------')], null=True, blank=True)
@@ -262,28 +263,7 @@ class Reward(models.Model):
     def __str__(self):
         return f"{self.name} ({self.point_cost} points)"
     
-class RewardRedemption(models.Model):
-    REDEMPTION_STATUS = (
-        ('pending', 'Pending Approval'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-        ('fulfilled', 'Fulfilled')
-    )
-    
-    reward = models.ForeignKey(Reward, on_delete=models.CASCADE, related_name='redemptions')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reward_redemptions')
-    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
-    points_used = models.PositiveIntegerField()
-    status = models.CharField(max_length=20, choices=REDEMPTION_STATUS, default='pending')
-    requested_at = models.DateTimeField(auto_now_add=True)
-    processed_at = models.DateTimeField(null=True, blank=True)
-    admin_notes = models.TextField(blank=True)
 
-    class Meta:
-        ordering = ['-requested_at']
-        
-    def __str__(self):
-        return f"{self.user.username}'s redemption of {self.reward.name}"
 
 class PointsTransaction(models.Model):
     TRANSACTION_TYPES = (

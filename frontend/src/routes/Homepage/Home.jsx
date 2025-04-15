@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useRef } from "react";
 import { Link } from "react-router-dom";
 import logo from '../../assets/images/LaborSynclogo.png'; // Import logo
 import efortless from '../../assets/images/efortless.png'
@@ -12,9 +12,15 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Home = () => {
     const [openDropdown, setOpenDropdown] = useState(null); // 'login' or 'register' or null
+    const blogSectionRef = useRef(null);
 
     const toggleDropdown = (dropdown) => {
         setOpenDropdown(openDropdown === dropdown ? null : dropdown);
+    };
+
+    const scrollToBlog = (e) => {
+        e.preventDefault();
+        blogSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     return (
@@ -28,9 +34,9 @@ const Home = () => {
                     {/* Right: Links + Login + Register Dropdown */}
                     <div className="flex items-center space-x-6">
                         {/* Navigation Links */}
-                        <Link to="/" className="text-gray-700 hover:text-blue-600">
+                        <a href="#blog" onClick={scrollToBlog} className="text-gray-700 hover:text-blue-600 cursor-pointer">
                             Blogs
-                        </Link>
+                        </a>
                         <Link to="/about" className="text-gray-700 hover:text-blue-600">
                             Solutions
                         </Link>
@@ -174,7 +180,7 @@ const Home = () => {
             </section>
 
             {/* Blog Section */}
-            <section className="py-16 bg-white">
+            <section  ref={blogSectionRef} className="py-16 bg-white">
                 <div className="container mx-auto px-6">
                     <h2 className="text-3xl font-bold text-center text-gray-800">LaborSync  <span className="text-[#A1DBA4]">Usage</span></h2>
                     <div className="flex items-center justify-between mt-8">

@@ -126,39 +126,40 @@ const AssignTaskPage = () => {
                 </div>
             )}
 
-            <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
-                <div className="flex items-center justify-center py-4 border-b">
-                    <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-                </div>
-                <nav className="flex-grow">
-                    <ul className="flex flex-col py-4">
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-                            Dashboard
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
-                            Manage Schedule
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/create-project')}>
-                            Project
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer bg-gray-200 font-medium" onClick={() => navigate('/assign-task')}>
-                            Assign Tasks
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-                            Reports
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-                            Worker Details
-                        </li>
-                    </ul>
-                </nav>
-                <button
-                    onClick={handleLogout}
-                    className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200"
-                >
-                    Logout
-                </button>
-            </div>
+            <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
+                              <div className="flex items-center justify-center py-4 border-b">
+                                <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
+                              </div>
+                              <nav className="flex-grow overflow-y-auto">
+                                <ul className="flex flex-col py-4">
+                                  {[
+                                    { path: '/manager-dashboard', label: 'Dashboard' },
+                                    { path: '/manage-schedule', label: 'Manage Schedule' },
+                                    { path: '/create-project', label: 'Project' },
+                                    { path: '/assign-task', label: 'Assign Tasks' },
+                                    { path: '/manager-rewards', label: 'Rewards' },
+                                    { path: '/reports', label: 'Reports' },
+                                    { path: '/manager-profile', label: 'Worker Details' }
+                                  ].map((item, index) => (
+                                    <li 
+                                      key={index}
+                                      className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
+                                      onClick={() => navigate(item.path)}
+                                    >
+                                      {item.label}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </nav>
+                              <div className="p-4 border-t">
+                                <button
+                                  onClick={handleLogout}
+                                  className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
+                                >
+                                  Logout
+                                </button>
+                              </div>
+                           </div>
 
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
                 <div className="p-8">
@@ -172,120 +173,129 @@ const AssignTaskPage = () => {
                         </button>
                     </div>
 
-                    <div className="bg-white p-6 rounded shadow-md mb-6 ">
-                        <h2 className="text-xl font-bold mb-4">Recent Tasks</h2>
-                        {tasks.length > 0 ? (
-                            <div className="overflow-x-auto ">
-                                <table className="w-full table-auto border-collapse  ">
-                                    <thead>
-                                        <tr className="bg-gray-100 ">
-                                            <th className="px-5 py-2 border border-gray-300">Project Name</th>
-                                            <th className="px-5 py-2 border border-gray-300">Task Title</th>
-                                            <th className="px-5 py-2 border border-gray-300">Description</th>
-                                            <th className="px-5 py-2 border border-gray-300">Assigned Workers</th>
-                                            <th className="px-5 py-2 border border-gray-300">Due Date</th>
-                                            <th className="px-5 py-2 border border-gray-300">Status</th>
-                                            <th className="px-5 py-2 border border-gray-300">Assigned Shift</th>
-                                            <th className="px-5 py-2 border border-gray-300">Created At</th>
-                                            <th className="px-5 py-2 border border-gray-300">Updated At</th>
-                                            <th className="px-5 py-2 border border-gray-300">Status Changed at</th>
-                                            <th className="px-5 py-2 border border-gray-300">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {tasks.map((task) => (
-                                            <tr key={task.id} className="hover:bg-gray-50">
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    {projects.find((project) => project.id === task.project)?.name || 'No Project'}
-                                                </td>
-                                                <td className="px-4 py-2 border border-gray-300 font-medium">{task.task_title}</td>
-                                                <td className="px-4 py-2 border border-gray-300">{task.description}</td>
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    {task.assigned_to && task.assigned_to.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {task.assigned_to.map((worker, index) => (
-                                                                <span key={index} className="bg-gray-100 px-2 py-1 rounded text-sm">
-                                                                    {worker}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-400">Not Assigned</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    {task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A'}
-                                                </td>
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    <span className={`inline-flex items-center gap-1 ${
-                                                        task.status === 'pending' ? 'text-red-600' :
-                                                        task.status === 'in_progress' ? 'text-yellow-600' :
-                                                        'text-green-600'
-                                                    }`}>
-                                                        <span className={`h-2 w-2 rounded-full ${
-                                                            task.status === 'pending' ? 'bg-red-500' :
-                                                            task.status === 'in_progress' ? 'bg-yellow-500' :
-                                                            'bg-green-500'
-                                                        }`}></span>
-                                                        {task.status ? task.status.replace('_', ' ').toUpperCase() : 'N/A'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    {task.assigned_shift || 'N/A'}
-                                                </td>
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    {task.created_at ? formatDateTime(task.created_at) : 'N/A'}
-                                                </td>
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    {task.updated_at ? formatDateTime(task.updated_at) : 'N/A'}
+<div className="bg-white rounded-md shadow-sm border border-gray-100 mb-4">
+  <div className="px-5 py-3  border-b border-gray-100 flex justify-between items-center">
+    <h2 className="text-lg font-extrabold text-gray-800 font-['Poppins']">Recent Tasks</h2>
+    <div className="flex space-x-2">
+      <button className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">
+        Filter
+      </button>
+      <button className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">
+        Export
+      </button>
+    </div>
+  </div>
 
-                                                </td>
-
-                                                <td  className="px-4 py-2 border border-gray-300">
-                                                    {task.status_changed_at ? formatDateTime(task.status_changed_at) : 'N/A'}
-                                                </td>
-
-                                                
-                                                <td className="px-4 py-2 border border-gray-300">
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedTask(task);
-                                                                setShowTaskDetailsModal(true);
-                                                            }}
-                                                            className="text-blue-500 hover:text-blue-700"
-                                                        >
-                                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                                            </svg>
-                                                        </button>
-                                                        {task.status !== 'completed' && (
-                                                            <button
-                                                                onClick={() => handleCompleteTask(task.id)}
-                                                                className="flex items-center space-x-1 bg-green-100 text-green-800 py-1.5 px-3 rounded-lg hover:bg-green-200 text-sm transition-colors"
-                                                                >
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                    
-                                                            
-                                                                Complete
-                                                            </button>
-                                                            
-                                                        )}
-                                                    </div>
-                                                </td>
-                                               
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <p className="text-gray-500">No tasks available</p>
-                        )}
-                    </div>
+  {tasks.length > 0 ? (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-100">
+        <thead className="bg-gray-200">
+          <tr>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Project</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Task</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Description</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Assigned</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Due Date</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Status</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Shift</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Created</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Updated</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Status Changed</th>
+            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-100">
+          {tasks.map((task) => (
+            <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-3 text-sm text-gray-700 font-['Poppins']">
+                {projects.find((p) => p.id === task.project)?.name || 'N/A'}
+              </td>
+              <td className="px-4 py-3 text-sm font-medium text-gray-800 font-['Poppins']">
+                {task.task_title}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate font-['Poppins']">
+                {task.description}
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex flex-wrap gap-1">
+                  {task.assigned_to?.length > 0 ? (
+                    task.assigned_to.map((worker, index) => (
+                      <span key={index} className="bg-gray-50 px-2 py-0.5 rounded-full text-xs text-gray-600 font-['Poppins']">
+                        {worker}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs font-['Poppins']">Unassigned</span>
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                {task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : '—'}
+              </td>
+              <td className="px-4 py-3">
+                <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full font-['Poppins'] ${
+                  task.status === 'pending' ? 'bg-red-50 text-red-700' :
+                  task.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700' :
+                  'bg-green-50 text-green-700'
+                }`}>
+                  {task.status ? task.status.replace('_', ' ') : '—'}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                {task.assigned_shift || '—'}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                {task.created_at ? formatDateTime(task.created_at) : '—'}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                {task.updated_at ? formatDateTime(task.updated_at) : '—'}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                {task.status_changed_at ? formatDateTime(task.status_changed_at) : '—'}
+              </td>
+              <td className="px-4 py-3 text-sm whitespace-nowrap">
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => {
+                      setSelectedTask(task);
+                      setShowTaskDetailsModal(true);
+                    }}
+                    className="p-1 text-blue-400 hover:text-blue-600 transition-colors"
+                    title="View Details"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {task.status !== 'completed' && (
+                    <button
+                      onClick={() => handleCompleteTask(task.id)}
+                      className="p-1 text-green-600 hover:text-green-700 transition-colors"
+                      title="Mark Complete"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div className="px-4 py-8 text-center">
+      <svg className="mx-auto h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      <h3 className="mt-2 text-sm font-medium text-gray-700 font-['Poppins']">No tasks</h3>
+      <p className="mt-1 text-xs text-gray-500 font-['Poppins']">Get started by creating a new task</p>
+    </div>
+  )}
+</div>
                 </div>
 
                 {showModal && (

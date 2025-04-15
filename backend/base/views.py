@@ -22,7 +22,7 @@ from django.conf import settings
 from .permission import IsManager
 
 
-from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward,RewardRedemption
+from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
@@ -360,21 +360,58 @@ def manager_profile_view(request):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        # Debugging: Print the incoming request data
-        print("Request Data:", request.data)
+        data = request.data.copy()
+        current_user = request.user
 
-        # Pass the entire request.data to the ManagerProfileSerializer
-        serializer = ManagerProfileSerializer(manager_profile, data=request.data, partial=True)
-        
-        if serializer.is_valid():
-            # Save the ManagerProfile instance
-            serializer.save()
-            return Response(serializer.data)
-        else:
-            # Return validation errors if the data is invalid
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Handle both nested and flat user data
+        user_fields = ['username', 'email', 'first_name', 'last_name']
+        user_data = {}
 
+        if 'user' in data:
+            user_data.update(data.pop('user', {}))
+            
+        for field in user_fields:
+            if field in data:
+                user_data[field] = data.pop(field)
 
+        # If username is provided and unchanged, remove it to avoid validation
+        if 'username' in user_data and user_data['username'] == current_user.username:
+            user_data.pop('username')
+
+        if user_data:
+            data['user'] = user_data
+
+        serializer = ManagerProfileSerializer(
+            manager_profile,
+            data=data,
+            partial=True,
+            context={'request': request}
+        )
+
+        try:
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response(serializer.data)
+        except serializers.ValidationError as e:
+            # Handle specific validation errors
+            if 'user' in e.detail and 'username' in e.detail['user']:
+                if any("already exists" in msg for msg in e.detail['user']['username']):
+                    # If trying to set to current username, ignore the error
+                    if 'username' in user_data and user_data['username'] == current_user.username:
+                        # Update other fields without changing username
+                        if 'username' in user_data:
+                            user_data.pop('username')
+                        serializer = ManagerProfileSerializer(
+                            manager_profile,
+                            data=data,
+                            partial=True,
+                            context={'request': request}
+                        )
+                        if serializer.is_valid(raise_exception=True):
+                            serializer.save()
+                            return Response(serializer.data)
+            
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
 
 

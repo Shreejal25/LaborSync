@@ -50,6 +50,8 @@ from .views import (
 )
 
 
+
+
 urlpatterns = [
     
     # path('dashboard/', dashboard_view, name='dashboard'),
@@ -97,6 +99,8 @@ urlpatterns = [
     path('manager/rewards/', get_manager_rewards, name='get_manager_rewards'),
     path('worker/rewards/', get_worker_rewards, name='get_worker_rewards'),
     path('rewards/delete/<int:reward_id>/', delete_reward, name='delete-reward'),
+    
+    
     
   
     

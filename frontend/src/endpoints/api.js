@@ -318,6 +318,7 @@ export const updateUserProfile = async (profileData) => {
                 last_name: profileData.last_name,
             },
             user_profile: {
+
                 phone_number: profileData.phone_number,
                 gender: profileData.gender,
                 current_address: profileData.current_address,
@@ -357,18 +358,17 @@ export const updateManagerProfile = async (profileData) => {
     try {
         const dataToUpdate = {
             user: {
-                username: profileData.username,
-                email: profileData.email,
-                first_name: profileData.first_name,
-                last_name: profileData.last_name,
+                username: profileData.user.username,
+                email: profileData.user.email,
+                first_name: profileData.user.first_name,
+                last_name: profileData.user.last_name,
             },
-            company_name: profileData.company_name, // Move to top level
-            work_location: profileData.work_location, // Move to top level
+            company_name: profileData.company_name,
+            work_location: profileData.work_location,
         };
 
         const response = await axios.put(MANAGER_PROFILE_URL, dataToUpdate, { withCredentials: true });
 
-       
         return response.data;
     } catch (error) {
         console.error("Error updating manager profile:", error);
