@@ -22,6 +22,7 @@ from django.conf import settings
 from .permission import IsManager
 
 
+
 from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
@@ -319,32 +320,29 @@ def create_user_profile(request):
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def user_profile_detail_view(request):
-    user_profile = get_object_or_404(UserProfile, user=request.user)
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        return Response({"detail": "User profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
-        serializer = UserProfileSerializer(user_profile)
+        serializer = UserProfileSerializer(
+            user_profile,
+            context={'request': request}
+        )
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        # Extract user data and user profile data from the request
-        user_data = request.data.get('user', {})
-        user_profile_data = request.data.get('user_profile', request.data) #Get user profile data from request.data if user_profile is not provided
-
-        # Update User if any user data is provided
-        if user_data:
-            user = user_profile.user
-            user_serializer = UserSerializer(user, data=user_data, partial=True)
-            if user_serializer.is_valid():
-                user_serializer.save()
-            else:
-                return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Update UserProfile with the provided data
-        serializer = UserProfileSerializer(user_profile, data=user_profile_data, partial=True)
+        serializer = UserProfileSerializer(
+            user_profile,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['GET', 'PUT'])
@@ -649,6 +647,7 @@ def delete_project(request, project_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def assign_task(request):
+
     user = request.user
 
     if not user.groups.filter(name='Managers').exists():

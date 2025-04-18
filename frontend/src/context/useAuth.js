@@ -201,36 +201,12 @@ export const AuthProvider = ({ children }) => {
    // In your useAuth.js context
 const updateProfile = async (profileData) => {
   try {
-    const formattedProfileData = {
-      user: {
-        username: profileData.username,
-        email: profileData.email,
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-      },
-   
-      profile_image: profileData.profile_image,
-      phone_number: profileData.phone_number,
-      gender: profileData.gender,
-      current_address: profileData.current_address,
-      permanent_address: profileData.permanent_address,
-      city_town: profileData.city_town,
-      state_province: profileData.state_province,
-      education_level: profileData.education_level,
-      certifications: profileData.certifications,
-      skills: profileData.skills,
-      languages_spoken: profileData.languages_spoken,
-      work_availability: profileData.work_availability,
-      work_schedule_preference: profileData.work_schedule_preference
-    };
-      
-
-    const updatedProfile = await updateUserProfile(formattedProfileData); // Make sure this function sends the data to your endpoint.
-    setUserProfile(updatedProfile);
-    alert("Profile updated successfully");
+    const updatedProfile = await updateUserProfile(profileData); // Call the API function
+    setUserProfile(updatedProfile); // Now you can use setUserProfile
+    return updatedProfile; // Return the updated profile data
   } catch (error) {
-    console.error("Error updating user profile:", error);
-    alert("Error updating profile. Please try again.");
+    console.error("Error updating profile:", error);
+    throw error; // Re-throw the error
   }
 };
    // Fetch Manager profile

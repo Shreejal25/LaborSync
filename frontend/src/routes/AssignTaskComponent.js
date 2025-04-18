@@ -3,7 +3,7 @@ import { useAuth } from '../context/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask, completeTask } from '../endpoints/api';
 import logo from "../assets/images/LaborSynclogo.png";
-
+import * as XLSX from 'xlsx';
 const AssignTaskPage = () => {
     const { handleLogout } = useAuth();
     const navigate = useNavigate();
@@ -15,6 +15,55 @@ const AssignTaskPage = () => {
     const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+
+   
+        // ... (keep all your existing state and other functions)
+    
+        const exportToCSV = () => {
+            if (tasks.length === 0) {
+                showNotification('No tasks to export', 'error');
+                return;
+            }
+    
+            // Prepare the data for CSV
+            const headers = [
+                'Project', 'Task', 'Description', 'Assigned To', 
+                'Due Date', 'Status', 'Shift', 'Created At', 
+                'Updated At', 'Status Changed At'
+            ];
+    
+            const data = tasks.map(task => [
+                projects.find(p => p.id === task.project)?.name || 'N/A',
+                task.task_title,
+                task.description,
+                task.assigned_to?.join(', ') || 'Unassigned',
+                task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A',
+                task.status ? task.status.replace('_', ' ') : 'N/A',
+                task.assigned_shift || 'N/A',
+                task.created_at ? formatDateTime(task.created_at) : 'N/A',
+                task.updated_at ? formatDateTime(task.updated_at) : 'N/A',
+                task.status_changed_at ? formatDateTime(task.status_changed_at) : 'N/A'
+            ]);
+    
+            // Create CSV content
+            let csvContent = headers.join(',') + '\n';
+            data.forEach(row => {
+                csvContent += row.map(field => `"${field?.toString().replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+    
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `tasks_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showNotification('Tasks exported to CSV successfully');
+        };
 
     const showNotification = (message, type = 'success') => {
         setNotification({ show: true, message, type });
@@ -114,6 +163,8 @@ const AssignTaskPage = () => {
             await refreshTasks();
             showNotification('Error completing task. Please try again.', 'error');
         }
+
+        
     };
 
     return (
@@ -177,12 +228,12 @@ const AssignTaskPage = () => {
   <div className="px-5 py-3  border-b border-gray-100 flex justify-between items-center">
     <h2 className="text-lg font-extrabold text-gray-800 font-['Poppins']">Recent Tasks</h2>
     <div className="flex space-x-2">
-      <button className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">
+     <button className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">
         Filter
-      </button>
-      <button className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">
-        Export
-      </button>
+    </button>
+    <button 
+       onClick={exportToCSV}className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">Export to CSV
+    </button>
     </div>
   </div>
 
@@ -373,6 +424,33 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
         }
     }, [selectedProject, projects]);
 
+
+     // Add validation function
+     const validateForm = () => {
+        if (!taskData.estimated_completion_datetime) {
+            setError('Estimated completion date is required');
+            return false;
+        }
+        
+        try {
+            const completionDate = new Date(taskData.estimated_completion_datetime);
+            if (isNaN(completionDate.getTime())) {
+                setError('Invalid date format');
+                return false;
+            }
+            
+            if (completionDate < new Date()) {
+                setError('Completion date must be in the future');
+                return false;
+            }
+        } catch (e) {
+            setError('Invalid date format');
+            return false;
+        }
+        
+        return true;
+    };
+
     const handleChange = (e) => {
         const { name, value, options } = e.target;
     
@@ -395,24 +473,38 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        
+        // Validate required fields
+        if (!taskData.estimated_completion_datetime) {
+            setError('Estimated completion date is required');
+            return;
+        }
+    
         setIsLoading(true);
     
         try {
+            // Convert to proper datetime format
+            const completionDate = new Date(taskData.estimated_completion_datetime);
+            if (isNaN(completionDate.getTime())) {
+                throw new Error("Invalid date format");
+            }
+    
+            // Prepare payload with proper datetime format
             const payload = {
                 project: parseInt(selectedProject),
                 task_title: taskData.task_title,
                 description: taskData.description,
-                estimated_completion_datetime: new Date(taskData.estimated_completion_datetime).toISOString(),
+                estimated_completion_datetime: completionDate.toISOString(), // Convert to ISO string
                 assigned_shift: taskData.assigned_shift,
                 assigned_to: taskData.assigned_to,
-                min_clock_cycles: taskData.min_clock_cycles, 
+                min_clock_cycle: taskData.min_clock_cycle,
                 status: 'pending'
-                
             };
     
             const response = await assignTask(payload);
             
             if (response.message) {
+                // Reset form and close modal
                 setTaskData({
                     project: '',
                     task_title: '',
@@ -420,20 +512,18 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
                     estimated_completion_datetime: '',
                     assigned_shift: '',
                     assigned_to: [],
-                    min_clock_cycles: 1,
+                    min_clock_cycle: 1,
                 });
                 setSelectedProject('');
-                
                 onTaskAssigned();
             }
         } catch (error) {
-            console.error('Error assigning task:', error.response?.data || error);
-            setError(error.response?.data?.message || 'Failed to assign task');
+            console.error('Error assigning task:', error);
+            setError(error.response?.data?.message || error.message || 'Failed to assign task');
         } finally {
             setIsLoading(false);
         }
     };
-
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
@@ -492,30 +582,43 @@ const AssignTaskModal = ({ projects, workers, onClose, onTaskAssigned }) => {
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">Estimated Completion</label>
+                        <label className="block text-gray-700 mb-2">Estimated Completion *</label>
                         <input 
                             type="datetime-local" 
                             name="estimated_completion_datetime" 
                             value={taskData.estimated_completion_datetime} 
                             onChange={handleChange} 
                             required 
-                            className="w-full p-2 border rounded" 
+                            className="w-full p-2 border rounded"
+                            min={new Date().toISOString().slice(0, 16)} // Prevent past dates
                         />
+                        {error === 'Estimated completion date is required' && (
+                            <p className="text-red-500 text-sm mt-1">This field is required</p>
+                        )}
+                        {error === 'Completion date must be in the future' && (
+                            <p className="text-red-500 text-sm mt-1">Please select a future date</p>
+                        )}
+                        {error === 'Invalid date format' && (
+                            <p className="text-red-500 text-sm mt-1">Please enter a valid date</p>
+                        )}
                     </div>
-                    <div className="mb-4">
-                    <label className="block text-gray-700 mb-2">Minimum Clock Cycles</label>
-                    <input 
-                        type="number" 
-                        name="min_clock_cycles" 
-                        min="1"
-                        value={taskData.min_clock_cycles}
-                        onChange={(e) => setTaskData({...taskData, min_clock_cycles: parseInt(e.target.value) || 1})}
-                        className="w-full p-2 border rounded"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                        Number of clock-in/out cycles required per worker before task can be completed
-                    </p>
-                </div>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 mb-2">Minimum Clock Cycles</label>
+                                <input 
+                                    type="number" 
+                                    name="min_clock_cycle"  // Corrected name
+                                    min="1"
+                                    value={taskData.min_clock_cycle}
+                                    onChange={(e) => setTaskData({
+                                        ...taskData, 
+                                        min_clock_cycle: parseInt(e.target.value) || 1
+                                    })}
+                                    className="w-full p-2 border rounded"
+                                />
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Number of clock-in/out cycles required per worker
+                                </p>
+                            </div>
 
                     <div className="mb-4">
                         <label className="block text-gray-700 mb-2">Assigned Shift</label>

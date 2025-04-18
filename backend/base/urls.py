@@ -1,5 +1,7 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import DefaultRouter    
+from django.conf.urls.static import static
+from django.conf import settings
 from .views import (
     # dashboard_view,
     CustomTokenObtainPairView,
@@ -100,8 +102,8 @@ urlpatterns = [
     path('worker/rewards/', get_worker_rewards, name='get_worker_rewards'),
     path('rewards/delete/<int:reward_id>/', delete_reward, name='delete-reward'),
     
-    
-    
-  
-    
 ]
+
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

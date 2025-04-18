@@ -3,6 +3,7 @@ from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Proj
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from datetime import timedelta
 
 
 class CombinedUserSerializer(serializers.ModelSerializer):
@@ -47,6 +48,38 @@ class CombinedUserSerializer(serializers.ModelSerializer):
             'work_schedule_preference'
         ]
         extra_kwargs = {'password': {'write_only': True}}
+        
+        
+    def update(self, instance, validated_data):
+    # Update User model fields
+        instance.username = validated_data.get('username', instance.username)
+        instance.email = validated_data.get('email', instance.email)
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.save()
+
+        # Update UserProfile fields
+        user_profile_data = validated_data.pop('userprofile', {})
+        profile = instance.userprofile
+        
+        profile.profile_image = user_profile_data.get('profile_image', profile.profile_image)
+        profile.role = user_profile_data.get('role', profile.role)
+        profile.phone_number = user_profile_data.get('phone_number', profile.phone_number)
+        profile.gender = user_profile_data.get('gender', profile.gender)
+        profile.current_address = user_profile_data.get('current_address', profile.current_address)
+        profile.permanent_address = user_profile_data.get('permanent_address', profile.permanent_address)
+        profile.city_town = user_profile_data.get('city_town', profile.city_town)
+        profile.state_province = user_profile_data.get('state_province', profile.state_province)
+        profile.education_level = user_profile_data.get('education_level', profile.education_level)
+        profile.certifications = user_profile_data.get('certifications', profile.certifications)
+        profile.skills = user_profile_data.get('skills', profile.skills)
+        profile.languages_spoken = user_profile_data.get('languages_spoken', profile.languages_spoken)
+        profile.work_availability = user_profile_data.get('work_availability', profile.work_availability)
+        profile.work_schedule_preference = user_profile_data.get('work_schedule_preference', profile.work_schedule_preference)
+        
+        profile.save()
+        
+        return instance
     def validate_phone_number(self, value):
         if value and len(value) > 15:
             raise serializers.ValidationError("Phone number is too long (max 15 characters).")
@@ -98,6 +131,7 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         UserProfile.objects.create(
             user=user,
             
+            profile_image=user_profile_data.get('profile_image', ''),
             phone_number=user_profile_data.get('phone_number', ''),
             gender=user_profile_data.get('gender', ''),
             current_address=user_profile_data.get('current_address', ''),
@@ -113,11 +147,38 @@ class CombinedUserSerializer(serializers.ModelSerializer):
         )
         return user
     
-    
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name']  # Include user fields
+        fields = ['username', 'email', 'first_name', 'last_name']
+        extra_kwargs = {
+            'username': {'required': False},
+            'email': {'required': False},
+            'first_name': {'required': False},
+            'last_name': {'required': False}
+        }
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+  
+    
+    class Meta:
+        model = UserProfile
+        fields = '__all__' 
+        
+        
+         
+    
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        
+        # Update User model
+        user_serializer = UserSerializer(instance.user, data=user_data, partial=True)
+        if user_serializer.is_valid():
+            user_serializer.save()
+        
+        # Update UserProfile
+        return super().update(instance, validated_data)
 
 class ManagerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=False)
@@ -150,20 +211,7 @@ class ManagerProfileSerializer(serializers.ModelSerializer):
         return instance
             
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    profile_image = serializers.ImageField(required=False, allow_null=True)
-    
-    class Meta:
-        model = UserProfile
-        fields = [
-            'user',
-            'profile_image',
-            'role',
-            'phone_number', 'gender', 'current_address', 'permanent_address',
-            'city_town', 'state_province', 'education_level', 'certifications',
-            'skills', 'languages_spoken', 'work_availability', 'work_schedule_preference'
-        ]
+
 
 
 class ManagerSerializer(serializers.ModelSerializer):
@@ -276,16 +324,19 @@ class TaskSerializer(serializers.ModelSerializer):
         queryset=User.objects.all(),
         slug_field='username',
         many=True,
-        required=True  # Make this required for creation
+        required=True
     )
     project = serializers.PrimaryKeyRelatedField(
         queryset=Project.objects.all(),
-        required=True  # Make this required for creation
+        required=True
     )
     status = serializers.ChoiceField(
         choices=Task.STATUS_CHOICES,
-        default='pending',  # Set default status
-        required=False  # Not required as it has a default
+        default='pending',
+        required=False
+    )
+    estimated_completion_datetime = serializers.DateTimeField(
+        default=lambda: timezone.now() + timedelta(days=1)  # Default to 1 day from now
     )
 
     class Meta:
@@ -308,28 +359,32 @@ class TaskSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'task_title': {'required': True},
             'description': {'required': True},
-            'estimated_completion_datetime': {'required': True},
+            'estimated_completion_datetime': {
+                'required': True,
+                'allow_null': False
+            },
             'assigned_shift': {'required': True},
             'min_clock_cycles': {'required': False, 'default': 1},
         }
 
     def create(self, validated_data):
         try:
+            print("Validated data in create:", validated_data)  # Add this line
             request = self.context.get('request')
             assigned_to = validated_data.pop('assigned_to')
-            
+
             # Create the task instance
             task = Task.objects.create(
                 **validated_data,
                 assigned_by=request.user,
-                status_changed_at=timezone.now() 
+                status_changed_at=timezone.now()
             )
-            
+
             # Set many-to-many relationship
             task.assigned_to.set(assigned_to)
-            
+
             return task
-            
+
         except Exception as e:
             raise serializers.ValidationError({
                 'non_field_errors': [f"Failed to create task: {str(e)}"]
@@ -337,8 +392,6 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         assigned_to = validated_data.pop('assigned_to', None)
-        
-        
         
         if 'status' in validated_data and instance.status != validated_data['status']:
             validated_data['status_changed_at'] = timezone.now()
@@ -389,7 +442,7 @@ class TaskViewSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from .models import PointsTransaction, Badge, UserBadge, Reward, UserPoints, Task
 
-class TaskSerializer(serializers.ModelSerializer):
+class SimpleTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ['id', 'task_title', 'status', 'project', 'assigned_shift']
