@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/images/LaborSynclogo.png";
-import {updateUserProfile,getUserProfile} from "../endpoints/api"
+import logo from "../../assets/images/LaborSynclogo.png";
+import {updateUserProfile,getUserProfile} from "../../endpoints/api"
 
 const UserProfilePage = () => {
   const { userProfile, fetchUserProfile, loading, handleLogout } = useAuth();
@@ -228,7 +228,7 @@ const UserProfilePage = () => {
             ))}
 
             {/* Profile Fields */}
-            {["profile_image",
+            {[
               "phone_number", "city_town", "state_province", "education_level",
               "certifications", "skills", "languages_spoken", "work_availability", 
               "work_schedule_preference"

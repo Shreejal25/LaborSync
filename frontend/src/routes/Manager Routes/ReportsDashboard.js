@@ -11,9 +11,9 @@ import {
   Tooltip, 
   Legend 
 } from 'chart.js';
-import { getProjectStats, getProjects } from '../endpoints/api';
+import { getProjectStats, getProjects } from '../../endpoints/api';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/images/LaborSynclogo.png';
+import logo from '../../assets/images/LaborSynclogo.png';
 
 // Register ChartJS components
 ChartJS.register(
@@ -120,7 +120,7 @@ const ReportsDashboard = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 font-['Poppins']">
       {/* Side Panel */}
       <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
         <div className="flex items-center justify-center py-4 border-b">

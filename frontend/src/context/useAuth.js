@@ -142,37 +142,55 @@ export const AuthProvider = ({ children }) => {
   
   
 
+
   // Register user with personal information
   const registerUser = async (username, email, password, cPassword, first_name, last_name) => {
     if (password === cPassword) {
       try {
         await register(username, email, password, first_name, last_name);
-        alert("Successfully registered user");
-        navigate('/login'); // Redirect to login page after successful registration
+        // Return success response without navigating immediately
+        return { success: true, message: "Successfully registered user" };
       } catch (error) {
         console.error("Registration failed:", error);
-        alert("Error registering user. Please try again.");
+        // Return error response
+        return { success: false, message: error.response?.data?.message || "Error registering user. Please try again." };
       }
     } else {
-      alert("Passwords don't match");
+      // Return password mismatch error
+      return { success: false, message: "Passwords don't match" };
     }
   };
+ 
 
-   // Register manager with personal information
-   const registerNewManager = async (username, email, password,cPassword, first_name, last_name, company_name, work_location) => {
-     if (password === cPassword) { // Add any necessary validation here
-       try {
-         await registerManager(username, email, password, first_name, last_name, company_name, work_location);
-         alert("Successfully registered manager");
-         navigate('/login-manager'); // Redirect to login page after successful registration
-       } catch (error) {
-         console.error("Registration failed:", error);
-         alert("Error registering manager. Please try again.");
-       }
-     } else {
-       alert("Invalid input");
-     }
-   };
+
+
+  // Register manager with personal information    
+const registerNewManager = async (username, email, password, cPassword, first_name, last_name, company_name, work_location) => {
+  if (password === cPassword) { // Add any necessary validation here
+    try {
+      await registerManager(username, email, password, first_name, last_name, company_name, work_location);
+      
+      // Return success response without navigating immediately
+      return { 
+        success: true, 
+        message: `Manager ${first_name} ${last_name} has been successfully registered` 
+      };
+    } catch (error) {
+      console.error("Registration failed:", error);
+      // Return error response
+      return { 
+        success: false, 
+        message: error.response?.data?.message || "Error registering manager. Please try again." 
+      };
+    }
+  } else {
+    // Return password mismatch error
+    return { 
+      success: false, 
+      message: "Passwords don't match" 
+    };
+  }
+};
 
    // Login manager and update authentication state
    const loginManagerUser = async (username, password) => {
@@ -254,24 +272,32 @@ const fetchUserRole = useCallback(async () => {
 
 const createNewProject = async (projectData) => {
   try {
-      const result = await createProject(projectData);
-      if (result) {
-          setNotification({ message: "Project created successfully!", show: true });
-          return result;
-      } else {
-          setNotification({ message: "Failed to create project.", show: true });
-          return null;
-      }
-  } catch (error) {
-      console.error("Error creating project:", error);
-      setNotification({
-          message: "Error creating project. Please try again.",
-          show: true,
+    const result = await createProject(projectData);
+    if (result) {
+      setNotification({ 
+        message: "Project created successfully!", 
+        show: true,
+        type: "success"  // Add this
+      });
+      return result;
+    } else {
+      setNotification({ 
+        message: "Failed to create project.", 
+        show: true,
+        type: "error"  // Add this
       });
       return null;
+    }
+  } catch (error) {
+    console.error("Error creating project:", error);
+    setNotification({
+      message: "Error creating project. Please try again.",
+      show: true,
+      type: "error"  // Add this
+    });
+    return null;
   }
 };
-
 const fetchProjects = useCallback(async () => {
   try {
     const projectList = await getProjects(); // API call to fetch projects

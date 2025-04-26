@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'base'
     
 ]
-FRONTEND_URL = 'https://yourfrontendapp.com'
+# FRONTEND_URL = 'https://yourfrontendapp.com'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -166,8 +166,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'dagolshreejal@gmail.com'  # Gmail address
-EMAIL_HOST_PASSWORD ='zvpk tppk elou zirc'  
+EMAIL_HOST_USER = 'laborsync2025@gmail.com'  # Gmail address    
+EMAIL_HOST_PASSWORD ='yayo vxcj vzqk fqgl'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 from datetime import timedelta

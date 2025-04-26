@@ -1,0 +1,128 @@
+using System.ComponentModel.DataAnnotations;
+using Pustakalaya.Data;
+using Pustakalaya.Dtos;
+using Pustakalaya.Models.Entities;
+using Pustakalaya.Services.Interface;
+
+namespace Pustakalaya.Services
+{
+    public class AuthorService : IAuthorService
+    {
+        private readonly ApplicationDbContext _context;
+
+        public AuthorService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public void AddAuthor(AddAuthor authorDto)
+        {
+            try
+            {
+                if (authorDto == null)
+                {
+                    throw new ArgumentNullException(nameof(authorDto));
+                }
+
+                var author = new Author
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = authorDto.FullName 
+                };
+
+                _context.Authors.Add(author); 
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while adding the author: " + ex.Message);
+            }
+        }
+
+        public void DeleteAuthor(Guid id)
+        {
+            try
+            {
+                var author = _context.Authors.FirstOrDefault(b => b.Id == id);
+
+                if (author == null)
+                {
+                    throw new Exception("Author not found");
+                }
+                _context.Authors.Remove(author);
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while deleting the Author: " + ex.Message);
+            }
+        }
+
+        public List<GetAllAuthor> GetAllAuthors()
+        {
+            try
+            {
+                var authors = _context.Authors.ToList();
+
+                if (authors == null || !authors.Any())
+                    throw new Exception("No authors found");
+
+                return authors.Select(a => new GetAllAuthor
+                {
+                    FullName = a.FullName
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error retrieving authors: " + ex.Message);
+            }
+        }
+
+        public GetAllAuthor GetAuthorById(Guid id)
+        {
+            try
+            {
+                var author = _context.Authors.FirstOrDefault(a => a.Id == id);
+                if (author == null)
+                {
+                    throw new KeyNotFoundException($"Author with ID {id} not found");
+                }
+
+                return new GetAllAuthor
+                {
+                    FullName = author.FullName,
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving author with ID {id}", ex);
+            }
+        }
+
+        public void updateAuthor(Guid id, UpdateAuthor authorDto)
+        {
+            try
+            {
+                if (authorDto == null)
+                {
+                    throw new ArgumentNullException(nameof(authorDto));
+                }
+
+                var author = _context.Authors.FirstOrDefault(a => a.Id == id);
+                if (author == null)
+                {
+                    throw new Exception("Author not found");
+                }
+
+                author.FullName = authorDto.FullName;
+
+                _context.Authors.Update(author);
+                _context.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while updating the author: " + ex.Message);
+            }
+        }
+    }
+}

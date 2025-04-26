@@ -7,6 +7,7 @@ const LOGOUT_URL = `${BASE_URL}logout/`;
 const AUTH_URL = `${BASE_URL}authenticated/`;
 const REGISTER_URL = `${BASE_URL}register/`;
 const CLOCK_IN_URL = `${BASE_URL}clock_in/`;
+const CHECK_ACTIVE_CLOCK_URL = `${BASE_URL}check_active_clock/`;
 const CLOCK_OUT_URL = `${BASE_URL}clock_out/`;
 const USER_PROFILE_URL = `${BASE_URL}user/profile/`;
 const ASSIGN_TASK_URL = `${BASE_URL}assign/task/`;
@@ -20,6 +21,7 @@ const MANAGER_DASHBOARD_URL = `${BASE_URL}manager-dashboard/`;
 const USER_DASHBOARD_URL = `${BASE_URL}user-dashboard/`;
 const USER_ROLE_URL = `${BASE_URL}user-role/`;
 const WORKERS_URL = `${BASE_URL}workers/`;
+const ADD_WORKERS_URL = `${BASE_URL}workers/add/`;
 const CLOCK_HISTORY_URL = `${BASE_URL}clock-history/`;
 const GET_PROJECTS_URL = `${BASE_URL}projects/`;
 const CREATE_PROJECT_URL = `${BASE_URL}projects/create/`;
@@ -27,7 +29,7 @@ const GET_PROJECT_WORKERS_URL = `${BASE_URL}projects/`;
 const UPDATE_PROJECT_URL = `${BASE_URL}projects/`;
 const DELETE_PROJECT_URL = `${BASE_URL}projects/`;
 const MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
-const GET_MANAGER_TASKS_URL = `${BASE_URL}view/manager-tasks/`;
+const GET_MANAGER_TASKS_URL = `${BASE_URL}view/tasks/`;
 const GET_PROJECT_STATS_URL = `${BASE_URL}worker/productivity/stats/`;
 const UPDATE_TASKS_URL = `${BASE_URL}tasks/<int:task_id>/`;
 const DELETE_TASK_URL = `${BASE_URL}tasks/<int:task_id>/delete/`;
@@ -37,9 +39,12 @@ const USER_POINTS_URL = `${BASE_URL}points/`;
 const CREATE_REWARDS_URL = `${BASE_URL}rewards/create/`;
 const GET_REWARDS_DETAILS = `${BASE_URL}rewards/`;
 const REDEEM_REWARD_URL = `${BASE_URL}points/redeem/`;
+const WORKER_POINTS_HISTORY = `${BASE_URL}worker/points`
+const MANAGER_POINTS_HISTORY = `${BASE_URL}manager/points`
 const MANGER_REWARD_VIEW_URL = `${BASE_URL}manager/rewards/`;
-// In your api.js or constants file
+const UPDATE_REWARD_URL = `${BASE_URL}rewards/update/`;
 const DELETE_REWARD_URL = `${BASE_URL}rewards/delete/`;
+
 
 export const login = async (username, password) => {
     try {
@@ -76,6 +81,8 @@ const callRefresh = async (error, func) => {
 
 
 
+
+
 export const createProject = async (projectData) => {
     try {
         const response = await axios.post(CREATE_PROJECT_URL, projectData, { withCredentials: true });
@@ -96,6 +103,10 @@ export const getProjectWorkers = async (projectId) => {
     }
 };
 
+
+
+
+
 export const getProjects = async (username) => {
     try {
         console.log(`Fetching projects for ${username}...`);
@@ -112,6 +123,8 @@ export const getProjects = async (username) => {
 };
 
 
+
+
 export const deleteProject = async (projectId) => {
     try {
         const response = await axios.delete(
@@ -125,6 +138,15 @@ export const deleteProject = async (projectId) => {
     }
 };
 
+export const workersPoints = async () => {
+    try {
+        const response = await axios.get(WORKER_POINTS_HISTORY, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching workers points:", error);
+        throw error;
+    }
+}
 
 export const updateTask = async (taskId, taskData) => {
     try {
@@ -167,6 +189,18 @@ export const getUserRole = async () => {
 };
 
 
+
+
+export const addWorkers = async (workerData) => {
+    try {
+        const response = await axios.post(ADD_WORKERS_URL, workerData, { withCredentials: true });
+        return response.data; // Returns success message or error
+
+    } catch (error) {
+        console.error("Error adding workers:", error);
+        return callRefresh(error, () => axios.post(ADD_WORKERS_URL, workerData, { withCredentials: true }));
+    }
+};
 
 export const getWorkers = async () => {
     try {
@@ -371,6 +405,16 @@ export const clockIn = async (taskId) => {
     }
 };
 
+export const checkActiveClock = async () => {
+    try {
+        const response = await axios.get(CHECK_ACTIVE_CLOCK_URL, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error('Error checking active clock:', error);
+        return callRefresh(error, () => axios.get(CHECK_ACTIVE_CLOCK_URL, { withCredentials: true }));
+    }   
+}
+
 export const clockOut = async (taskId) => {
     try {
         const response = await axios.post(CLOCK_OUT_URL, { task_id: taskId }, { withCredentials: true });
@@ -507,10 +551,20 @@ export const completeTask = async (taskId) => {
             {},
             { withCredentials: true }
         );
-        return response.data;
+        
+        // Ensure the response has success=true if the task was completed
+        return { 
+            success: true, 
+            message: "Task completed successfully",
+            data: response.data 
+        };
     } catch (error) {
         console.error("Error completing task:", error);
-        throw error;
+        // Return a structured error response instead of throwing
+        return { 
+            success: false, 
+            message: error.response?.data?.message || "Failed to complete task" 
+        };
     }
 }
 
@@ -537,6 +591,17 @@ export const getUserPoints = async () => {
         throw error;
     }
 };
+
+
+export const getManagerPoints = async () => {
+    try {
+        const response = await axios.get(MANAGER_POINTS_HISTORY, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching manager points:", error);
+        throw error;
+    }
+}
 
 export const createRewards = async (rewardData) => {
     try {
@@ -598,6 +663,26 @@ export const getManagerRewards = async () => {
         };
     }
 };
+
+
+
+export const updateReward = async (rewardId, updatedData) => {
+    try {
+        const response = await axios.put(
+            `${UPDATE_REWARD_URL}${rewardId}/`,
+            updatedData,
+            { 
+                withCredentials: true,
+               
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error updating reward:", error);
+        throw error;
+    }
+};
+
 
 
 export const deleteReward = async (rewardId) => {

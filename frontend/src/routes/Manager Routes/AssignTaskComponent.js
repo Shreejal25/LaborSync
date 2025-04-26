@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/useAuth';
+import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask, completeTask } from '../endpoints/api';
-import logo from "../assets/images/LaborSynclogo.png";
-import * as XLSX from 'xlsx';
+import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask, completeTask } from '../../endpoints/api';
+import logo from "../../assets/images/LaborSynclogo.png";
+
 const AssignTaskPage = () => {
     const { handleLogout } = useAuth();
     const navigate = useNavigate();
@@ -16,54 +16,90 @@ const AssignTaskPage = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
+    const [filters, setFilters] = useState({
+        project: '',
+        status: '',
+        assignedTo: '',
+        dateRange: ''
+    });
 
-   
-        // ... (keep all your existing state and other functions)
-    
-        const exportToCSV = () => {
-            if (tasks.length === 0) {
-                showNotification('No tasks to export', 'error');
-                return;
+    // // Helper function to check if two dates are the same day
+    // const isSameDay = (date1, date2) => {
+    //     return date1.getFullYear() === date2.getFullYear() && 
+    //            date1.getMonth() === date2.getMonth() && 
+    //            date1.getDate() === date2.getDate();
+    // };
+
+    const filterTasks = (tasks) => {
+        return tasks.filter(task => {
+            // Filter by project
+            if (filters.project && projects.find(p => p.id === task.project)?.name !== filters.project) {
+                return false;
             }
-    
-            // Prepare the data for CSV
-            const headers = [
-                'Project', 'Task', 'Description', 'Assigned To', 
-                'Due Date', 'Status', 'Shift', 'Created At', 
-                'Updated At', 'Status Changed At'
-            ];
-    
-            const data = tasks.map(task => [
-                projects.find(p => p.id === task.project)?.name || 'N/A',
-                task.task_title,
-                task.description,
-                task.assigned_to?.join(', ') || 'Unassigned',
-                task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A',
-                task.status ? task.status.replace('_', ' ') : 'N/A',
-                task.assigned_shift || 'N/A',
-                task.created_at ? formatDateTime(task.created_at) : 'N/A',
-                task.updated_at ? formatDateTime(task.updated_at) : 'N/A',
-                task.status_changed_at ? formatDateTime(task.status_changed_at) : 'N/A'
-            ]);
-    
-            // Create CSV content
-            let csvContent = headers.join(',') + '\n';
-            data.forEach(row => {
-                csvContent += row.map(field => `"${field?.toString().replace(/"/g, '""')}"`).join(',') + '\n';
-            });
-    
-            // Create download link
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `tasks_${new Date().toISOString().slice(0, 10)}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showNotification('Tasks exported to CSV successfully');
-        };
+            
+            // Filter by status
+            if (filters.status && task.status !== filters.status) {
+                return false;
+            }
+            
+            // Filter by assigned worker
+            if (filters.assignedTo && 
+                (!task.assigned_to || !task.assigned_to.includes(filters.assignedTo))) {
+                return false;
+            }
+            
+            // Filter by date range (example: overdue, today, upcoming)
+          
+            
+            return true;
+        });
+    };
+
+    const exportToCSV = () => {
+        const filteredTasks = filterTasks(tasks);
+        if (filteredTasks.length === 0) {
+            showNotification('No tasks to export', 'error');
+            return;
+        }
+
+        // Prepares the data for CSV
+        const headers = [
+            'Project', 'Task', 'Description', 'Assigned To', 
+            'Due Date', 'Status', 'Shift', 'Created At', 
+            'Updated At', 'Status Changed At'
+        ];
+
+        const data = filteredTasks.map(task => [
+            projects.find(p => p.id === task.project)?.name || 'N/A',
+            task.task_title,
+            task.description,
+            task.assigned_to?.join(', ') || 'Unassigned',
+            task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : 'N/A',
+            task.status ? task.status.replace('_', ' ') : 'N/A',
+            task.assigned_shift || 'N/A',
+            task.created_at ? formatDateTime(task.created_at) : 'N/A',
+            task.updated_at ? formatDateTime(task.updated_at) : 'N/A',
+            task.status_changed_at ? formatDateTime(task.status_changed_at) : 'N/A'
+        ]);
+
+        // Creates CSV content
+        let csvContent = headers.join(',') + '\n';
+        data.forEach(row => {
+            csvContent += row.map(field => `"${field?.toString().replace(/"/g, '""')}"`).join(',') + '\n';
+        });
+
+        // Creates download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `tasks_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showNotification('Tasks exported to CSV successfully');
+    };
 
     const showNotification = (message, type = 'success') => {
         setNotification({ show: true, message, type });
@@ -144,28 +180,31 @@ const AssignTaskPage = () => {
 
     const handleCompleteTask = async (taskId) => {
         try {
+            // Optimistically update UI
             setTasks(prevTasks => 
                 prevTasks.map(task => 
                     task.id === taskId ? { ...task, status: 'completed' } : task
                 )
             );
             
+            // API call to mark task as complete
             const response = await completeTask(taskId);
+            
             if (response.success) {
-                await refreshTasks();
-                showNotification('Task marked as completed successfully!');
+                await refreshTasks(); // Refresh data from server
+                showNotification('Task marked as completed successfully!', 'success'); // Green
             } else {
-                await refreshTasks();
-                showNotification(response.message || 'Failed to complete task', 'error');
+                await refreshTasks(); // Revert if API fails
+                showNotification(response.message || 'Failed to complete task', 'error'); // Red
             }
         } catch (error) {
             console.error('Error completing task:', error);
-            await refreshTasks();
-            showNotification('Error completing task. Please try again.', 'error');
+            await refreshTasks(); // Revert on network errors
+            showNotification('Error completing task. Please try again.', 'error'); // Red
         }
-
-        
     };
+
+    const filteredTasks = filterTasks(tasks);
 
     return (
         <div className="flex h-screen">
@@ -177,40 +216,40 @@ const AssignTaskPage = () => {
                 </div>
             )}
 
-            <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
-                              <div className="flex items-center justify-center py-4 border-b">
-                                <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
-                              </div>
-                              <nav className="flex-grow overflow-y-auto">
-                                <ul className="flex flex-col py-4">
-                                  {[
-                                    { path: '/manager-dashboard', label: 'Dashboard' },
-                                    { path: '/manage-schedule', label: 'Manage Schedule' },
-                                    { path: '/create-project', label: 'Project' },
-                                    { path: '/assign-task', label: 'Assign Tasks' },
-                                    { path: '/manager-rewards', label: 'Rewards' },
-                                    { path: '/reports', label: 'Reports' },
-                                    { path: '/manager-profile', label: 'Worker Details' }
-                                  ].map((item, index) => (
-                                    <li 
-                                      key={index}
-                                      className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
-                                      onClick={() => navigate(item.path)}
-                                    >
-                                      {item.label}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </nav>
-                              <div className="p-4 border-t">
-                                <button
-                                  onClick={handleLogout}
-                                  className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
-                                >
-                                  Logout
-                                </button>
-                              </div>
-                           </div>
+            <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col font-['Poppins']">
+                <div className="flex items-center justify-center py-4 border-b">
+                    <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
+                </div>
+                <nav className="flex-grow overflow-y-auto">
+                    <ul className="flex flex-col py-4">
+                        {[
+                            { path: '/manager-dashboard', label: 'Dashboard' },
+                            { path: '/manage-schedule', label: 'Manage Schedule' },
+                            { path: '/create-project', label: 'Project' },
+                            { path: '/assign-task', label: 'Assign Tasks' },
+                            { path: '/manager-rewards', label: 'Rewards' },
+                            { path: '/reports', label: 'Reports' },
+                            { path: '/manager-profile', label: 'Worker Details' }
+                        ].map((item, index) => (
+                            <li 
+                                key={index}
+                                className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
+                                onClick={() => navigate(item.path)}
+                            >
+                                {item.label}
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+                <div className="p-4 border-t">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
+                    >
+                        Logout
+                    </button>
+                </div>
+            </div>
 
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
                 <div className="p-8">
@@ -224,119 +263,198 @@ const AssignTaskPage = () => {
                         </button>
                     </div>
 
-<div className="bg-white rounded-md shadow-sm border border-gray-100 mb-4">
-  <div className="px-5 py-3  border-b border-gray-100 flex justify-between items-center">
-    <h2 className="text-lg font-extrabold text-gray-800 font-['Poppins']">Recent Tasks</h2>
-    <div className="flex space-x-2">
-     <button className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">
-        Filter
-    </button>
-    <button 
-       onClick={exportToCSV}className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']">Export to CSV
-    </button>
-    </div>
-  </div>
+                    <div className="bg-white rounded-md shadow-sm border border-gray-100 mb-4">
+                        <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+                            <h2 className="text-lg font-extrabold text-gray-800 font-['Poppins']">Recent Tasks</h2>
+                            <div className="flex space-x-2">
+                                <button 
+                                    className={`px-3 py-1 text-xs rounded text-black transition-colors font-['Poppins'] relative group ${
+                                        Object.values(filters).some(f => f !== '') 
+                                            ? 'bg-blue-100 border border-blue-300' 
+                                            : 'bg-gray-200 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    Filter
+                                    {Object.values(filters).some(f => f !== '') && (
+                                        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500"></span>
+                                    )}
+                                    <div className="absolute right-0 mt-1 w-64 bg-white rounded-md shadow-lg z-10 hidden group-hover:block">
+                                        <div className="p-3 space-y-3">
+                                            {/* Project Filter */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">Project</label>
+                                                <select
+                                                    value={filters.project}
+                                                    onChange={(e) => setFilters({...filters, project: e.target.value})}
+                                                    className="w-full p-1 text-xs border border-gray-300 rounded"
+                                                >
+                                                    <option value="">All Projects</option>
+                                                    {projects.map(project => (
+                                                        <option key={project.id} value={project.name}>
+                                                            {project.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            
+                                            {/* Status Filter */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                                <select
+                                                    value={filters.status}
+                                                    onChange={(e) => setFilters({...filters, status: e.target.value})}
+                                                    className="w-full p-1 text-xs border border-gray-300 rounded"
+                                                >
+                                                    <option value="">All Statuses</option>
+                                                    <option value="pending">Pending</option>
+                                                    <option value="in_progress">In Progress</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                            
+                                            {/* Assigned To Filter */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
+                                                <select
+                                                    value={filters.assignedTo}
+                                                    onChange={(e) => setFilters({...filters, assignedTo: e.target.value})}
+                                                    className="w-full p-1 text-xs border border-gray-300 rounded"
+                                                >
+                                                    <option value="">All Workers</option>
+                                                    {workers.map(worker => (
+                                                        <option key={worker.user.username} value={worker.user.username}>
+                                                            {worker.user.username}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            
+                                           
+                                            
+                                            {/* Clear Filters Button */}
+                                            <button
+                                                onClick={() => setFilters({
+                                                    project: '',
+                                                    status: '',
+                                                    assignedTo: '',
+                                                    dateRange: ''
+                                                })}
+                                                className="w-full text-xs bg-gray-100 hover:bg-gray-200 py-1 rounded"
+                                            >
+                                                Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+                                </button>
+                                <button 
+                                    onClick={exportToCSV}
+                                    className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-100 rounded text-black transition-colors font-['Poppins']"
+                                >
+                                    Export to CSV
+                                </button>
+                            </div>
+                        </div>
 
-  {tasks.length > 0 ? (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-100">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Project</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Task</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Description</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Assigned</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Due Date</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Status</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Shift</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Created</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Updated</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Status Changed</th>
-            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
-          {tasks.map((task) => (
-            <tr key={task.id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 text-sm text-gray-700 font-['Poppins']">
-                {projects.find((p) => p.id === task.project)?.name || 'N/A'}
-              </td>
-              <td className="px-4 py-3 text-sm font-medium text-gray-800 font-['Poppins']">
-                {task.task_title}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate font-['Poppins']">
-                {task.description}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-1">
-                  {task.assigned_to?.length > 0 ? (
-                    task.assigned_to.map((worker, index) => (
-                      <span key={index} className="bg-gray-50 px-2 py-0.5 rounded-full text-xs text-gray-600 font-['Poppins']">
-                        {worker}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs font-['Poppins']">Unassigned</span>
-                  )}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
-                {task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : '—'}
-              </td>
-              <td className="px-4 py-3">
-                <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full font-['Poppins'] ${
-                  task.status === 'pending' ? 'bg-red-50 text-red-700' :
-                  task.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700' :
-                  'bg-green-50 text-green-700'
-                }`}>
-                  {task.status ? task.status.replace('_', ' ') : '—'}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
-                {task.assigned_shift || '—'}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
-                {task.created_at ? formatDateTime(task.created_at) : '—'}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
-                {task.updated_at ? formatDateTime(task.updated_at) : '—'}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
-                {task.status_changed_at ? formatDateTime(task.status_changed_at) : '—'}
-              </td>
-              <td className="px-4 py-3 text-sm whitespace-nowrap">
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => {
-                      setSelectedTask(task);
-                      setShowTaskDetailsModal(true);
-                    }}
-                    className="p-1 text-blue-400 hover:text-blue-600 transition-colors"
-                    title="View Details"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                  {task.status !== 'completed' && (
-                    <button
-                      onClick={() => handleCompleteTask(task.id)}
-                      className="p-1 text-green-600 hover:text-green-700 transition-colors"
-                      title="Mark Complete"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                        {filteredTasks.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead className="bg-gray-200">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Project</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Task</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Description</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Assigned</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Due Date</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Status</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Shift</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Created</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Updated</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Status Changed</th>
+                                            <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wide font-['Poppins']">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-100">
+                                        {filteredTasks.map((task) => (
+                                            <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 text-sm text-gray-700 font-['Poppins']">
+                                                    {projects.find((p) => p.id === task.project)?.name || 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-800 font-['Poppins']">
+                                                    {task.task_title}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate font-['Poppins']">
+                                                    {task.description}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {task.assigned_to?.length > 0 ? (
+                                                            task.assigned_to.map((worker, index) => (
+                                                                <span key={index} className="bg-gray-50 px-2 py-0.5 rounded-full text-xs text-gray-600 font-['Poppins']">
+                                                                    {worker}
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs font-['Poppins']">Unassigned</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                                                    {task.estimated_completion_datetime ? formatDateTime(task.estimated_completion_datetime) : '—'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full font-['Poppins'] ${
+                                                        task.status === 'pending' ? 'bg-red-50 text-red-700' :
+                                                        task.status === 'in_progress' ? 'bg-yellow-50 text-yellow-700' :
+                                                        'bg-green-50 text-green-700'
+                                                    }`}>
+                                                        {task.status ? task.status.replace('_', ' ') : '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                                                    {task.assigned_shift || '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                                                    {task.created_at ? formatDateTime(task.created_at) : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                                                    {task.updated_at ? formatDateTime(task.updated_at) : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 font-['Poppins']">
+                                                    {task.status_changed_at ? formatDateTime(task.status_changed_at) : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm whitespace-nowrap">
+                                                    <div className="flex items-center space-x-1">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedTask(task);
+                                                                setShowTaskDetailsModal(true);
+                                                            }}
+                                                            className="p-1 text-blue-400 hover:text-blue-600 transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                        {task.status !== 'completed' && (
+                                                            <button
+                                                                onClick={() => handleCompleteTask(task.id)}
+                                                                className="p-1 text-green-600 hover:text-green-700 transition-colors"
+                                                                title="Mark Complete"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
   ) : (
     <div className="px-4 py-8 text-center">
       <svg className="mx-auto h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -793,7 +911,7 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50 font-['Poppins']">
             {/* Main Modal Container */}
             <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-100">
                 {/* Header Section */}
@@ -908,21 +1026,20 @@ const TaskDetailsModal = ({ task, projects, workers, onClose, onTaskUpdated, onD
                                     <h3 className="font-semibold text-gray-700">Task Information</h3>
                                 </div>
                                 <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
-                                        <select 
-                                            name="project" 
-                                            value={selectedProject} 
-                                            onChange={handleChange} 
-                                            required 
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="" disabled>Select a project</option>
-                                            {projects.map((project) => (
-                                                <option key={project.id} value={project.id}>{project.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                <div className="grid grid-cols-1 ">
+                                                                <ul className="space-y-2">
+                                {projects.map((project) => (
+                                    <li
+                                    key={project.id}
+                                    className={`rounded-md py-2 px-4 ${
+                                        selectedProject === project.id ? 'bg-teal-100 text-black text-2xl font-semibold' : 'text-gray-700'
+                                    }`}
+                                    >
+                                    {project.name}
+                                    </li>
+                                ))}
+                                </ul>
+                            </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
                                         <input 

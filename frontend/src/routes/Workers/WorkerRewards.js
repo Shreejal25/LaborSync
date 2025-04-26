@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/useAuth';
-import { getRewardsDetails, getUserPoints, redeemReward } from '../endpoints/api';
+import { useAuth } from '../../context/useAuth';
+import { getRewardsDetails, getUserPoints, redeemReward } from '../../endpoints/api';
 import { FaCoins } from 'react-icons/fa';
-import logo from "../assets/images/LaborSynclogo.png";
+import logo from "../../assets/images/LaborSynclogo.png";
 
 const WorkerRewards = () => {
   const navigate = useNavigate();
@@ -163,6 +163,19 @@ const WorkerRewards = () => {
       <div className="mt-1 w-8 h-1 bg-blue-200 rounded-full"></div>
     </div>
   </div>
+
+  {/* Add this button below the points summary */}
+  <div className="mt-6 flex justify-center">
+    <button
+      onClick={() => navigate('/worker-points-history')}
+      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      View Points History
+    </button>
+  </div>  
   
   
 </div>
@@ -236,10 +249,21 @@ const WorkerRewards = () => {
                       <div className="pt-3 mt-3 border-t border-gray-100">
                         <p className="text-xs text-gray-500 mb-1">Associated Task:</p>
                         <p className="text-sm font-medium text-gray-700 truncate">
+                          {reward.task_details.title}
+                        </p>
+                      </div>
+                      
+                    )}
+                      {reward.task_details && (
+                      <div className="pt-3 mt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 mb-1">Associated Task details:</p>
+                        <p className="text-sm font-medium text-gray-700 ">
                           {reward.task_details.description}
                         </p>
                       </div>
+                      
                     )}
+                       
                   </div>
 
                   <div className="mt-6">

@@ -2,6 +2,30 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
+# Project Model
+
+from django.db import models
+from django.contrib.auth.models import User
+
+# In models.py
+from django.db import models
+from django.utils import timezone
+from datetime import date, timedelta
+
+from django.db import models
+from django.utils import timezone
+from datetime import date, timedelta
+
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone  
+
+from django.db import models
+from django.utils import timezone
+
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
@@ -32,12 +56,12 @@ class ManagerProfile(models.Model):
     work_location = models.CharField(max_length=255)
 
     def __str__(self):
-        if self.user:  # Check if self.user is not None
+        if self.user:  
             return f"{self.user.username} - Manager"
-        return "Manager Profile (No User Assigned)"  # Or some other appropriate message 
+        return "Manager Profile (No User Assigned)"  
     
 class Manager(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)  # Make it nullable
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)  
     company_name = models.CharField(max_length=255)
     work_location = models.CharField(max_length=255)
 
@@ -46,7 +70,7 @@ class Manager(models.Model):
 
 
 class Dashboard(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dashboards')  # Renaming the related name to 'dashboards'
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dashboards') 
     description = models.TextField()
     clock_in_time = models.DateTimeField(null=True, blank=True)
     clock_out_time = models.DateTimeField(null=True, blank=True)
@@ -55,22 +79,10 @@ class Dashboard(models.Model):
         return f"{self.user.username}'s Dashboard"
     
     
-# Project Model
 
-from django.db import models
-from django.contrib.auth.models import User
-
-# In models.py
-from django.db import models
-from django.utils import timezone
-from datetime import date, timedelta
-
-from django.db import models
-from django.utils import timezone
-from datetime import date, timedelta
 
 class Project(models.Model):
-    # Add these choices at the top of your model class
+    
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('completed', 'Completed'),
@@ -78,8 +90,7 @@ class Project(models.Model):
     ]
     
   
-    
-    # Existing fields
+      
     name = models.CharField(max_length=255)
     workers = models.ManyToManyField(User, related_name='projects')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
@@ -87,7 +98,7 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     
-    # New fields
+
     description = models.TextField(blank=True, null=True)
     budget = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     documents = models.FileField(upload_to='projects/documents/', blank=True, null=True)
@@ -111,17 +122,13 @@ class TimeLog(models.Model):
     clock_out = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
 
     def __str__(self):
         return f"TimeLog for {self.user.username}"
     
 
-from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone  
 
-from django.db import models
-from django.utils import timezone
 
 class Task(models.Model):
     STATUS_CHOICES = [

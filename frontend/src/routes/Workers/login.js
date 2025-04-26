@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { formButton } from '../Style/tailwindStyles';
-import { useAuth } from '../context/useAuth';
+import { formButton } from '../../Style/tailwindStyles';
+import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/images/LaborSynclogo.png';
-import Notification from './Components/Notification';
+import logo from '../../assets/images/LaborSynclogo.png';
+import Notification from '../Components/Notification';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { loginUser, notification, setNotification } = useAuth();
 
@@ -43,6 +44,9 @@ const Login = () => {
     }
   };
   
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleNav = () => {
     navigate('/register');
@@ -50,7 +54,7 @@ const Login = () => {
 
   const closeNotification = () => {
     setNotification({ ...notification, show: false });
-};
+  };
 
 
   return (
@@ -83,9 +87,9 @@ const Login = () => {
                 required
               />
             </div>
-            <div>
+            <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -93,6 +97,15 @@ const Login = () => {
                 placeholder="Password"
                 required
               />
+              {password.length > 0 && (
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              )}
             </div>
 
             <div className="text-right mb-4">

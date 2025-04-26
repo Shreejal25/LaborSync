@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/useAuth';
+import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getProjects } from '../endpoints/api';
-import logo from "../assets/images/LaborSynclogo.png";
+import { getProjects } from '../../endpoints/api';
+import logo from "../../assets/images/LaborSynclogo.png";
 
 const WorkerProjectsPage = () => {
     const { userProfile, handleLogout, userTasks, fetchUserTasks } = useAuth();

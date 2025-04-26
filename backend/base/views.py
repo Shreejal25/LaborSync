@@ -1,9 +1,11 @@
 from django.shortcuts import render, get_object_or_404
+from django.http import QueryDict
 from django.contrib.auth.models import User
 
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
+from django.core.paginator import Paginator
 from django.core.mail import send_mail
 
 from django.utils.http import urlsafe_base64_decode
@@ -22,13 +24,24 @@ from django.conf import settings
 from .permission import IsManager
 
 
+# Adding workers
+
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import ManagerProfile  # Import your ManagerProfile model
+
+
 
 from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer, UserPointsSerializer, RewardSerializer, RewardCreateSerializer
-from rest_framework.decorators import api_view, permission_classes 
+from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer, UserPointsSerializer, RewardSerializer, RewardCreateSerializer,PointsTransactionSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import (
@@ -36,6 +49,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from django.utils import timezone
+from datetime import datetime
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
@@ -186,7 +200,7 @@ def register(request):
     if serializer.is_valid():
         user = serializer.save()
 
-        # Automatically add the user to the "Workers" group
+        # Automatically adds the user to the "Workers" group
         workers_group, created = Group.objects.get_or_create(name="Workers")
         user.groups.add(workers_group)
 
@@ -266,6 +280,64 @@ def user_role_view(request):
 
 
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_worker(request):
+    # Check if user is a manager
+    if not request.user.groups.filter(name='Managers').exists():
+        return Response(
+            {'success': False, 'message': 'Only managers can invite workers.'},
+            status=403
+        )
+
+    # Get manager's profile
+    try:
+        manager_profile = ManagerProfile.objects.get(user=request.user)
+    except ManagerProfile.DoesNotExist:
+        return Response(
+            {'success': False, 'message': 'Manager profile not found.'},
+            status=404
+        )
+
+    # Get worker's email from request
+    worker_email = request.data.get('email')
+    if not worker_email:
+        return Response(
+            {'success': False, 'message': 'Email is required.'},
+            status=400
+        )
+
+    # Prepare email content
+    company_name = manager_profile.company_name
+    manager_name = request.user.username  # Or use first_name + last_name if available
+    registration_link = "http://localhost:3000/register/"
+
+    subject = f'Invitation to Join {company_name}'
+    message = (
+        f"You have been invited by\n\n"
+        f"Company Name: {company_name}\n"
+        f"Manager Name: {manager_name}\n\n"
+        f"Click the link below to register as a worker:\n{registration_link}"
+    )
+
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [worker_email],
+            fail_silently=False,
+        )
+        return Response({
+            'success': True,
+            'message': 'Invitation email sent successfully.'
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Failed to send invitation email: {str(e)}'
+        }, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -417,90 +489,72 @@ def manager_profile_view(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def clock_in(request):
-    user = request.user
+    """Handle clock-in operation"""
     task_id = request.data.get('task_id')
-    task = None
-    
-    if task_id:
-        try:
-            # Check if task exists and is assigned to user
-            task = Task.objects.get(id=task_id, assigned_to=user)
-            
-            # Only allow clock-in if task is pending or in_progress
-            if task.status not in ['pending', 'in_progress']:
-                return Response({'message': 'This task is already completed.'}, status=400)
-                
-        except Task.DoesNotExist:
-            return Response({'message': f'Task with ID {task_id} not found or not assigned to you.'}, status=400)
-        except ValueError:
-            return Response({'message': 'Invalid task ID format.'}, status=400)
-        
-    # Check for existing active TimeLog for this user
-    latest_log = TimeLog.objects.filter(user=user).order_by('-clock_in').first()
+    if not task_id:
+        return Response({"error": "task_id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    if latest_log and latest_log.clock_out is None:
-        return Response({"message": "You are already clocked in."}, status=400)
-
-    # Create a new TimeLog
-    new_log = TimeLog.objects.create(user=user, clock_in=timezone.now(), task=task)
-    
-    if task:
-        # Set task to in_progress if it was pending
-        if task.status == 'pending':
-            task.status = 'in_progress'
-            task.save()
-        
-    serializer = ClockInClockOutSerializer(new_log)
-    return Response({"message": "Clocked in successfully.", "data": serializer.data}, status=200)
-
-
-# Update your clock_out view to award points
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def clock_out(request):
-    user = request.user
-    task_id = request.data.get('task_id')
-    
     try:
-        task = Task.objects.get(id=task_id, assigned_to=user)
-        latest_log = TimeLog.objects.filter(
-            user=user,
-            task=task,
+        task = Task.objects.get(id=task_id, assigned_to=request.user)
+        
+        # Check if user already has an active clock-in
+        active_clock = TimeLog.objects.filter(
+            user=request.user,
             clock_out__isnull=True
-        ).latest('clock_in')
-
-        latest_log.clock_out = timezone.now()
-        latest_log.save()
-
-        # Award points for task completion
-        if check_task_completion(task):
-            task.status = 'completed'
-            task.save()
-            
-            # Award 5 points to each assigned user
-            for assigned_user in task.assigned_to.all():
-                award_points(
-                    user=assigned_user,
-                    points=5,
-                    description=f"Task completion: {task.task_title}",
-                    task=task
-                )
-            
+        ).first()
+        
+        if active_clock:
             return Response({
-                "message": "Clocked out successfully. Task marked as completed!",
-                "completed": True
-            }, status=200)
-
+                "message": "You already have an active clock-in",
+                "clock_in": active_clock.clock_in,
+                "task_id": active_clock.task.id
+            }, status=status.HTTP_200_OK)
+            
+        # Create new clock-in
+        clock_in = TimeLog.objects.create(
+            user=request.user,
+            task=task,
+            clock_in=timezone.now()
+        )
+        
         return Response({
-            "message": "Clocked out successfully",
-            "completed": False
-        }, status=200)
-
-    except TimeLog.DoesNotExist:
-        return Response({"message": "No active clock-in found"}, status=400)
+            "message": "Clocked in successfully",
+            "clock_in": clock_in.clock_in,
+            "task_id": task.id
+        }, status=status.HTTP_201_CREATED)
+        
     except Task.DoesNotExist:
-        return Response({"message": "Task not found"}, status=404)
+        return Response({"error": "Task not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_active_clock(request):
+    """Check if user has an active clock-in"""
+    active_clock = TimeLog.objects.filter(
+        user=request.user,
+        clock_out__isnull=True
+    ).first()
     
+    if active_clock:
+        return Response({
+            "is_active": True,
+            "clock_in": active_clock.clock_in,
+            "task_id": active_clock.task.id,
+            "task_title": active_clock.task.task_title
+        }, status=status.HTTP_200_OK)
+    
+    return Response({
+        "is_active": False
+    }, status=status.HTTP_200_OK)
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.utils import timezone
+from .models import Task, TimeLog
+from rest_framework import status
+
 def check_task_completion(task):
     """Check if all workers have completed required clock cycles"""
     for user in task.assigned_to.all():
@@ -514,6 +568,43 @@ def check_task_completion(task):
             return False
     return True
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def clock_out(request):
+    """Handle basic clock-out operation without auto-completion or rewards"""
+    try:
+        user = request.user
+        task_id = request.data.get('task_id')
+        
+        if not task_id:
+            return Response({"error": "task_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify task exists and is assigned to user
+        task = Task.objects.get(id=task_id, assigned_to=user)
+        
+        # Find the latest active clock-in
+        latest_log = TimeLog.objects.filter(
+            user=user,
+            task=task,
+            clock_out__isnull=True
+        ).latest('clock_in')
+
+        # Record clock-out time
+        latest_log.clock_out = timezone.now()
+        latest_log.save()
+
+        # Simple response without completion checks or rewards
+        return Response({
+            "message": "Clocked out successfully",
+            "clock_in": latest_log.clock_in,
+            "clock_out": latest_log.clock_out,
+            "duration": (latest_log.clock_out - latest_log.clock_in).total_seconds() / 3600  # hours
+        }, status=status.HTTP_200_OK)
+
+    except TimeLog.DoesNotExist:
+        return Response({"error": "No active clock-in found"}, status=status.HTTP_400_BAD_REQUEST)
+    except Task.DoesNotExist:
+        return Response({"error": "Task not found or not assigned to user"}, status=status.HTTP_404_NOT_FOUND)
 
 
 
@@ -576,25 +667,44 @@ def create_project(request):
     serializer = ProjectSerializer(data=data, context={'request': request})
     
     if serializer.is_valid():
-        # Automatically set created_by from request.user
+       
         project = serializer.save(created_by=request.user)
         return Response(ProjectSerializer(project).data, status=201)
     return Response(serializer.errors, status=400)
 
+
+
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from rest_framework.decorators import parser_classes
+
+
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
 def update_project(request, project_id):
+    # Get project and verify ownership
     project = get_object_or_404(Project, pk=project_id)
-    
-    # Verify the requesting user is the project creator
     if project.created_by != request.user:
         return Response({'error': 'Not authorized to update this project'}, status=403)
-    
-    serializer = ProjectSerializer(project, data=request.data, partial=True)
+
+    # Prepare data and serializer
+    data = request.data.copy()
+    serializer = ProjectSerializer(
+        project,
+        data=data,
+        partial=True,
+        context={'request': request}  # Match create_project's context
+    )
+
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
+
+    # Return detailed errors for debugging
     return Response(serializer.errors, status=400)
+
+
+
 
 
 
@@ -632,12 +742,9 @@ def get_projects(request):
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_project(request, project_id):
-    """
-    Delete a project (only if user is the creator)
-    """
     project = get_object_or_404(Project, pk=project_id)
     
-    # Verify the requesting user is the project creator
+    # Verifys the requesting user is the project creator
     if project.created_by != request.user:
         return Response({'error': 'Not authorized to delete this project'}, status=403)
     
@@ -697,12 +804,10 @@ def update_task(request, task_id):
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_task(request, task_id):
-    """
-    Delete a task (only if user is a manager)
-    """
+    
     user = request.user
     
-    # Check if user is a manager
+    # Checking if user is a manager
     if not user.groups.filter(name='Managers').exists():
         return Response({'error': 'You do not have permission to delete tasks.'}, status=403)
     
@@ -1042,14 +1147,20 @@ def redeem_reward(request):
             user_points.redeemed_points += reward.point_cost
             user_points.save()
 
-            # Create transaction record
-            PointsTransaction.objects.create(
-                user=request.user,
-                transaction_type='redeem',
-                points=-reward.point_cost,
-                description=f"Redeemed: {reward.name}",
-                related_reward=reward
-            )
+            # Create transaction record with related task if the reward has one
+            transaction_data = {
+                'user': request.user,
+                'transaction_type': 'redeem',
+                'points': -reward.point_cost,
+                'description': f"Redeemed: {reward.name}",
+                'related_reward': reward
+            }
+            
+            # Include the task if the reward has one associated
+            if hasattr(reward, 'task') and reward.task:
+                transaction_data['related_task'] = reward.task
+                
+            PointsTransaction.objects.create(**transaction_data)
 
             # Process reward based on type
             reward_message = process_reward(request.user, reward)
@@ -1111,20 +1222,7 @@ def process_reward(user, reward):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsManager])
 def create_reward(request):
-    """
-    Create a new reward with optional task association
-    POST /api/rewards/create/
-    {
-        "name": "Team Bonus",
-        "description": "Annual team performance bonus",
-        "point_cost": 500,
-        "reward_type": "bonus",
-        "cash_value": 100.00,
-        "is_active": true,
-        "eligible_users": ["user1", "user2"],
-        "task": 123  # Optional task ID
-    }
-    """
+   
     serializer = RewardCreateSerializer(data=request.data, context={'request': request})
     
     if serializer.is_valid():
@@ -1160,6 +1258,150 @@ def create_reward(request):
         status=status.HTTP_400_BAD_REQUEST
     )
 
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def worker_points_history(request):
+    """
+    Get the current user's points transaction history
+    """
+    transactions = PointsTransaction.objects.filter(user=request.user).order_by('-timestamp')  # Changed to timestamp
+    
+    # Optional query parameters for filtering
+    transaction_type = request.query_params.get('type', None)
+    if transaction_type:
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    date_from = request.query_params.get('date_from', None)
+    if date_from:
+        try:
+            date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            transactions = transactions.filter(timestamp__gte=date_from)  # Changed to timestamp
+        except ValueError:
+            pass
+    
+    date_to = request.query_params.get('date_to', None)
+    if date_to:
+        try:
+            date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+            transactions = transactions.filter(timestamp__lte=date_to)  # Changed to timestamp
+        except ValueError:
+            pass
+    
+    page = request.query_params.get('page', 1)
+    page_size = request.query_params.get('page_size', 10)
+    
+    paginator = Paginator(transactions, page_size)
+    try:
+        paginated_transactions = paginator.page(page)
+    except EmptyPage:
+        return Response(
+            {'error': 'Page not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    serializer = PointsTransactionSerializer(paginated_transactions, many=True)
+    
+    return Response({
+        'count': paginator.count,
+        'total_pages': paginator.num_pages,
+        'current_page': int(page),
+        'transactions': serializer.data
+    })
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsManager])
+def manager_points_history(request):
+    """
+    Manager view - Get all points transactions with filtering capabilities
+    """
+    transactions = PointsTransaction.objects.all().order_by('-timestamp')
+    
+    # Filter by user (username or ID)
+    user_id = request.query_params.get('user_id', None)
+    if user_id:
+        transactions = transactions.filter(user__id=user_id)
+    
+    username = request.query_params.get('username', None)
+    if username:
+        transactions = transactions.filter(user__username__icontains=username)
+    
+    # Filter by transaction type
+    transaction_type = request.query_params.get('type', None)
+    if transaction_type:
+        transactions = transactions.filter(transaction_type=transaction_type)
+    
+    # Filter by date range
+    date_from = request.query_params.get('date_from', None)
+    if date_from:
+        try:
+            date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            transactions = transactions.filter(timestamp__gte=date_from)
+        except ValueError:
+            pass
+    
+    date_to = request.query_params.get('date_to', None)
+    if date_to:
+        try:
+            date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+            transactions = transactions.filter(timestamp__lte=date_to)
+        except ValueError:
+            pass
+    
+    # Filter by task (if you want to see transactions related to specific tasks)
+    task_id = request.query_params.get('task_id', None)
+    if task_id:
+        transactions = transactions.filter(related_task__id=task_id)
+    
+    # Filter by reward (if you want to see specific reward redemptions)
+    reward_id = request.query_params.get('reward_id', None)
+    if reward_id:
+        transactions = transactions.filter(related_reward__id=reward_id)
+    
+    # Pagination
+    page = request.query_params.get('page', 1)
+    page_size = request.query_params.get('page_size', 20)  # Larger default for managers
+    
+    paginator = Paginator(transactions, page_size)
+    try:
+        paginated_transactions = paginator.page(page)
+    except EmptyPage:
+        return Response(
+            {'error': 'Page not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    serializer = PointsTransactionSerializer(paginated_transactions, many=True)
+    
+    return Response({
+        'count': paginator.count,
+        'total_pages': paginator.num_pages,
+        'current_page': int(page),
+        'transactions': serializer.data
+    })
+# views.py
+
+
+@api_view(['PUT'])
+def update_reward(request, reward_id):
+    try:
+        reward = Reward.objects.get(id=reward_id)
+    except Reward.DoesNotExist:
+        return Response({"error": "Reward not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = RewardSerializer(reward, data=request.data, partial=True)
+    
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated, IsManager])

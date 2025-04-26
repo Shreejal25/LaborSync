@@ -155,7 +155,7 @@ class TimeLogAdmin(admin.ModelAdmin):
     readonly_fields = ('clock_in', 'clock_out', 'duration', 'is_active')
 
     # Display the clock-in and clock-out fields for editing
-    fields = ('user', 'clock_in', 'clock_out', 'is_active', 'duration')
+    fields = ('user', 'clock_in', 'clock_out', 'is_active', 'duration')  
 
     def formatted_clock_in(self, obj):
         """Display the clock-in time in a readable format."""

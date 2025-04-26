@@ -1,0 +1,91 @@
+d) All of the above
+
+c) SELECT
+
+c) DATE
+
+b) WHERE
+
+b) Combines data from two or more tables
+
+b) UNION
+
+b) DROP TABLE
+
+b) COUNT
+
+a) =
+
+b) Returns only unique values
+
+a) INNER JOIN returns all matching rows, while OUTER JOIN returns all rows from one table.
+
+b) To uniquely identify each row in a table
+
+b) Sorts the results
+
+a) UPDATE modifies existing data, while DELETE removes data entirely
+
+a) A query nested within another
+
+a) CREATE TABLE table_name (column1 datatype, column2 datatype, ...);
+
+d) All of the above
+
+b) Performs a pattern matching search
+
+c) Groups data based on one or more columns
+
+b) A temporary name assigned to a table or column
+
+b) To create a relationship between tables, enforcing referential integrity
+
+a) Filters groups based on a condition applied to aggregate functions
+
+a) UNION removes duplicates, while UNION ALL keeps all rows
+
+b) concatenation operator
+
+b) UNION ALL
+
+a) Schema is a blueprint for the database structure, defining tables and their relationships. Tables store the actual data.
+
+b) d (Trick question: substr with a negative index behaves differently in different SQL dialects; in Oracle, it returns 'd')
+
+d) SELECT SUM(s.rating) FROM sailors s, reserves r WHERE s.sid = r.sid AND r.bid = 103;
+
+b) DCL consist of 2 commands
+
+a) Transactions can be saved to the database and rolled back with the help of TCL commands in SQL.
+
+c) Saves the changes made within a transaction
+
+c) Reverts all changes made within a transaction
+
+b) To specify the format and range of allowed values for a column
+
+c) 9 (All except the one with the minimum salary are greater than any salary)
+
+a) ab (INSTR ('123321123', '3', 3, 2) returns position 7; SUBSTR('abcabcabc', 7, 2) = "ab")
+
+a) An inner join combines data from two tables, while a self-join joins a table to itself.
+
+c) print 50 (ROUND(55.926, -1) = 50, rounds to nearest 10)
+
+a) Logical operators combine conditions, while comparison operators evaluate expressions.
+
+b) To perform calculations or manipulations on data
+
+a) Aggregate functions operate on groups of data, returning a single value, while scalar functions operate on individual values.
+
+a) Select * from customer natural join order;
+
+a) SELECT * FROM student WHERE name LIKE 'r%';
+
+c) SELECT * FROM customers;
+
+b) SELECT * FROM customers WHERE id > 10;
+
+a) SELECT COUNT (*) FROM customers;
+
+b) SELECT name FROM customers ORDER BY name;

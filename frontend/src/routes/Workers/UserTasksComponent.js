@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/useAuth';
+import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getProjects } from '../endpoints/api';
-import logo from "../assets/images/LaborSynclogo.png";
+import { getProjects } from '../../endpoints/api';
+import logo from "../../assets/images/LaborSynclogo.png";
 
 const UserTasksComponent = () => {
     const { userProfile, handleLogout, userTasks, fetchUserTasks } = useAuth();
@@ -108,11 +108,11 @@ const UserTasksComponent = () => {
             {/* Main Content */}
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
                 <div className="p-8">
-                    <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-2xl font-bold">Your Tasks</h1> 
-                       
-                        <p className="text-gray-600">View all tasks you're currently assigned to</p>
+                    <div className="mb-8">
+                    <h1 className="text-3xl font-bold">Your Tasks</h1>
+                    <p className="text-gray-600 mt-1">View all tasks you're currently assigned to</p>
                     </div>
+
 
                     {tasksWithProjectNames.length > 0 ? (
                         <div className="bg-white p-6 rounded shadow-md">

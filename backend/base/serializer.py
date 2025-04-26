@@ -1,9 +1,10 @@
 from rest_framework import generics,serializers,permissions
-from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project,UserPoints, PointsTransaction, Badge, UserBadge, Reward
+from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project,UserPoints, PointsTransaction, Badge, UserBadge, Reward,  Task
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+
 
 
 class CombinedUserSerializer(serializers.ModelSerializer):
@@ -179,7 +180,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         
         # Update UserProfile
         return super().update(instance, validated_data)
-
+    
+    
+    
+      
+    
+    
+    
 class ManagerProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=False)
 
@@ -191,19 +198,19 @@ class ManagerProfileSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop('user', {})
         user = instance.user
         
-        # Update user fields if they exist in user_data
+        # Updates user fields if they exist in user_data
         for field in ['email', 'first_name', 'last_name']:
             if field in user_data:
                 setattr(user, field, user_data[field])
         
-        # Only update username if it's different and valid
+        # Only updates username if it's different and valid
         if 'username' in user_data and user_data['username'] != user.username:
             if not User.objects.filter(username=user_data['username']).exists():
                 user.username = user_data['username']
         
         user.save()
 
-        # Update profile fields
+        # Updates profile fields
         instance.company_name = validated_data.get('company_name', instance.company_name)
         instance.work_location = validated_data.get('work_location', instance.work_location)
         instance.save()
@@ -211,9 +218,7 @@ class ManagerProfileSerializer(serializers.ModelSerializer):
         return instance
             
 
-
-
-
+# Manager Profile Serializer
 class ManagerSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(required=True)
     work_location = serializers.CharField(required=True)
@@ -222,28 +227,28 @@ class ManagerSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'password', 'first_name', 'last_name', 'company_name', 'work_location']
         extra_kwargs = {
-            'password': {'write_only': True}  # Ensure password is write-only
+            'password': {'write_only': True}  
         }
 
     def create(self, validated_data):
-        # Extract company name and work location from validated data
+      
         company_name = validated_data.pop('company_name')
         work_location = validated_data.pop('work_location')
 
-        # Create the user instance
+       
         user = User(
             username=validated_data['username'],
             email=validated_data['email'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name']
         )
-        user.set_password(validated_data['password'])  # Hash the password
+        user.set_password(validated_data['password'])  #
         user.save()
 
-        # Create the manager profile with additional fields
+      
         Manager.objects.create(user=user, company_name=company_name, work_location=work_location)
 
-        return user  # Return the created user instance (or you can return the manager instance if needed)
+        return user  
     
     
 # Project Serializer
@@ -299,13 +304,14 @@ class ClockInClockOutSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     clock_in = serializers.DateTimeField(format='iso-8601', read_only=True)  
     clock_out = serializers.DateTimeField(format='iso-8601', read_only=True)
-    task = serializers.PrimaryKeyRelatedField(read_only=True) #add task field.
+    
+    task = serializers.PrimaryKeyRelatedField(read_only=True) 
     class Meta:
         model = TimeLog
         fields = ['username','clock_in', 'clock_out', 'task']  
 
     def update(self, instance, validated_data):
-        # Update clock_in and clock_out instead of clock_in_time and clock_out_time
+        
         if 'clock_in' in validated_data:
             instance.clock_in = validated_data['clock_in']
         if 'clock_out' in validated_data:
@@ -373,14 +379,14 @@ class TaskSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             assigned_to = validated_data.pop('assigned_to')
 
-            # Create the task instance
+            # Creates the task instance
             task = Task.objects.create(
                 **validated_data,
                 assigned_by=request.user,
                 status_changed_at=timezone.now()
             )
 
-            # Set many-to-many relationship
+            # Sets many-to-many relationship
             task.assigned_to.set(assigned_to)
 
             return task
@@ -396,13 +402,13 @@ class TaskSerializer(serializers.ModelSerializer):
         if 'status' in validated_data and instance.status != validated_data['status']:
             validated_data['status_changed_at'] = timezone.now()
         
-        # Update regular fields
+        # Updating regular fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         
         instance.save()
         
-        # Update many-to-many relationship if provided
+        # Updating many-to-many relationship if provided
         if assigned_to is not None:
             instance.assigned_to.set(assigned_to)
         
@@ -434,13 +440,12 @@ class TaskViewSerializer(serializers.ModelSerializer):
         ]
     
     def get_assigned_to(self, obj):
-        # Return array of assigned usernames
+        # Returns array of assigned usernames
         return [user.username for user in obj.assigned_to.all()]
     
 
 
-from rest_framework import serializers
-from .models import PointsTransaction, Badge, UserBadge, Reward, UserPoints, Task
+
 
 class SimpleTaskSerializer(serializers.ModelSerializer):
     class Meta:
@@ -448,7 +453,7 @@ class SimpleTaskSerializer(serializers.ModelSerializer):
         fields = ['id', 'task_title', 'status', 'project', 'assigned_shift']
 
 class PointsTransactionSerializer(serializers.ModelSerializer):
-    related_task = TaskSerializer(read_only=True)
+    related_task = SimpleTaskSerializer(read_only=True)
     reward_details = serializers.SerializerMethodField()
     
     class Meta:
@@ -519,9 +524,10 @@ class UserBadgeSerializer(serializers.ModelSerializer):
 
 class RewardSerializer(serializers.ModelSerializer):
     is_affordable = serializers.SerializerMethodField()
-    task = serializers.PrimaryKeyRelatedField(read_only=True)
     task_details = serializers.SerializerMethodField()
-    
+    task_title = serializers.SerializerMethodField()
+  
+
     class Meta:
         model = Reward
         fields = [
@@ -534,25 +540,34 @@ class RewardSerializer(serializers.ModelSerializer):
             'days_off',
             'is_active',
             'is_affordable',
-            'task',
+            'task_title',
+            
             'task_details'
         ]
-    
+
     def get_is_affordable(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             user_points = UserPoints.objects.get_or_create(user=request.user)[0]
             return user_points.available_points >= obj.point_cost
         return False
+
+    def get_task_title(self, obj):
+        if obj.task:
+            return obj.task.task_title
+        return None
     
+
     def get_task_details(self, obj):
         if obj.task:
             return {
                 'id': obj.task.id,
-                
+                'title': obj.task.task_title,
                 'description': obj.task.description
+                
             }
         return None
+
 
 class UserPointsSerializer(serializers.ModelSerializer):
     transactions = PointsTransactionSerializer(many=True, read_only=True)
@@ -591,9 +606,7 @@ class UserPointsSerializer(serializers.ModelSerializer):
         return None
     
     
-    # serializers.py
-from rest_framework import serializers
-from .models import Reward
+    
 
 class RewardCreateSerializer(serializers.ModelSerializer):
     

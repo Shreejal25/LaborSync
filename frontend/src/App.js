@@ -1,31 +1,33 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import Login from './routes/login';
-import UserDashboard from './routes/menu';
+import Login from './routes/Workers/login';
+import UserDashboard from './routes/Workers/menu';
 import PrivateRoute from './components/PrivateRoute';
-import UserProfile from './routes/UserProfilePage';
+import UserProfile from './routes/Workers/UserProfilePage';
 import ManagerProfilePage from './routes/Manager Routes/ManagerProfile';
-import Register from './routes/register';
-import AssignTaskComponent from './routes/AssignTaskComponent';
+import Register from './routes/Workers/register';
+import AssignTaskComponent from './routes/Manager Routes/AssignTaskComponent';
 import RegisterManager from './routes/Manager Routes/ManagerRegister';
 import ManagerLogin from './routes/Manager Routes/ManagerLogin';
-import ForgotPassword from './routes/ForgotPassword';
-import ResetPassword from './routes/ResetPassword';
+import ForgotPassword from './routes/Workers/ForgotPassword';
+import ResetPassword from './routes/Workers/ResetPassword';
 import ManagerDashboard from './routes/Manager Routes/ManagerDashboard';
-import UserTasksComponent from './routes/UserTasksComponent';
+import UserTasksComponent from './routes/Workers/UserTasksComponent';
 import RoleProtectedRoute from './routes/Components/RoleProtectedRoute';
 import Unauthorized from './routes/Components/unauthorized';
 import CreateProject from './routes/Manager Routes/Project';
 
-import WorkerProjectsPage from './routes/WorkerProjectsPage';
-import WorkerProductivityCharts from './routes/ReportsDashboard';
+import WorkerProjectsPage from './routes/Workers/WorkerProjectsPage';
+
 import ProjectStatus from './routes/Manager Routes/ProjectStatus';
-import ReportDashboard from './routes/ReportsDashboard';
+import ReportDashboard from './routes/Manager Routes/ReportsDashboard';
 import AwardPoints from './routes/Manager Routes/AwardPoints';
 import CreateReward from './routes/Manager Routes/Rewards';
 import ManagerRewardsView from './routes/Manager Routes/ManagerRewardsView';
-import WorkerRewards from './routes/WorkerRewards';
+import WorkerRewards from './routes/Workers/WorkerRewards';
+import WorkersPointsHistory from './routes/Workers/WorkersPointsHistory';
+import ManagerPointsHistory from './routes/Manager Routes/ManagerPointsHistory';
 
 
 
@@ -52,7 +54,7 @@ function App() {
           <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
 
           {/* Private Routes (Wrapped with PrivateRoute) */}
-          <Route path='/user-profile' element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+          {/* <Route path='/user-profile' element={<PrivateRoute><UserProfile /></PrivateRoute>} /> */}
           
           
           <Route path='/view-task' element={<PrivateRoute><UserTasksComponent /></PrivateRoute>} />
@@ -107,6 +109,10 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
+
+          
+
+
 
           <Route 
           path="/manager-profile" 
@@ -168,7 +174,15 @@ function App() {
             </RoleProtectedRoute>
           }
         />
-
+         <Route
+          path="/manager-points-history"
+          element={
+            <RoleProtectedRoute role="manager">
+              <ManagerPointsHistory />
+            </RoleProtectedRoute>
+          }
+        />
+        
         <Route
           path="/worker-rewards"
           element={
@@ -177,6 +191,15 @@ function App() {
             </RoleProtectedRoute>
           }
         />  
+
+        <Route
+          path="/worker-points-history"
+          element={
+            <RoleProtectedRoute role="user">
+              <WorkersPointsHistory />
+            </RoleProtectedRoute>
+          }
+        /> 
 
           {/* Add more routes as needed */}
         
