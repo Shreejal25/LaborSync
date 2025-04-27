@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask, completeTask } from '../../endpoints/api';
+import { getWorkers, getManagerDashboard, getProjects, assignTask, updateTask, deleteTask, completeTask,logout} from '../../endpoints/api';
 import logo from "../../assets/images/LaborSynclogo.png";
 
 const AssignTaskPage = () => {
-    const { handleLogout } = useAuth();
+    
     const navigate = useNavigate();
     const [showModal, setShowModal] = useState(false);
     const [workers, setWorkers] = useState([]);
@@ -23,12 +23,7 @@ const AssignTaskPage = () => {
         dateRange: ''
     });
 
-    // // Helper function to check if two dates are the same day
-    // const isSameDay = (date1, date2) => {
-    //     return date1.getFullYear() === date2.getFullYear() && 
-    //            date1.getMonth() === date2.getMonth() && 
-    //            date1.getDate() === date2.getDate();
-    // };
+    
 
     const filterTasks = (tasks) => {
         return tasks.filter(task => {
@@ -165,6 +160,16 @@ const AssignTaskPage = () => {
         showNotification('Task updated successfully');
     };
 
+      const handleLogout = async () => {
+             try {
+                await logout();
+                navigate('/login-manager');
+             } catch (error) {
+                console.error("Error during logout:", error);
+               
+             }
+           };
+
     const handleDeleteTask = async () => {
         try {
             await deleteTask(selectedTask.id);
@@ -216,40 +221,42 @@ const AssignTaskPage = () => {
                 </div>
             )}
 
-            <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col font-['Poppins']">
-                <div className="flex items-center justify-center py-4 border-b">
-                    <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
-                </div>
-                <nav className="flex-grow overflow-y-auto">
-                    <ul className="flex flex-col py-4">
-                        {[
+          {/* Sidebar */}
+                      <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col font-['Poppins']">
+                      <div className="flex items-center justify-center py-4 border-b">
+                        <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
+                      </div>
+                      <nav className="flex-grow overflow-y-auto">
+                        <ul className="flex flex-col py-4">
+                          {[
                             { path: '/manager-dashboard', label: 'Dashboard' },
-                            { path: '/manage-schedule', label: 'Manage Schedule' },
                             { path: '/create-project', label: 'Project' },
                             { path: '/assign-task', label: 'Assign Tasks' },
                             { path: '/manager-rewards', label: 'Rewards' },
                             { path: '/reports', label: 'Reports' },
-                            { path: '/manager-profile', label: 'Worker Details' }
-                        ].map((item, index) => (
+                            { path: '/manager-profile', label: 'Manager Details' }
+                          ].map((item, index) => (
                             <li 
-                                key={index}
-                                className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
-                                onClick={() => navigate(item.path)}
+                              key={index}
+                              className={`px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${
+                                window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''
+                              }`}
+                              onClick={() => navigate(item.path)}
                             >
-                                {item.label}
+                              {item.label}
                             </li>
-                        ))}
-                    </ul>
-                </nav>
-                <div className="p-4 border-t">
-                    <button
-                        onClick={handleLogout}
-                        className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
-                    >
-                        Logout
-                    </button>
-                </div>
-            </div>
+                          ))}
+                        </ul>
+                      </nav>
+                      <div className="p-4 border-t">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </div>
 
             <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
                 <div className="p-8">

@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'base'
     
 ]
-# FRONTEND_URL = 'https://yourfrontendapp.com'
+FRONTEND_URL = 'https://yourfrontendapp.com'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

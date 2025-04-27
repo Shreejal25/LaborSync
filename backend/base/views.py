@@ -5,12 +5,12 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage
 from django.core.mail import send_mail
 
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
-from rest_framework.authtoken.models import Token  # Correct import
+from rest_framework.authtoken.models import Token  
 from rest_framework import viewsets, status
 from django.utils.http import urlsafe_base64_encode
 from django.db.models import Count, Q
@@ -24,14 +24,14 @@ from django.conf import settings
 from .permission import IsManager
 
 
-# Adding workers
+
 
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import ManagerProfile  # Import your ManagerProfile model
+from .models import ManagerProfile 
 
 
 
@@ -39,7 +39,12 @@ from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
-from .serializer import DashboardSerializer, CombinedUserSerializer, ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,ManagerSerializer,ManagerProfileSerializer,TaskSerializer, TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer, UserPointsSerializer, RewardSerializer, RewardCreateSerializer,PointsTransactionSerializer
+from .serializer import( DashboardSerializer, CombinedUserSerializer,
+ClockInClockOutSerializer, UserProfileSerializer,UserSerializer,
+ManagerSerializer,ManagerProfileSerializer,TaskSerializer, 
+TaskViewSerializer, ProjectSerializer, ProjectWorkerSerializer,
+UserPointsSerializer, RewardSerializer, RewardCreateSerializer,
+PointsTransactionSerializer)
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -148,22 +153,22 @@ def register_manager(request):
     serializer = ManagerSerializer(data=request.data)
 
     if serializer.is_valid():
-        manager_user = serializer.save()  # Save the user instance
+        manager_user = serializer.save() 
 
-        # Extract company_name and work_location from request data
+        
         company_name = request.data.get('company_name', '')
         work_location = request.data.get('work_location', '')
 
-        # Create an associated ManagerProfile with additional details
+      
         ManagerProfile.objects.create(
             user=manager_user,
             company_name=company_name,
             work_location=work_location
         )
 
-        # Assign user to the Managers group
+       
         manager_group, created = Group.objects.get_or_create(name='Managers')
-        manager_group.user_set.add(manager_user)  # Add user to the Managers group
+        manager_group.user_set.add(manager_user)  
 
         return Response({'message': 'Manager registered successfully!'}, status=201)
 
@@ -183,7 +188,7 @@ def login_manager(request):
    
     
     if user is not None:
-        # Check if the user is a manager
+      
         is_manager = user.groups.filter(name='Managers').exists()
         return Response({
             'message': 'Login successful',
@@ -373,9 +378,7 @@ def get_clock_history(request):
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def create_user_profile(request):
-    """
-    Creates a UserProfile instance for the authenticated user.
-    """
+   
     user = request.user
     # Check if a profile already exists.
     if UserProfile.objects.filter(user=user).exists():
@@ -426,62 +429,89 @@ def manager_profile_view(request):
         return Response({'error': 'Manager profile not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
-        serializer = ManagerProfileSerializer(manager_profile)
-        return Response(serializer.data)
+        return handle_get_manager_profile(manager_profile)
 
     elif request.method == 'PUT':
-        data = request.data.copy()
-        current_user = request.user
+        return handle_put_manager_profile(request, manager_profile)
 
-        # Handle both nested and flat user data
-        user_fields = ['username', 'email', 'first_name', 'last_name']
-        user_data = {}
 
-        if 'user' in data:
-            user_data.update(data.pop('user', {}))
-            
-        for field in user_fields:
-            if field in data:
-                user_data[field] = data.pop(field)
+def handle_get_manager_profile(manager_profile):
+    serializer = ManagerProfileSerializer(manager_profile)
+    return Response(serializer.data)
 
-        # If username is provided and unchanged, remove it to avoid validation
-        if 'username' in user_data and user_data['username'] == current_user.username:
-            user_data.pop('username')
 
-        if user_data:
-            data['user'] = user_data
+def handle_put_manager_profile(request, manager_profile):
+    data = request.data.copy()
+    current_user = request.user
 
-        serializer = ManagerProfileSerializer(
-            manager_profile,
-            data=data,
-            partial=True,
-            context={'request': request}
-        )
+    user_data = extract_user_data(data, current_user)
 
-        try:
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                return Response(serializer.data)
-        except serializers.ValidationError as e:
-            # Handle specific validation errors
-            if 'user' in e.detail and 'username' in e.detail['user']:
-                if any("already exists" in msg for msg in e.detail['user']['username']):
-                    # If trying to set to current username, ignore the error
-                    if 'username' in user_data and user_data['username'] == current_user.username:
-                        # Update other fields without changing username
-                        if 'username' in user_data:
-                            user_data.pop('username')
-                        serializer = ManagerProfileSerializer(
-                            manager_profile,
-                            data=data,
-                            partial=True,
-                            context={'request': request}
-                        )
-                        if serializer.is_valid(raise_exception=True):
-                            serializer.save()
-                            return Response(serializer.data)
-            
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+    if user_data:
+        data['user'] = user_data
+
+    serializer = ManagerProfileSerializer(
+        manager_profile,
+        data=data,
+        partial=True,
+        context={'request': request}
+    )
+
+    try:
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+    except serializers.ValidationError as e:
+        return handle_validation_error(e, user_data, current_user, manager_profile, data, request)
+
+
+def extract_user_data(data, current_user):
+    user_fields = ['username', 'email', 'first_name', 'last_name']
+    user_data = {}
+
+    if 'user' in data:
+        user_data.update(data.pop('user', {}))
+
+    for field in user_fields:
+        if field in data:
+            user_data[field] = data.pop(field)
+
+    if 'username' in user_data and user_data['username'] == current_user.username:
+        user_data.pop('username')
+
+    return user_data
+
+
+def handle_validation_error(e, user_data, current_user, manager_profile, data, request):
+    if is_username_error(e):
+        user_data = handle_username_error(user_data, current_user)
+        return save_manager_profile(manager_profile, data, request, user_data)
+
+    return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+
+def is_username_error(e):
+    return 'user' in e.detail and 'username' in e.detail['user'] and any(
+        "already exists" in msg for msg in e.detail['user']['username']
+    )
+
+
+def handle_username_error(user_data, current_user):
+    if 'username' in user_data and user_data['username'] == current_user.username:
+        user_data.pop('username')
+    return user_data
+
+
+def save_manager_profile(manager_profile, data, request, user_data):
+    serializer = ManagerProfileSerializer(
+        manager_profile,
+        data=data,
+        partial=True,
+        context={'request': request}
+    )
+    if serializer.is_valid(raise_exception=True):
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -975,7 +1005,8 @@ User = get_user_model()
 @permission_classes([IsAuthenticated, IsManager])
 def award_points(request):
     """
-    Award points to a user for completing tasks or other achievements
+    Award points to a user for completing tasks or other achievements,
+    optionally linking a task or a reward to the transaction.
     """
     required_fields = ['points', 'description', 'username']
     if not all(field in request.data for field in required_fields):
@@ -994,55 +1025,51 @@ def award_points(request):
 
         user = get_object_or_404(User, username=request.data['username'])
         task_id = request.data.get('task_id')
-        feedback_id = request.data.get('feedback_id')
+        reward_id = request.data.get('reward_id')
 
         with transaction.atomic():
-            # Update user points
-            user_points, created = UserPoints.objects.get_or_create(user=user)
+            # 1) Update or create the UserPoints record
+            user_points, _ = UserPoints.objects.get_or_create(user=user)
             user_points.total_points += points
             user_points.available_points += points
             user_points.save()
 
-            # Create transaction record
-            transaction_data = {
+            # 2) Build the transaction payload
+            tx_data = {
                 'user': user,
                 'transaction_type': 'earn',
                 'points': points,
                 'description': request.data['description'],
             }
-            
             if task_id:
                 task = get_object_or_404(Task, id=task_id)
-                transaction_data['related_task'] = task
-            
-            if feedback_id:
-                transaction_data['related_feedback'] = feedback_id
+                tx_data['related_task'] = task
+            if reward_id:
+                reward = get_object_or_404(Reward, id=reward_id)
+                tx_data['related_reward'] = reward
 
-            PointsTransaction.objects.create(**transaction_data)
+            # 3) Create the PointsTransaction
+            tx = PointsTransaction.objects.create(**tx_data)
 
-            # Check for new badges
+            # 4) (Optional) badge logic
             check_badges(user)
 
-            return Response(
-                {
-                    'message': 'Points awarded successfully.',
-                    'total_points': user_points.total_points,
-                    'available_points': user_points.available_points
-                },
-                status=status.HTTP_201_CREATED
-            )
+            # 5) Serialize the transaction
+            serializer = PointsTransactionSerializer(tx)
 
-    except ValueError:
-        return Response(
-            {'error': 'Points must be a valid integer.'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+            # 6) Return both the updated points and the serialized transaction
+            return Response({
+                'message': 'Points awarded successfully.',
+                'total_points': user_points.total_points,
+                'available_points': user_points.available_points,
+                'transaction': serializer.data
+            }, status=status.HTTP_201_CREATED)
+
     except Exception as e:
         return Response(
-            {'error': str(e)},
+            {'error': f'An error occurred: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 def check_badges(user):
     """
@@ -1217,7 +1244,7 @@ def process_reward(user, reward):
     
     
     
-
+# Creating A New Reward
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsManager])
@@ -1226,19 +1253,17 @@ def create_reward(request):
     serializer = RewardCreateSerializer(data=request.data, context={'request': request})
     
     if serializer.is_valid():
-        # Extract optional fields
+      
         eligible_users = serializer.validated_data.pop('eligible_users', [])
         task = serializer.validated_data.pop('task', None)
-        
-        # Create the reward
         reward = serializer.save(created_by=request.user)
         
-        # Associate task if provided
+       
         if task:
             reward.task = task
             reward.save()
         
-        # Add eligible users if any were provided
+       
         if eligible_users:
             reward.eligible_users.set(eligible_users)
         
@@ -1265,12 +1290,10 @@ def create_reward(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def worker_points_history(request):
-    """
-    Get the current user's points transaction history
-    """
-    transactions = PointsTransaction.objects.filter(user=request.user).order_by('-timestamp')  # Changed to timestamp
+
+    transactions = PointsTransaction.objects.filter(user=request.user).order_by('-timestamp')  
     
-    # Optional query parameters for filtering
+  
     transaction_type = request.query_params.get('type', None)
     if transaction_type:
         transactions = transactions.filter(transaction_type=transaction_type)
@@ -1279,7 +1302,7 @@ def worker_points_history(request):
     if date_from:
         try:
             date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
-            transactions = transactions.filter(timestamp__gte=date_from)  # Changed to timestamp
+            transactions = transactions.filter(timestamp__gte=date_from) 
         except ValueError:
             pass
     
@@ -1287,7 +1310,7 @@ def worker_points_history(request):
     if date_to:
         try:
             date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-            transactions = transactions.filter(timestamp__lte=date_to)  # Changed to timestamp
+            transactions = transactions.filter(timestamp__lte=date_to)
         except ValueError:
             pass
     

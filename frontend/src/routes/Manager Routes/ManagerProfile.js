@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/images/LaborSynclogo.png";
+import Notification from "../Components/Notification"; // Import Notification component
+import { logout } from "../../endpoints/api";
 
 const ManagerProfilePage = () => {
-  const { managerProfile, fetchManagerProfile, updateManagerProfileData, loading, handleLogout } = useAuth();
+  const { managerProfile, fetchManagerProfile, updateManagerProfileData, loading } = useAuth();
   const [profileData, setProfileData] = useState({
     user: {
       username: "",
@@ -14,6 +16,12 @@ const ManagerProfilePage = () => {
     },
     company_name: "",
     work_location: ""
+  });
+  // Add notification state
+  const [notification, setNotification] = useState({
+    message: "",
+    show: false,
+    type: "success"
   });
   const navigate = useNavigate();
 
@@ -39,17 +47,31 @@ const ManagerProfilePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        await updateManagerProfileData(profileData);
-        alert("Profile updated successfully!");
+      await updateManagerProfileData(profileData);
+      // Show success notification instead of alert
+      setNotification({
+        message: "Profile updated successfully!",
+        show: true,
+        type: "success"
+      });
     } catch (error) {
-        console.error("Error updating profile:", error);
-        if(error.response && error.response.data && error.response.data.user && error.response.data.user.username){
-            alert(error.response.data.user.username[0]); //display the backend error.
-        } else {
-            alert("Error updating profile. Please try again.");
-        }
+      console.error("Error updating profile:", error);
+      // Show error notification instead of alert
+      if (error.response && error.response.data && error.response.data.user && error.response.data.user.username) {
+        setNotification({
+          message: error.response.data.user.username[0],
+          show: true,
+          type: "error"
+        });
+      } else {
+        setNotification({
+          message: "Error updating profile. Please try again.",
+          show: true,
+          type: "error"
+        });
+      }
     }
-};
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,6 +93,11 @@ const ManagerProfilePage = () => {
     }
   };
 
+  // Function to close notification
+  const closeNotification = () => {
+    setNotification({ ...notification, show: false });
+  };
+
   if (loading) return <div className="text-center text-gray-600">Loading...</div>;
   if (!managerProfile) {
     return (
@@ -84,10 +111,31 @@ const ManagerProfilePage = () => {
     );
   }
 
+  
+    const handleLogout = async () => {
+           try {
+              await logout();
+              navigate('/login-manager');
+           } catch (error) {
+              console.error("Error during logout:", error);
+             
+           }
+         };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 font-['Poppins']">
-      {/* Sidebar */}
-      <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
+      {/* Notification Component */}
+      {notification.show && (
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={closeNotification} 
+        />
+      )}
+      
+    
+        {/* Sidebar */}
+        <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
         <div className="flex items-center justify-center py-4 border-b">
           <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
         </div>
@@ -95,12 +143,11 @@ const ManagerProfilePage = () => {
           <ul className="flex flex-col py-4">
             {[
               { path: '/manager-dashboard', label: 'Dashboard' },
-              { path: '/manage-schedule', label: 'Manage Schedule' },
               { path: '/create-project', label: 'Project' },
               { path: '/assign-task', label: 'Assign Tasks' },
               { path: '/manager-rewards', label: 'Rewards' },
               { path: '/reports', label: 'Reports' },
-              { path: '/manager-profile', label: 'Worker Details' }
+              { path: '/manager-profile', label: 'Manager Details' }
             ].map((item, index) => (
               <li 
                 key={index}
@@ -123,8 +170,8 @@ const ManagerProfilePage = () => {
           </button>
         </div>
       </div>
-
-      {/* Main Content */}
+      
+      {/* Main Content with Form */}
       <div className="flex-grow p-6 md:p-10">
         <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 md:p-8">
@@ -134,16 +181,16 @@ const ManagerProfilePage = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
-                  { label: "Username", name: "user.username", type: "text"},
-                  { label: "Email", name: "user.email", type: "email" },
-                  { label: "First Name", name: "user.first_name", type: "text" },
-                  { label: "Last Name", name: "user.last_name", type: "text" },
-                  { label: "Company Name", name: "company_name", type: "text" },
-                  { label: "Work Location", name: "work_location", type: "text" }
+                  { label: "Username", name: "user.username", type: "text", icon: "👤" },
+                  { label: "Email", name: "user.email", type: "email", icon: "✉️" },
+                  { label: "First Name", name: "user.first_name", type: "text", icon: "📝" },
+                  { label: "Last Name", name: "user.last_name", type: "text", icon: "📝" },
+                  { label: "Company Name", name: "company_name", type: "text", icon: "🏢" },
+                  { label: "Work Location", name: "work_location", type: "text", icon: "📍" }
                 ].map((field, index) => (
-                  <div key={index}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      {field.label}
+                  <div key={index} className="group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center">
+                      <span className="mr-2">{field.icon}</span>{field.label}
                     </label>
                     <input
                       type={field.type}
@@ -155,18 +202,18 @@ const ManagerProfilePage = () => {
                       }
                       onChange={handleChange}
                       disabled={field.disabled}
-                      className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                        field.disabled ? "bg-gray-50 text-gray-500 cursor-not-allowed" : "hover:border-gray-400"
+                      className={`w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 ${
+                        field.disabled ? "bg-gray-50 text-gray-500 cursor-not-allowed" : "hover:border-indigo-400 group-hover:shadow-md"
                       }`}
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-6">
                 <button
                   type="button"
-                  className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                  className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium shadow-sm hover:shadow-md flex items-center"
                   onClick={() => setProfileData({
                     user: {
                       username: managerProfile.user.username,
@@ -178,12 +225,18 @@ const ManagerProfilePage = () => {
                     work_location: managerProfile.work_location,
                   })}
                 >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                   Reset
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium shadow-sm"
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium shadow-sm hover:shadow-md flex items-center"
                 >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
                   Save Changes
                 </button>
               </div>

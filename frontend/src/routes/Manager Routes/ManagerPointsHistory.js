@@ -8,13 +8,18 @@ import logo from "../../assets/images/LaborSynclogo.png";
 const ManagerPointsHistory = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  
+  const [filters, setFilters] = useState({
+    transaction_type: '',
+    username: ''
+  });
+
   useEffect(() => {
     fetchTransactions();
   }, [currentPage]);
@@ -23,14 +28,13 @@ const ManagerPointsHistory = () => {
     try {
       setLoading(true);
       
-      // Just include the page parameter
       const queryString = new URLSearchParams({
         page: currentPage,
-        page_size: 20 // Default page size
+        page_size: 20
       }).toString();
       
       const response = await getManagerPoints(queryString);
-      setTransactions(response.transactions);
+      setAllTransactions(response.transactions);
       setTotalPages(response.total_pages);
       setTotalCount(response.count);
       setLoading(false);
@@ -39,6 +43,43 @@ const ManagerPointsHistory = () => {
       setLoading(false);
       console.error(err);
     }
+  };
+
+  useEffect(() => {
+    setFilteredTransactions(filterTransactions(allTransactions));
+  }, [allTransactions, filters]);
+
+  const filterTransactions = (transactions) => {
+    return transactions.filter(transaction => {
+      // Filter by transaction type
+      if (filters.transaction_type && transaction.transaction_type !== filters.transaction_type) {
+        return false;
+      }
+
+      // Filter by username
+      if (filters.username && (!transaction.username || !transaction.username.toLowerCase().includes(filters.username.toLowerCase()))) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      transaction_type: '',
+      username: ''
+    });
+    setCurrentPage(1);
   };
 
   const handlePageChange = (newPage) => {
@@ -63,8 +104,59 @@ const ManagerPointsHistory = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => navigate('/manager-rewards')}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+        >
+          <i className="fas fa-arrow-left"></i>
+          <span className="font-bold">Back to Rewards</span>
+        </button>
         <h1 className="text-2xl font-bold">Points Transaction History</h1>
         <img src={logo} alt="LaborSync Logo" className="h-12" />
+      </div>
+
+      {/* Filter Form */}
+      <div className="mb-6 bg-white p-6 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-4">Filter Transactions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Transaction Type
+            </label>
+            <select
+              name="transaction_type"
+              value={filters.transaction_type}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Types</option>
+              <option value="award">Award</option>
+              <option value="redeem">Redeem</option>
+              <option value="earn">Earn</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              value={filters.username}
+              onChange={handleFilterChange}
+              placeholder="Enter username"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleClearFilters}
+              className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Transactions Table */}
@@ -84,7 +176,7 @@ const ManagerPointsHistory = () => {
               Retry
             </button>
           </div>
-        ) : transactions.length === 0 ? (
+        ) : filteredTransactions.length === 0 ? (
           <div className="p-8 text-center text-gray-600">
             <p>No transactions found.</p>
           </div>
@@ -99,21 +191,19 @@ const ManagerPointsHistory = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reward</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {transactions.map((transaction) => (
+                  {filteredTransactions.map((transaction) => (
                     <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{transaction.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {transaction.user ? (
+                        {transaction.id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {transaction.username ? (
                           <div>
-                            {/* Fixed username display by using the correct property */}
-                            <div>{transaction.user.username || transaction.user.name}</div>
-                            <div className="text-xs text-gray-500">ID: {transaction.user.id}</div>
+                            <div>{transaction.username}</div>
                           </div>
                         ) : (
                           <span className="text-gray-400">Unknown User</span>
@@ -124,46 +214,16 @@ const ManagerPointsHistory = () => {
                           {transaction.transaction_type}
                         </span>
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transaction.points >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                        transaction.points >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
                         {transaction.points > 0 ? `+${transaction.points}` : transaction.points}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{transaction.description}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {transaction.description}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(transaction.timestamp).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {transaction.related_task ? (
-                          <div>
-                            <div>ID: {transaction.related_task.id}</div>
-                            <div className="text-xs text-gray-500">
-                              {transaction.related_task.task_title}
-                              <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
-                                transaction.related_task.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                transaction.related_task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {transaction.related_task.status}
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {transaction.reward_details ? (
-                          <div>
-                            <div>ID: {transaction.reward_details.id}</div>
-                            <div className="text-xs text-gray-500">
-                              {transaction.reward_details.name}
-                              <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
-                                {transaction.reward_details.type || transaction.reward_details.reward_type}
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -196,8 +256,8 @@ const ManagerPointsHistory = () => {
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{transactions.length}</span> results of{' '}
-                    <span className="font-medium">{totalCount}</span> total
+                    Showing <span className="font-medium">{(currentPage - 1) * 20 + 1}-{Math.min(currentPage * 20, totalCount)}</span> of{' '}
+                    <span className="font-medium">{totalCount}</span> results
                   </p>
                 </div>
                 <div>
@@ -224,22 +284,24 @@ const ManagerPointsHistory = () => {
                     </button>
                     
                     {/* Page Numbers */}
-                    {[...Array(totalPages).keys()].slice(
-                      Math.max(0, currentPage - 3),
-                      Math.min(totalPages, currentPage + 2)
-                    ).map((page) => (
-                      <button
-                        key={page + 1}
-                        onClick={() => handlePageChange(page + 1)}
-                        className={`relative inline-flex items-center px-4 py-2 border ${
-                          currentPage === page + 1
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        } text-sm font-medium`}
-                      >
-                        {page + 1}
-                      </button>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .slice(
+                        Math.max(0, currentPage - 3),
+                        Math.min(totalPages, currentPage + 2)
+                      )
+                      .map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
                     
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}

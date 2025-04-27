@@ -11,7 +11,7 @@ import {
   Tooltip, 
   Legend 
 } from 'chart.js';
-import { getProjectStats, getProjects } from '../../endpoints/api';
+import { getProjectStats, getProjects,logout } from '../../endpoints/api';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/LaborSynclogo.png';
 
@@ -119,36 +119,55 @@ const ReportsDashboard = () => {
     );
   }
 
+  const handleLogout = async () => {
+         try {
+            await logout();
+            navigate('/login-manager');
+         } catch (error) {
+            console.error("Error during logout:", error);
+           
+         }
+       };
+
   return (
     <div className="flex h-screen bg-gray-50 font-['Poppins']">
       {/* Side Panel */}
-      <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
-        <div className="flex items-center justify-center py-4 border-b">
-          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-        </div>
-        <nav className="flex-grow">
-          <ul className="flex flex-col py-4">
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-              Dashboard
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
-              Manage Schedule
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/create-project')}>
-              Project
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
-              Assign Tasks
-            </li>
-            <li className="flex items-center px-6 py-2 bg-gray-200 cursor-pointer font-medium">
-              Reports
-            </li>
-            <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-              Worker Details
-            </li>
-          </ul>
-        </nav>
-      </div>
+      {/* Sidebar */}
+             <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
+             <div className="flex items-center justify-center py-4 border-b">
+               <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
+             </div>
+             <nav className="flex-grow overflow-y-auto">
+               <ul className="flex flex-col py-4">
+                 {[
+                   { path: '/manager-dashboard', label: 'Dashboard' },
+                   { path: '/create-project', label: 'Project' },
+                   { path: '/assign-task', label: 'Assign Tasks' },
+                   { path: '/manager-rewards', label: 'Rewards' },
+                   { path: '/reports', label: 'Reports' },
+                   { path: '/manager-profile', label: 'Manager Details' }
+                 ].map((item, index) => (
+                   <li 
+                     key={index}
+                     className={`px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${
+                       window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''
+                     }`}
+                     onClick={() => navigate(item.path)}
+                   >
+                     {item.label}
+                   </li>
+                 ))}
+               </ul>
+             </nav>
+             <div className="p-4 border-t">
+               <button
+                 onClick={handleLogout}
+                 className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
+               >
+                 Logout
+               </button>
+             </div>
+           </div>
 
       {/* Main Content */}
       <div className="p-6 w-full">

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getProjects } from '../../endpoints/api';
+import { getProjects,logout } from '../../endpoints/api';
 import logo from "../../assets/images/LaborSynclogo.png";
 
 const WorkerProjectsPage = () => {
-    const { userProfile, handleLogout, userTasks, fetchUserTasks } = useAuth();
+    const { userProfile ,userTasks, fetchUserTasks } = useAuth();
     const navigate = useNavigate();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -61,11 +61,20 @@ const WorkerProjectsPage = () => {
             </div>
         );
     }
+     const handleLogout = async () => {
+         try {
+            await logout();
+            navigate('/login');
+         } catch (error) {
+            console.error("Error during logout:", error);
+            showNotification("Error during logout", "error");
+         }
+       };
 
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
-             <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen">
+             <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen  font-['Poppins']">
                                 <div className="flex items-center justify-center py-4 border-b">
                                   <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
                                 </div>
@@ -100,7 +109,7 @@ const WorkerProjectsPage = () => {
                               </aside>
 
             {/* Main Content */}
-            <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4">
+            <main className="w-full min-h-screen py-1 md:w-2/3 lg:w-3/4  font-['Poppins']">
                 <div className="p-8">
                     <div className="mb-8">
                         <h1 className="text-2xl font-bold">My Projects</h1>

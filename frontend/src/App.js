@@ -18,6 +18,7 @@ import RoleProtectedRoute from './routes/Components/RoleProtectedRoute';
 import Unauthorized from './routes/Components/unauthorized';
 import CreateProject from './routes/Manager Routes/Project';
 
+
 import WorkerProjectsPage from './routes/Workers/WorkerProjectsPage';
 
 import ProjectStatus from './routes/Manager Routes/ProjectStatus';
@@ -28,6 +29,7 @@ import ManagerRewardsView from './routes/Manager Routes/ManagerRewardsView';
 import WorkerRewards from './routes/Workers/WorkerRewards';
 import WorkersPointsHistory from './routes/Workers/WorkersPointsHistory';
 import ManagerPointsHistory from './routes/Manager Routes/ManagerPointsHistory';
+import Timesheet from './routes/Workers/Timesheet';
 
 
 
@@ -81,6 +83,17 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
+
+        <Route 
+          path="/timesheets" 
+          element={
+
+            <RoleProtectedRoute role="user">
+              <Timesheet/>
+            </RoleProtectedRoute>
+          } 
+        />
+
        
         <Route 
           path="/manager-dashboard" 
@@ -122,15 +135,7 @@ function App() {
             </RoleProtectedRoute>
           } 
         />
-{/* 
-        <Route 
-          path="/worker-productivity" 
-          element={
-            <RoleProtectedRoute role="manager">
-              < WorkerProductivityCharts />
-            </RoleProtectedRoute>
-          } 
-        /> */}
+
         <Route 
           path="/project-status" 
           element={

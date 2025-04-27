@@ -2,10 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/images/LaborSynclogo.png";
-import {updateUserProfile,getUserProfile} from "../../endpoints/api"
+import {updateUserProfile,getUserProfile, logout} from "../../endpoints/api"
 
 const UserProfilePage = () => {
-  const { userProfile, fetchUserProfile, loading, handleLogout } = useAuth();
+  const { userProfile, fetchUserProfile, loading } = useAuth();
+  
+
+
   const [profileData, setProfileData] = useState({
     user: {
       username: "",
@@ -92,6 +95,18 @@ const UserProfilePage = () => {
     }
   };
 
+
+
+   const handleLogout = async () => {
+     try {
+        await logout();
+        navigate('/login');
+     } catch (error) {
+        console.error("Error during logout:", error);
+        showNotification("Error during logout", "error");
+     }
+   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -145,7 +160,7 @@ const UserProfilePage = () => {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen">
+      <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen  font-['Poppins']">
         <div className="flex items-center justify-center py-4 border-b">
           <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
         </div>
@@ -180,7 +195,7 @@ const UserProfilePage = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-grow overflow-y-auto p-6 bg-gray-50">
+      <main className="flex-grow overflow-y-auto p-6 bg-gray-50  font-['Poppins']">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold mb-6">Public Profile</h2>
           <div className="flex flex-col items-center sm:flex-row sm:items-start mb-8">

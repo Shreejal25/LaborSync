@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { awardPoints, getWorkers } from '../../endpoints/api';
+import { awardPoints, getWorkers,getManagerTasks,getRewardsDetails } from '../../endpoints/api';
 import logo from "../../assets/images/LaborSynclogo.png";
 import { useNavigate } from 'react-router-dom';
 
@@ -53,44 +53,42 @@ const AwardPoints = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            {/* Sidebar */}
-            <div className="w-1/6 bg-white shadow-md flex flex-col p-4">
-                <div className="flex items-center justify-center py-4 border-b">
-                    <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-                </div>
-                <nav className="flex-grow">
-                    <ul className="flex flex-col py-4">
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-dashboard')}>
-                        Dashboard
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manage-schedule')}>
-                        Manage Schedule
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/create-project')}>
-                        Project
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/assign-task')}>
-                        Assign Tasks
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/award-points')}>
-                        Rewards
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/reports')}>
-                        Reports
-                        </li>
-                        <li className="flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer" onClick={() => navigate('/manager-profile')}>
-                        Worker Details
-                        </li>
-                    </ul>
-                </nav>
-                <button
-                    onClick={handleLogout}
-                    className="bg-gray-200 text-gray-600 mx-6 my-4 px-4 py-2 rounded hover:bg-gray-300 transition duration-200"
-                >
-                    Logout
-                </button>
-            </div>
+        <div className="flex min-h-screen bg-gray-50 font-['Poppins']">
+                  <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col font-['Poppins'] ">
+                              <div className="flex items-center justify-center py-4 border-b">
+                                <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
+                              </div>
+                              <nav className="flex-grow overflow-y-auto font-['Poppins']">
+                                <ul className="flex flex-col py-4">
+                                  {[
+                                    { path: '/manager-dashboard', label: 'Dashboard' },
+                                    { path: '/create-project', label: 'Project' },
+                                    { path: '/assign-task', label: 'Assign Tasks' },
+                                    { path: '/manager-rewards', label: 'Rewards',active: true },
+                                    { path: '/reports', label: 'Reports' },
+                                    { path: '/manager-profile', label: 'Worker Details' }
+                                    
+                                  ].map((item, index) => (
+                                    <li 
+                                      key={index}
+                                      className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
+                                      onClick={() => navigate(item.path)}
+                                    >
+                                      {item.label}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </nav>
+                              <div className="p-4 border-t">
+                                <button
+                                  onClick={handleLogout}
+                                  className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
+                                >
+                                  Logout
+                                </button>
+                              </div>
+                            </div>
+           
 
             <div className="flex-1 p-8 flex justify-center items-start">
                 <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-0 overflow-hidden">
@@ -224,5 +222,4 @@ const AwardPoints = () => {
         </div>
     );
 };
-
 export default AwardPoints;

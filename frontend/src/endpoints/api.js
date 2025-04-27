@@ -138,6 +138,16 @@ export const deleteProject = async (projectId) => {
     }
 };
 
+export const getManagerTasks = async () => {
+    try {
+        const response = await axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching manager tasks:", error.response?.data || error.message);
+        throw error;
+    }
+}
+
 export const workersPoints = async () => {
     try {
         const response = await axios.get(WORKER_POINTS_HISTORY, { withCredentials: true });
@@ -498,26 +508,26 @@ export const getUserTasks = async (isManager = false) => {
         return [];
     }
 };
-export const getManagerTasks = async () => {
-    try {
-        const response = await axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true });
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching manager tasks:", error.response?.data || error.message);
+// export const getManagerTasks = async () => {
+//     try {
+//         const response = await axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true });
+//         return response.data;
+//     } catch (error) {
+//         console.error("Error fetching manager tasks:", error.response?.data || error.message);
         
-        // Handle 403 Forbidden (not a manager) specifically
-        if (error.response?.status === 403) {
-            throw new Error("You don't have manager privileges");
-        }
+//         // Handle 403 Forbidden (not a manager) specifically
+//         if (error.response?.status === 403) {
+//             throw new Error("You don't have manager privileges");
+//         }
         
-        // Try token refresh if unauthorized
-        if (error.response?.status === 401) {
-            return callRefresh(error, () => axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true }));
-        }
+//         // Try token refresh if unauthorized
+//         if (error.response?.status === 401) {
+//             return callRefresh(error, () => axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true }));
+//         }
         
-        return [];
-    }
-};
+//         return [];
+//     }
+// };
 
 
 

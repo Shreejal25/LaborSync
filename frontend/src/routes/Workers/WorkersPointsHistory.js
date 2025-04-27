@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { workersPoints } from '../../endpoints/api';
+import { workersPoints,logout } from '../../endpoints/api';
 import { useNavigate } from 'react-router-dom';
 import logo from "../../assets/images/LaborSynclogo.png";
 
@@ -27,52 +27,55 @@ const WorkersPointsHistory = () => {
     fetchAllPointsHistory();
   }, []);
 
-  const handleLogout = () => {
-    // Implement logout functionality
-    console.log('Logging out...');
-    // navigate('/login');
-  };
+   const handleLogout = async () => {
+       try {
+          await logout();
+          navigate('/login');
+       } catch (error) {
+          console.error("Error during logout:", error);
+          showNotification("Error during logout", "error");
+       }
+     };
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-full md:w-1/6 bg-white shadow-md flex flex-col">
-        <div className="flex items-center justify-center py-4 border-b">
-          <img src={logo} alt="LaborSync Logo" className="w-28 md:w-36 h-auto" />
-        </div>
-        <nav className="flex-grow overflow-y-auto">
-          <ul className="flex flex-col py-4">
-            {[
-              { path: '/menu', label: 'Dashboard' },
-              { path: '/manage-schedule', label: 'Manage Schedule' },
-              { path: '/view-project', label: 'View Projects' },
-              { path: '/view-task', label: 'View Tasks' },
-              { path: '/worker-rewards', label: 'Rewards' },
-              { path: '/', label: 'Reports' },
-              { path: '/user-profile', label: 'Worker Details' }
-            ].map((item, index) => (
-              <li 
-                key={index}
-                className={`flex items-center px-4 md:px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${window.location.pathname === item.path ? 'bg-gray-100 font-medium' : ''}`}
-                onClick={() => navigate(item.path)}
+     {/* Sidebar */}
+          <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen  font-['Poppins']">
+            <div className="flex items-center justify-center py-4 border-b">
+              <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
+            </div>
+            <nav className="flex-grow overflow-y-auto">
+              <ul className="flex flex-col py-4">
+                {[
+                  { label: "Dashboard", route: "/menu" },
+                  { label: "Timesheets", route: "/timesheets" },
+                  { label: "View Project", route: "/view-project" },
+                  { label: "View Tasks", route: "/view-task" },
+                  { label: "Rewards", route: "/worker-rewards", active: true },
+                  { label: "Worker Details", route: "/user-profile" },
+                ].map(({ label, route, active }) => (
+                  <li
+                    key={label}
+                    className={`flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${active ? "bg-gray-100 font-medium" : ""}`}
+                    onClick={() => navigate(route)}
+                  >
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <div className="p-4 border-t">
+              <button
+                onClick={handleLogout}
+                className="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600 transition duration-200"
               >
-                {item.label}
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="p-4 border-t">
-          <button
-            onClick={handleLogout}
-            className="w-full bg-gray-200 text-gray-600 py-2 rounded hover:bg-gray-300 transition duration-200 font-medium"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+                Logout
+              </button>
+            </div>
+          </aside>
 
     {/* Main Content */}
-<div className="w-full md:w-5/6 p-6">
+<div className="w-full md:w-5/6 p-6  font-['Poppins']">
   <div className="flex justify-between items-center mb-6">
     <h2 className="text-2xl font-bold flex items-center">
       <i className="fas fa-history text-blue-500 mr-2"></i>
@@ -161,7 +164,7 @@ const WorkersPointsHistory = () => {
                       <div className="flex items-start">
                         <i className="fas fa-clipboard-check text-blue-400 mt-1 mr-2"></i>
                         <div>
-                          <p className="font-medium text-gray-900">{transaction.related_task.task_title}</p>
+                          <p className="font-medium text-gray-900">{transaction.task_title}</p>
                           <p className="text-xs text-gray-500 flex items-center">
                             <i className="far fa-clock mr-1"></i>
                             {transaction.related_task.assigned_shift} Shift

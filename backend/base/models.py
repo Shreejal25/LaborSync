@@ -23,6 +23,13 @@ from django.utils import timezone
 
 from django.db import models
 from django.utils import timezone
+#Reward Models
+
+from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 
 
@@ -172,12 +179,6 @@ class Task(models.Model):
 
 
 
-#Reward Models
-
-from django.db import models
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 class UserPoints(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='points')

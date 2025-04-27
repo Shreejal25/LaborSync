@@ -300,18 +300,26 @@ class DashboardSerializer(serializers.ModelSerializer):
         
 
 
+from rest_framework import serializers
+from .models import TimeLog, Task
+
+class ClockTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ['id', 'task_title', 'assigned_shift']
+
 class ClockInClockOutSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     clock_in = serializers.DateTimeField(format='iso-8601', read_only=True)  
     clock_out = serializers.DateTimeField(format='iso-8601', read_only=True)
-    
-    task = serializers.PrimaryKeyRelatedField(read_only=True) 
+    task = ClockTaskSerializer(read_only=True)  # Include full task details
+    note = serializers.CharField(read_only=True, allow_null=True)  # Include note field
+
     class Meta:
         model = TimeLog
-        fields = ['username','clock_in', 'clock_out', 'task']  
+        fields = ['username', 'clock_in', 'clock_out', 'task', 'note']
 
     def update(self, instance, validated_data):
-        
         if 'clock_in' in validated_data:
             instance.clock_in = validated_data['clock_in']
         if 'clock_out' in validated_data:
@@ -453,22 +461,39 @@ class SimpleTaskSerializer(serializers.ModelSerializer):
         fields = ['id', 'task_title', 'status', 'project', 'assigned_shift']
 
 class PointsTransactionSerializer(serializers.ModelSerializer):
-    related_task = SimpleTaskSerializer(read_only=True)
+    reward_name = serializers.SerializerMethodField()
+    task_title = serializers.SerializerMethodField()
     reward_details = serializers.SerializerMethodField()
-    
+    username = serializers.CharField(source='user.username', read_only=True)
+
     class Meta:
         model = PointsTransaction
         fields = [
             'id', 
-            'transaction_type', 
-            'points', 
-            'description', 
+            'username',
+            'transaction_type',
+            'points',
+            'description',
             'timestamp',
             'related_task',
-            'reward_details'
+            'related_reward',
+            'task_title',
+            'reward_name',
+            'reward_details',  # <-- make sure you added this too
         ]
         read_only_fields = ['timestamp']
-    
+
+    def get_task_title(self, obj):
+            if obj.related_task:
+                return obj.related_task.task_title  # <-- use task_title
+            return None
+
+
+    def get_reward_name(self, obj):
+        if obj.related_reward:
+            return obj.related_reward.name
+        return None
+
     def get_reward_details(self, obj):
         if obj.related_reward:
             return {
@@ -522,11 +547,20 @@ class UserBadgeSerializer(serializers.ModelSerializer):
             }
         return None
 
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import Reward, UserPoints
+
 class RewardSerializer(serializers.ModelSerializer):
     is_affordable = serializers.SerializerMethodField()
     task_details = serializers.SerializerMethodField()
     task_title = serializers.SerializerMethodField()
-  
+    eligible_users = serializers.SlugRelatedField(
+        many=True,
+        slug_field='username',
+        queryset=User.objects.all(),
+        required=False
+    )
 
     class Meta:
         model = Reward
@@ -541,8 +575,8 @@ class RewardSerializer(serializers.ModelSerializer):
             'is_active',
             'is_affordable',
             'task_title',
-            
-            'task_details'
+            'task_details',
+            'eligible_users'  # Added eligible_users
         ]
 
     def get_is_affordable(self, obj):
@@ -556,7 +590,6 @@ class RewardSerializer(serializers.ModelSerializer):
         if obj.task:
             return obj.task.task_title
         return None
-    
 
     def get_task_details(self, obj):
         if obj.task:
@@ -564,16 +597,24 @@ class RewardSerializer(serializers.ModelSerializer):
                 'id': obj.task.id,
                 'title': obj.task.task_title,
                 'description': obj.task.description
-                
             }
         return None
 
+    def update(self, instance, validated_data):
+        # Handle eligible_users separately to update ManyToManyField
+        eligible_users = validated_data.pop('eligible_users', None)
+        instance = super().update(instance, validated_data)
+        
+        if eligible_users is not None:
+            instance.eligible_users.set(eligible_users)
+        
+        return instance
 
 class UserPointsSerializer(serializers.ModelSerializer):
-    transactions = PointsTransactionSerializer(many=True, read_only=True)
+    transactions = PointsTransactionSerializer(many=True, read_only=True, source='points_transactions')
     badges = UserBadgeSerializer(many=True, read_only=True)
     next_badge = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = UserPoints
         fields = [
@@ -585,17 +626,16 @@ class UserPointsSerializer(serializers.ModelSerializer):
             'badges',
             'next_badge'
         ]
-    
+
     def get_next_badge(self, obj):
-        # Get the next badge the user hasn't earned yet
         earned_badges = UserBadge.objects.filter(
             user=obj.user
         ).values_list('badge_id', flat=True)
-        
+
         next_badge = Badge.objects.exclude(
             id__in=earned_badges
         ).order_by('points_required').first()
-        
+
         if next_badge:
             return {
                 'id': next_badge.id,
@@ -604,7 +644,7 @@ class UserPointsSerializer(serializers.ModelSerializer):
                 'points_needed': max(0, next_badge.points_required - obj.total_points)
             }
         return None
-    
+
     
     
 
