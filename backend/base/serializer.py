@@ -1,5 +1,5 @@
 from rest_framework import generics,serializers,permissions
-from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project,UserPoints, PointsTransaction, Badge, UserBadge, Reward,  Task
+from .models import Dashboard, UserProfile,TimeLog,Manager, ManagerProfile, Project,UserPoints, PointsTransaction
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
@@ -479,13 +479,13 @@ class PointsTransactionSerializer(serializers.ModelSerializer):
             'related_reward',
             'task_title',
             'reward_name',
-            'reward_details',  # <-- make sure you added this too
+            'reward_details', 
         ]
         read_only_fields = ['timestamp']
 
     def get_task_title(self, obj):
             if obj.related_task:
-                return obj.related_task.task_title  # <-- use task_title
+                return obj.related_task.task_title 
             return None
 
 
@@ -503,49 +503,7 @@ class PointsTransactionSerializer(serializers.ModelSerializer):
             }
         return None
 
-class BadgeSerializer(serializers.ModelSerializer):
-    is_earned = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Badge
-        fields = [
-            'id', 
-            'name', 
-            'description', 
-            'points_required', 
-            'icon',
-            'is_earned'
-        ]
-    
-    def get_is_earned(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return UserBadge.objects.filter(
-                user=request.user, 
-                badge=obj
-            ).exists()
-        return False
 
-class UserBadgeSerializer(serializers.ModelSerializer):
-    badge = BadgeSerializer()
-    task_details = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = UserBadge
-        fields = [
-            'id', 
-            'badge', 
-            'date_earned',
-            'task_details'
-        ]
-    
-    def get_task_details(self, obj):
-        if obj.awarded_for_task:
-            return {
-                'id': obj.awarded_for_task.id,
-                'title': obj.awarded_for_task.task_title
-            }
-        return None
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
@@ -612,8 +570,8 @@ class RewardSerializer(serializers.ModelSerializer):
 
 class UserPointsSerializer(serializers.ModelSerializer):
     transactions = PointsTransactionSerializer(many=True, read_only=True, source='points_transactions')
-    badges = UserBadgeSerializer(many=True, read_only=True)
-    next_badge = serializers.SerializerMethodField()
+    
+    
 
     class Meta:
         model = UserPoints
@@ -623,27 +581,10 @@ class UserPointsSerializer(serializers.ModelSerializer):
             'redeemed_points',
             'last_updated',
             'transactions',
-            'badges',
-            'next_badge'
+            
         ]
 
-    def get_next_badge(self, obj):
-        earned_badges = UserBadge.objects.filter(
-            user=obj.user
-        ).values_list('badge_id', flat=True)
-
-        next_badge = Badge.objects.exclude(
-            id__in=earned_badges
-        ).order_by('points_required').first()
-
-        if next_badge:
-            return {
-                'id': next_badge.id,
-                'name': next_badge.name,
-                'points_required': next_badge.points_required,
-                'points_needed': max(0, next_badge.points_required - obj.total_points)
-            }
-        return None
+   
 
     
     
@@ -676,10 +617,10 @@ class RewardCreateSerializer(serializers.ModelSerializer):
             'is_active',
             'is_redeemable',
             'redemption_instructions',
-            'task',  # If using the foreign key relationship
-            'eligible_users'  # If using the many-to-many relationship
+            'task',  
+            'eligible_users'  
         ]
         extra_kwargs = {
-            'eligible_users': {'required': False}, # Not required for creation
+            'eligible_users': {'required': False}, #
             'task': {'required': False}
         }

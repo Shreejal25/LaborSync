@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/images/LaborSynclogo.png";
-import {updateUserProfile,getUserProfile, logout} from "../../endpoints/api"
+import { updateUserProfile, getUserProfile, logout } from "../../endpoints/api";
 
 const UserProfilePage = () => {
   const { userProfile, fetchUserProfile, loading } = useAuth();
-  
-
+  const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState({
     user: {
@@ -31,12 +30,11 @@ const UserProfilePage = () => {
     work_schedule_preference: "",
   });
   const [selectedImage, setSelectedImage] = useState(null);
-
-  const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    getUserProfile();
-  }, [fetchUserProfile  ]);
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   useEffect(() => {
     if (!loading && userProfile) {
@@ -67,17 +65,12 @@ const UserProfilePage = () => {
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     
-    // Handle file input separately
     if (name === "profile_image") {
       setSelectedImage(files[0]);
-      setProfileData(prev => ({
-        ...prev,
-        profile_image: files[0]
-      }));
+      setImageError(false);
       return;
     }
 
-    // Handle nested user fields
     if (['username', 'email', 'first_name', 'last_name'].includes(name)) {
       setProfileData(prev => ({
         ...prev,
@@ -87,7 +80,6 @@ const UserProfilePage = () => {
         }
       }));
     } else {
-      // Handle regular profile fields
       setProfileData(prev => ({
         ...prev,
         [name]: value
@@ -95,30 +87,25 @@ const UserProfilePage = () => {
     }
   };
 
-
-
-   const handleLogout = async () => {
-     try {
-        await logout();
-        navigate('/login');
-     } catch (error) {
-        console.error("Error during logout:", error);
-        showNotification("Error during logout", "error");
-     }
-   };
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Error during logout:", error);
+      showNotification("Error during logout", "error");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     const formData = new FormData();
     
-    // Append user data with proper nesting
     formData.append('user.email', profileData.user.email);
     formData.append('user.first_name', profileData.user.first_name);
     formData.append('user.last_name', profileData.user.last_name);
 
-    // Append profile data
-    
     formData.append('phone_number', profileData.phone_number);
     formData.append('gender', profileData.gender);
     formData.append('current_address', profileData.current_address);
@@ -132,19 +119,19 @@ const UserProfilePage = () => {
     formData.append('work_availability', profileData.work_availability);
     formData.append('work_schedule_preference', profileData.work_schedule_preference);
     
-    // Append image if selected
     if (selectedImage) {
-        formData.append('profile_image', selectedImage);
+      formData.append('profile_image', selectedImage);
     }
 
     try {
-        const updatedProfile = await updateUserProfile(formData);
-        // Optionally update local state or show success message
-        console.log("Update successful:", updatedProfile);
+      await updateUserProfile(formData);
+      await fetchUserProfile();
+      setSelectedImage(null);
     } catch (error) {
-        console.error("Update failed:", error);
+      console.error("Update failed:", error);
     }
-};
+  };
+
   if (loading) {
     return <div className="text-center text-gray-600">Loading...</div>;
   }
@@ -157,10 +144,17 @@ const UserProfilePage = () => {
     );
   }
 
+  const BASE_URL = "http://127.0.0.1:8000";
+  const imageUrl = profileData.profile_image && typeof profileData.profile_image === 'string'
+    ? profileData.profile_image.startsWith('http://') || profileData.profile_image.startsWith('https://')
+      ? profileData.profile_image
+      : `${BASE_URL}${profileData.profile_image.startsWith('/') ? '' : '/'}${profileData.profile_image}`
+    : null;
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen  font-['Poppins']">
+      <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen font-['Poppins']">
         <div className="flex items-center justify-center py-4 border-b">
           <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
         </div>
@@ -195,23 +189,23 @@ const UserProfilePage = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-grow overflow-y-auto p-6 bg-gray-50  font-['Poppins']">
+      <main className="flex-grow overflow-y-auto p-6 bg-gray-50 font-['Poppins']">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold mb-6">Public Profile</h2>
           <div className="flex flex-col items-center sm:flex-row sm:items-start mb-8">
-          <img
-  src={
-    selectedImage
-      ? URL.createObjectURL(selectedImage) // Preview newly selected file
-      : `http://127.0.0.1:8000${profileData.profile_image}` // Fallback to server URL
-  }
-  alt="Profile"
-  className="w-24 h-24 rounded-full object-cover"
-/>
-
-
-
-            <label htmlFor="profile_image" className="mt-4 sm:mt-0 sm:ml-6 py-3.5 px-7 text-base font-medium text-white bg-[#202142] rounded-lg border border-indigo-200 hover:bg-indigo-900 cursor-pointer">
+            <img
+              src={
+                selectedImage
+                  ? URL.createObjectURL(selectedImage)
+                  : imageUrl && !imageError
+                  ? imageUrl
+                  : "https://via.placeholder.com/150?text=No+Image"
+              }
+              alt="Profile"
+              className="w-40 h-40 rounded-full object-cover"
+              onError={() => setImageError(true)}
+            />
+            <label htmlFor="profile_image" className="sm:mt-0 sm:ml-6 py-3.5 px-11 text-base font-medium text-white bg-[#202142] rounded-lg border border-indigo-200 hover:bg-indigo-900 cursor-pointer ">
               Change picture
               <input
                 type="file"
@@ -225,7 +219,6 @@ const UserProfilePage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* User Fields */}
             {['first_name', 'last_name', 'email'].map((field) => (
               <div key={field}>
                 <label htmlFor={field} className="block mb-1 font-medium text-indigo-900">
@@ -242,7 +235,6 @@ const UserProfilePage = () => {
               </div>
             ))}
 
-            {/* Profile Fields */}
             {[
               "phone_number", "city_town", "state_province", "education_level",
               "certifications", "skills", "languages_spoken", "work_availability", 
@@ -270,7 +262,6 @@ const UserProfilePage = () => {
                   if (userProfile) {
                     setProfileData({
                       user: {
-                       
                         email: userProfile.user?.email || "",
                         first_name: userProfile.user?.first_name || "",
                         last_name: userProfile.user?.last_name || "",

@@ -140,7 +140,7 @@ export const deleteProject = async (projectId) => {
 
 export const getManagerTasks = async () => {
     try {
-        const response = await axios.get(GET_MANAGER_TASKS_URL, { withCredentials: true });
+        const response = await axios.get(MANAGER_TASKS_URL, { withCredentials: true });
         return response.data;
     } catch (error) {
         console.error("Error fetching manager tasks:", error.response?.data || error.message);

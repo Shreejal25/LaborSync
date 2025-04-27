@@ -442,7 +442,7 @@ const UserDashboard = () => {
       )}
 
       {/* Side Panel - Desktop */}
-      <div className="hidden md:flex md:flex-col md:w-1/6 bg-white shadow-md h-screen sticky top-0">
+      <div className="hidden md:flex md:flex-col md:w-1/6 bg-white shadow-md h-screen sticky top-0 font-['Poppins']">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-center py-4 border-b">
             <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />

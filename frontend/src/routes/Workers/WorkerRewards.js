@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
-import { getRewardsDetails, getUserPoints, redeemReward,logout } from '../../endpoints/api';
+import { getRewardsDetails, getUserPoints, redeemReward, logout } from '../../endpoints/api';
 import { FaCoins } from 'react-icons/fa';
 import logo from "../../assets/images/LaborSynclogo.png";
+import Notification from '../Components/Notification';
 
 const WorkerRewards = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const WorkerRewards = () => {
   const [rewards, setRewards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
   const [pointsData, setPointsData] = useState({
     total_points: 0,
     available_points: 0,
@@ -36,26 +38,37 @@ const WorkerRewards = () => {
     fetchData();
   }, []);
 
- 
+  const handleCloseNotification = () => {
+    setNotification(null);
+  };
+
+  const showNotification = (message, type) => {
+    setNotification({ message, type });
+    // Auto-dismiss notification after 5 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
 
   const handleRedeem = async (rewardId, rewardName) => {
+    setRedeemingId(rewardId);
     try {
-      setRedeemingId(rewardId);
       const response = await redeemReward(rewardName);
       
       // Update points data
       const updatedPoints = await getUserPoints();
       setPointsData(updatedPoints);
-      
-      // Update rewards list to reflect the redemption
+
+      // Update rewards list
       const updatedRewards = await getRewardsDetails();
       setRewards(updatedRewards.rewards);
-      
-      // Show success message
-      alert(response.message || 'Reward redeemed successfully!');
+
+      // Show success notification
+      showNotification(response.message || 'Reward redeemed successfully!', 'success');
     } catch (error) {
       console.error("Redemption failed:", error);
-      alert(error.response?.data?.message || 'Failed to redeem reward');
+      // Show error notification
+      showNotification(error.response?.data?.message || 'Failed to redeem reward', 'error');
     } finally {
       setRedeemingId(null);
     }
@@ -90,103 +103,98 @@ const WorkerRewards = () => {
     );
   }
 
-   const handleLogout = async () => {
-       try {
-          await logout();
-          navigate('/login');
-       } catch (error) {
-          console.error("Error during logout:", error);
-          showNotification("Error during logout", "error");
-       }
-     };
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Error during logout:", error);
+      showNotification("Error during logout", "error");
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-        {/* Sidebar */}
-                          <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen  font-['Poppins']">
-                                  <div className="flex items-center justify-center py-4 border-b">
-                                     <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
-                                  </div>
-                                  <nav className="flex-grow overflow-y-auto">
-                                  <ul className="flex flex-col py-4">
-                                     {[
-                                  { label: "Dashboard", route: "/menu" },
-                                   { label: "Timesheets", route: "/timesheets" },
-                                   { label: "View Project", route: "/view-project" },
-                                   { label: "View Tasks", route: "/view-task"  },
-                                   { label: "Rewards", route: "/worker-rewards", active: true },
-                                   { label: "Worker Details", route: "/user-profile"},
-                                   ].map(({ label, route, active }) => (
-                                   <li
-                                   key={label}
-                                  className={`flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${active ? "bg-gray-200 font-medium" : ""}`}
-                                  onClick={() => navigate(route)}
-                                  >
-                                {label}
-                               </li>
-                               ))}
-                             </ul>
-                          </nav>
-                        <div className="p-4 border-t">
-                        <button
-                        onClick={handleLogout}
-                     className="w-full bg-red-500 text-black py-2 rounded hover:bg-gray-300 transition duration-200"
-                     >
-                       Logout
-                  </button>
-               </div>
-            </aside>
+      {/* Sidebar */}
+      <aside className="w-1/6 bg-white shadow-md flex flex-col sticky top-0 h-screen font-['Poppins']">
+        <div className="flex items-center justify-center py-4 border-b">
+          <img src={logo} alt="LaborSync Logo" className="w-36 h-auto" />
+        </div>
+        <nav className="flex-grow overflow-y-auto">
+          <ul className="flex flex-col py-4">
+            {[
+              { label: "Dashboard", route: "/menu" },
+              { label: "Timesheets", route: "/timesheets" },
+              { label: "View Project", route: "/view-project" },
+              { label: "View Tasks", route: "/view-task" },
+              { label: "Rewards", route: "/worker-rewards", active: true },
+              { label: "Worker Details", route: "/user-profile"},
+            ].map(({ label, route, active }) => (
+              <li
+                key={label}
+                className={`flex items-center px-6 py-2 hover:bg-gray-200 cursor-pointer transition-colors duration-200 ${active ? "bg-gray-200 font-medium" : ""}`}
+                onClick={() => navigate(route)}
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="p-4 border-t">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-red-500 text-black py-2 rounded hover:bg-gray-300 transition duration-200"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
 
-          {/* Main Content */}
-          <div className="flex-1 p-8 font-['Poppins']">
-          {/* Points Summary Card - Minimalist Design */}
-    <div className="bg-white p-6 rounded-xl shadow-sm mb-8 border border-gray-100">
-      <div className="flex flex-col items-center mb-6">
-        <div className="relative mb-4">
-          <div className="absolute inset-0 bg-yellow-100 rounded-full opacity-60"></div>
-          <FaCoins className="relative text-yellow-500 text-3xl z-10" />
-        </div>
-        <h2 className="text-xl font-semibold text-gray-800">Your Points Balance</h2>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-5">
-        {/* Total Points Card */}
-        <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg transition-all hover:shadow-sm">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total</span>
-          <span className="text-2xl font-bold text-gray-800">{pointsData.total_points}</span>
-          <div className="mt-1 w-8 h-1 bg-gray-200 rounded-full"></div>
-        </div>
-        
-        {/* Available Points Card */}
-        <div className="flex flex-col items-center p-4 bg-green-50 rounded-lg transition-all hover:shadow-sm">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Available</span>
-          <span className="text-2xl font-bold text-green-600">{pointsData.available_points}</span>
-          <div className="mt-1 w-8 h-1 bg-green-200 rounded-full"></div>
-        </div>
-        
-        {/* Redeemed Points Card */}
-        <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg transition-all hover:shadow-sm">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Redeemed</span>
-          <span className="text-2xl font-bold text-blue-600">{pointsData.redeemed_points}</span>
-          <div className="mt-1 w-8 h-1 bg-blue-200 rounded-full"></div>
-        </div>
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 p-8 font-['Poppins']">
+        {/* Points Summary Card */}
+        <div className="bg-white p-6 rounded-xl shadow-sm mb-8 border border-gray-100">
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-yellow-100 rounded-full opacity-60"></div>
+              <FaCoins className="relative text-yellow-500 text-3xl z-10" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-800">Your Points Balance</h2>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-5">
+            <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg transition-all hover:shadow-sm">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total</span>
+              <span className="text-2xl font-bold text-gray-800">{pointsData.total_points}</span>
+              <div className="mt-1 w-8 h-1 bg-gray-200 rounded-full"></div>
+            </div>
+            
+            <div className="flex flex-col items-center p-4 bg-green-50 rounded-lg transition-all hover:shadow-sm">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Available</span>
+              <span className="text-2xl font-bold text-green-600">{pointsData.available_points}</span>
+              <div className="mt-1 w-8 h-1 bg-green-200 rounded-full"></div>
+            </div>
+            
+            <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg transition-all hover:shadow-sm">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Redeemed</span>
+              <span className="text-2xl font-bold text-blue-600">{pointsData.redeemed_points}</span>
+              <div className="mt-1 w-8 h-1 bg-blue-200 rounded-full"></div>
+            </div>
+          </div>
 
-      {/* Add this button below the points summary */}
-      <div className="mt-6 flex justify-center">
-        <button
-          onClick={() => navigate('/worker-points-history')}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          View Points History
-        </button>
-      </div>  
-  
-  
-    </div>
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={() => navigate('/worker-points-history')}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              View Points History
+            </button>
+          </div>
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Available Rewards</h1>
           <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
@@ -260,18 +268,15 @@ const WorkerRewards = () => {
                           {reward.task_details.title}
                         </p>
                       </div>
-                      
                     )}
-                      {reward.task_details && (
+                    {reward.task_details && (
                       <div className="pt-3 mt-3 border-t border-gray-100">
                         <p className="text-xs text-gray-500 mb-1">Associated Task details:</p>
-                        <p className="text-sm font-medium text-gray-700 ">
+                        <p className="text-sm font-medium text-gray-700">
                           {reward.task_details.description}
                         </p>
                       </div>
-                      
                     )}
-                       
                   </div>
 
                   <div className="mt-6">
@@ -305,6 +310,15 @@ const WorkerRewards = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {notification && (
+          <Notification
+            message={notification.message}
+            type={notification.type}
+            onClose={handleCloseNotification}
+          />
+          
         )}
       </div>
     </div>

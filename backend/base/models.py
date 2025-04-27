@@ -190,25 +190,7 @@ class UserPoints(models.Model):
     def __str__(self):
         return f"{self.user.username}'s Points"
 
-class Badge(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    points_required = models.PositiveIntegerField()
-    icon = models.CharField(max_length=50, default='medal')
 
-    def __str__(self):
-        return self.name
-
-class UserBadge(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='badges')
-    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
-    date_earned = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('user', 'badge')
-
-    def __str__(self):
-        return f"{self.user.username} - {self.badge.name}"
 
 class Reward(models.Model):
     REWARD_TYPES = (

@@ -23,6 +23,12 @@ from rest_framework.response import Response
 from django.conf import settings
 from .permission import IsManager
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.contrib.auth.models import Group
+from .models import Task
+
 
 
 
@@ -35,7 +41,7 @@ from .models import ManagerProfile
 
 
 
-from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Badge, UserBadge, Reward
+from .models import Dashboard, UserProfile,TimeLog,ManagerProfile, Task, Project, UserPoints, PointsTransaction, Reward
 from rest_framework import generics, permissions, status
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import Group
@@ -846,9 +852,7 @@ def delete_task(request, task_id):
     return Response({'message': 'Task deleted successfully'}, status=204)
 
 
-#Views for charts and graphs
 
-# views.py
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsManager])
 def worker_productivity_stats(request):
@@ -891,11 +895,7 @@ def get_project_workers(request, project_id):
     except Project.DoesNotExist:
         return Response({'error': 'Project not found.'}, status=404)
     
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from django.contrib.auth.models import Group
-from .models import Task
+
 
 
 @api_view(['GET'])
@@ -1034,7 +1034,7 @@ def award_points(request):
             user_points.available_points += points
             user_points.save()
 
-            # 2) Build the transaction payload
+          
             tx_data = {
                 'user': user,
                 'transaction_type': 'earn',
@@ -1048,16 +1048,13 @@ def award_points(request):
                 reward = get_object_or_404(Reward, id=reward_id)
                 tx_data['related_reward'] = reward
 
-            # 3) Create the PointsTransaction
+           
             tx = PointsTransaction.objects.create(**tx_data)
 
-            # 4) (Optional) badge logic
-            check_badges(user)
-
-            # 5) Serialize the transaction
+           
             serializer = PointsTransactionSerializer(tx)
 
-            # 6) Return both the updated points and the serialized transaction
+           
             return Response({
                 'message': 'Points awarded successfully.',
                 'total_points': user_points.total_points,
@@ -1071,27 +1068,13 @@ def award_points(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-def check_badges(user):
-    """
-    Check and award badges based on total points
-    """
-    user_points = user.points.total_points
-    eligible_badges = Badge.objects.filter(
-        points_required__lte=user_points
-    ).exclude(
-        id__in=user.badges.values_list('badge_id', flat=True)
-    )
 
-    for badge in eligible_badges:
-        UserBadge.objects.create(user=user, badge=badge)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_points(request):
-    """
-    Get current user's points information
-    """
+    
     points, _ = UserPoints.objects.get_or_create(user=request.user)
     serializer = UserPointsSerializer(points)
     return Response(serializer.data)
@@ -1100,21 +1083,14 @@ def get_user_points(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_available_rewards(request):
-    """
-    Get list of available rewards for the current user
-    - Shows rewards with no eligible_users (public rewards)
-    - Shows rewards where current user is in eligible_users
-    - Filters out inactive rewards
-    """
-    # Get all active rewards that are either:
-    # 1. Public (no eligible_users specified), OR
-    # 2. Include the current user in eligible_users
+   
+   
     rewards = Reward.objects.filter(
         is_active=True
     ).filter(
-          # Public rewards
+         
         Q(eligible_users=request.user)    # User-specific rewards
-    ).distinct()  # Remove duplicates if any
+    ).distinct()  # Removes duplicates if any
 
     serializer = RewardSerializer(rewards, many=True, context={'request': request})
     return Response({
@@ -1126,10 +1102,7 @@ def get_available_rewards(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def redeem_reward(request):
-    """
-    Redeem a reward using available points (by reward name)
-    Only eligible users can redeem (if eligible_users is specified)
-    """
+   
     required_fields = ['reward_name']
     if not all(field in request.data for field in required_fields):
         return Response(
@@ -1169,12 +1142,12 @@ def redeem_reward(request):
             )
 
         with transaction.atomic():
-            # Deduct points
+            # Deducst points
             user_points.available_points -= reward.point_cost
             user_points.redeemed_points += reward.point_cost
             user_points.save()
 
-            # Create transaction record with related task if the reward has one
+            # Creates transaction record with related task if the reward has one
             transaction_data = {
                 'user': request.user,
                 'transaction_type': 'redeem',
@@ -1183,7 +1156,7 @@ def redeem_reward(request):
                 'related_reward': reward
             }
             
-            # Include the task if the reward has one associated
+            # Includes the task if the reward has one associated
             if hasattr(reward, 'task') and reward.task:
                 transaction_data['related_task'] = reward.task
                 
@@ -1208,9 +1181,7 @@ def redeem_reward(request):
         )
 
 def process_reward(user, reward):
-    """
-    Handle different reward types and return appropriate message
-    """
+   
     if reward.reward_type == 'bonus':
         # In a real implementation, you would integrate with payroll here
         return {
@@ -1336,17 +1307,13 @@ def worker_points_history(request):
     })
 
 
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsManager])
 def manager_points_history(request):
-    """
-    Manager view - Get all points transactions with filtering capabilities
-    """
+   
     transactions = PointsTransaction.objects.all().order_by('-timestamp')
     
-    # Filter by user (username or ID)
+    
     user_id = request.query_params.get('user_id', None)
     if user_id:
         transactions = transactions.filter(user__id=user_id)
@@ -1355,12 +1322,12 @@ def manager_points_history(request):
     if username:
         transactions = transactions.filter(user__username__icontains=username)
     
-    # Filter by transaction type
+    
     transaction_type = request.query_params.get('type', None)
     if transaction_type:
         transactions = transactions.filter(transaction_type=transaction_type)
     
-    # Filter by date range
+   
     date_from = request.query_params.get('date_from', None)
     if date_from:
         try:
@@ -1377,19 +1344,19 @@ def manager_points_history(request):
         except ValueError:
             pass
     
-    # Filter by task (if you want to see transactions related to specific tasks)
+  
     task_id = request.query_params.get('task_id', None)
     if task_id:
         transactions = transactions.filter(related_task__id=task_id)
     
-    # Filter by reward (if you want to see specific reward redemptions)
+   
     reward_id = request.query_params.get('reward_id', None)
     if reward_id:
         transactions = transactions.filter(related_reward__id=reward_id)
     
-    # Pagination
+   
     page = request.query_params.get('page', 1)
-    page_size = request.query_params.get('page_size', 20)  # Larger default for managers
+    page_size = request.query_params.get('page_size', 20) 
     
     paginator = Paginator(transactions, page_size)
     try:
@@ -1408,7 +1375,7 @@ def manager_points_history(request):
         'current_page': int(page),
         'transactions': serializer.data
     })
-# views.py
+
 
 
 @api_view(['PUT'])
@@ -1429,18 +1396,15 @@ def update_reward(request, reward_id):
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated, IsManager])
 def delete_reward(request, reward_id):
-    """
-    Delete a reward (force delete)
-    DELETE /api/rewards/delete/<int:reward_id>/
-    """
+    
     try:
-        # Get the reward and verify the current manager created it
+        
         reward = Reward.objects.get(
             id=reward_id,
-            created_by=request.user  # Only the creator can delete
+            created_by=request.user  
         )
         
-        # Force delete the reward regardless of any redemptions
+        
         reward.delete()
         
         return Response(
@@ -1461,20 +1425,18 @@ def delete_reward(request, reward_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])  # Removed IsManager to allow all users to view their history
+@permission_classes([IsAuthenticated])  
 def get_reward_history(request):
-    """
-    Get user's reward redemption history with enhanced filtering
-    """
+   
     try:
-        # Include both successful redemptions and failed attempts if you track them
+       
         transactions = PointsTransaction.objects.filter(
             user=request.user,
-            transaction_type__in=['redeem', 'redeem_failed']  # Include failed attempts if tracked
+            transaction_type__in=['redeem', 'redeem_failed']
         ).select_related(
             'related_reward'
         ).prefetch_related(
-            'related_reward__eligible_users'  # If you want to show eligibility info
+            'related_reward__eligible_users'  
         ).order_by('-timestamp')
 
         if not transactions.exists():
@@ -1493,7 +1455,7 @@ def get_reward_history(request):
                     'name': reward.name if reward else 'Unknown Reward',
                     'type': reward.reward_type if reward else None,
                 },
-                'points': abs(transaction.points),  # Absolute value
+                'points': abs(transaction.points),  
                 'date': transaction.timestamp,
                 'status': 'success' if transaction.points < 0 else 'failed',
                 'description': transaction.description
@@ -1514,12 +1476,9 @@ def get_reward_history(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsManager])
 def get_manager_rewards(request):
-    """
-    Get all rewards created by the current manager
-    GET /api/rewards/manager/
-    """
+  
     try:
-        # Get rewards created by the current manager
+       
         rewards = Reward.objects.filter(
             created_by=request.user
         ).prefetch_related(
@@ -1532,7 +1491,7 @@ def get_manager_rewards(request):
                 status=status.HTTP_200_OK
             )
 
-        # Serialize the data with eligible users details
+       
         reward_data = []
         for reward in rewards:
             eligible_users = reward.eligible_users.all()
@@ -1575,33 +1534,27 @@ def get_manager_rewards(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_worker_rewards(request):
-    """
-    Get all reward information for the current worker
-    Includes:
-    - Available rewards (filtered by eligibility)
-    - Points balance
-    - Redemption history
-    """
+  
     try:
-        # Get user's points balance
+        
         points, _ = UserPoints.objects.get_or_create(user=request.user)
         points_serializer = UserPointsSerializer(points)
         
-        # Get available rewards
+       
         available_rewards = Reward.objects.filter(
             is_active=True
         ).filter(
-            Q(eligible_users__isnull=True) |  # Public rewards
-            Q(eligible_users=request.user)    # User-specific rewards
+            Q(eligible_users__isnull=True) |  
+            Q(eligible_users=request.user)    
         ).distinct()
         
         rewards_serializer = RewardSerializer(available_rewards, many=True, context={'request': request})
         
-        # Get redemption history
+       
         transactions = PointsTransaction.objects.filter(
             user=request.user,
             transaction_type__in=['redeem', 'redeem_failed']
-        ).select_related('related_reward').order_by('-timestamp')[:10]  # Last 10 transactions
+        ).select_related('related_reward').order_by('-timestamp')[:10] 
         
         history = []
         for transaction in transactions:

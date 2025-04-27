@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project, Badge, PointsTransaction, Reward, UserBadge, UserPoints
+from .models import Dashboard, UserProfile, TimeLog, ManagerProfile, Task, Project, PointsTransaction, Reward,UserPoints
 from django.utils.timezone import localtime
 
 
@@ -14,16 +14,12 @@ class UserPointsAdmin(admin.ModelAdmin):
     list_display = ('user', 'total_points', 'available_points', 'redeemed_points')
     search_fields = ('user__username',)
 
-@admin.register(Badge)
-class BadgeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'points_required')
-    
+
 @admin.register(Reward)
 class RewardAdmin(admin.ModelAdmin):
     list_display = ('name', 'point_cost', 'reward_type', 'is_active')
     list_filter = ('reward_type', 'is_active')
 
-admin.site.register(UserBadge)
 admin.site.register(PointsTransaction)
 
 
