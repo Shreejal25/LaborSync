@@ -133,8 +133,9 @@ const Home = () => {
                     <span className="text-gray-700 text-base font-semibold">4.7</span>
                     <span className="text-gray-500 text-base">(4.8, 9,073 reviews)</span>
                 </div>
-                <Link to="/get-started">
+                <Link to="/login">
                     <button className="mt-6 bg-gray-500 text-white px-6 py-2 rounded-full text-lg hover:bg-blue-600">
+                        
                         Get Started
                     </button>
                 </Link>

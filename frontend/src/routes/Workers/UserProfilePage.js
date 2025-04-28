@@ -3,12 +3,14 @@ import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/images/LaborSynclogo.png";
 import { updateUserProfile, getUserProfile, logout } from "../../endpoints/api";
+import Notification from '../Components/Notification';
 
 const UserProfilePage = () => {
   const { userProfile, fetchUserProfile, loading } = useAuth();
   const navigate = useNavigate();
+  const [notification, setNotification] = useState(null);
 
-  const [profileData, setProfileData] = useState({
+  const initialFormState = {
     user: {
       username: "",
       email: "",
@@ -28,9 +30,19 @@ const UserProfilePage = () => {
     languages_spoken: "",
     work_availability: "",
     work_schedule_preference: "",
-  });
+  };
+
+  const [profileData, setProfileData] = useState(initialFormState);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageError, setImageError] = useState(false);
+
+  // Work availability options
+  const workAvailabilityOptions = [
+    { value: '', label: '---------' },
+    { value: 'fulltime', label: 'Fulltime' },
+    { value: 'parttime', label: 'Part-time' },
+    { value: 'freelance', label: 'Freelance' }
+  ];
 
   useEffect(() => {
     fetchUserProfile();
@@ -62,6 +74,17 @@ const UserProfilePage = () => {
     }
   }, [loading, userProfile]);
 
+  const handleCloseNotification = () => {
+    setNotification(null);
+  };
+
+  const showNotification = (message, type) => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     
@@ -85,6 +108,22 @@ const UserProfilePage = () => {
         [name]: value
       }));
     }
+  };
+
+  const handleRemovePicture = () => {
+    setSelectedImage(null);
+    setProfileData(prev => ({
+      ...prev,
+      profile_image: null
+    }));
+    setImageError(true);
+  };
+
+  const handleClearAll = () => {
+    setProfileData(initialFormState);
+    setSelectedImage(null);
+    setImageError(true);
+    showNotification("All fields cleared", "info");
   };
 
   const handleLogout = async () => {
@@ -121,14 +160,18 @@ const UserProfilePage = () => {
     
     if (selectedImage) {
       formData.append('profile_image', selectedImage);
+    } else if (profileData.profile_image === null) {
+      formData.append('profile_image', '');
     }
 
     try {
       await updateUserProfile(formData);
       await fetchUserProfile();
       setSelectedImage(null);
+      showNotification("Profile updated successfully!", "success");
     } catch (error) {
       console.error("Update failed:", error);
+      showNotification("Failed to update profile", "error");
     }
   };
 
@@ -192,30 +235,42 @@ const UserProfilePage = () => {
       <main className="flex-grow overflow-y-auto p-6 bg-gray-50 font-['Poppins']">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold mb-6">Public Profile</h2>
-          <div className="flex flex-col items-center sm:flex-row sm:items-start mb-8">
-            <img
-              src={
-                selectedImage
-                  ? URL.createObjectURL(selectedImage)
-                  : imageUrl && !imageError
-                  ? imageUrl
-                  : "https://via.placeholder.com/150?text=No+Image"
-              }
-              alt="Profile"
-              className="w-40 h-40 rounded-full object-cover"
-              onError={() => setImageError(true)}
-            />
-            <label htmlFor="profile_image" className="sm:mt-0 sm:ml-6 py-3.5 px-11 text-base font-medium text-white bg-[#202142] rounded-lg border border-indigo-200 hover:bg-indigo-900 cursor-pointer ">
-              Change picture
-              <input
-                type="file"
-                id="profile_image"
-                name="profile_image"
-                accept="image/*"
-                onChange={handleChange} 
-                className="hidden"
+          
+          {/* Profile Picture Section */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="mb-4">
+              <img
+                src={
+                  selectedImage
+                    ? URL.createObjectURL(selectedImage)
+                    : imageUrl && !imageError
+                    ? imageUrl
+                    : "https://via.placeholder.com/150?text=No+Image"
+                }
+                alt="Profile"
+                className="w-40 h-40 rounded-full object-cover border-4 border-indigo-100"
+                onError={() => setImageError(true)}
               />
-            </label>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <label className="py-2 px-6 text-base font-medium text-white bg-[#202142] rounded-lg border border-indigo-200 hover:bg-indigo-900 cursor-pointer text-center">
+                Change picture
+                <input
+                  type="file"
+                  id="profile_image"
+                  name="profile_image"
+                  accept="image/*"
+                  onChange={handleChange} 
+                  className="hidden"
+                />
+              </label>
+              <button
+                onClick={handleRemovePicture}
+                className="py-2 px-6 text-base font-medium text-gray-700 bg-gray-200 rounded-lg border border-gray-300 hover:bg-gray-300"
+              >
+                Remove picture
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -231,14 +286,14 @@ const UserProfilePage = () => {
                   value={profileData.user[field] || ""}
                   onChange={handleChange}
                   className="w-full p-2 border rounded bg-indigo-50 border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
                 />
               </div>
             ))}
 
             {[
               "phone_number", "city_town", "state_province", "education_level",
-              "certifications", "skills", "languages_spoken", "work_availability", 
-              "work_schedule_preference"
+              "certifications", "skills", "languages_spoken", "work_schedule_preference"
             ].map((field) => (
               <div key={field}>
                 <label htmlFor={field} className="block mb-1 font-medium text-indigo-900">
@@ -255,7 +310,34 @@ const UserProfilePage = () => {
               </div>
             ))}
 
+            {/* Work Availability Dropdown */}
+            <div>
+              <label htmlFor="work_availability" className="block mb-1 font-medium text-indigo-900">
+                Work Availability
+              </label>
+              <select
+                id="work_availability"
+                name="work_availability"
+                value={profileData.work_availability || ""}
+                onChange={handleChange}
+                className="w-full p-2 border rounded bg-indigo-50 border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {workAvailabilityOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex justify-end space-x-4 pt-4">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Clear All
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -297,6 +379,14 @@ const UserProfilePage = () => {
           </form>
         </div>
       </main>
+
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={handleCloseNotification}
+        />
+      )}
     </div>
   );
 };

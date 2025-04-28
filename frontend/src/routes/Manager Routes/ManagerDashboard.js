@@ -394,8 +394,8 @@ const ManagerDashboard = () => {
                   workers.map((worker) => (
                     <tr key={worker.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{worker.user.username}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{worker.user.first_name} {worker.user.last_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{worker.user.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{worker.user.first_name} {worker.user.last_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{worker.user.email}</td>
                     </tr>
                   ))
                 ) : (

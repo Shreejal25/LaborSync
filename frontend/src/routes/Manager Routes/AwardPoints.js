@@ -248,6 +248,9 @@ const AwardPoints = () => {
                                     <option value="20">20 points</option>
                                     <option value="25">25 points</option>
                                     <option value="50">50 points</option>
+                                    <option value="100">100 points</option>
+                                    <option value="500">500 points</option>
+                                    <option value="1000">1000 points</option>
                                 </select>
                             </div>
 
